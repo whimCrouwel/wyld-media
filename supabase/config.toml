@@ -371,8 +371,12 @@ authorization_url_path = "/oauth/consent"
 # Allow dynamic client registration
 allow_dynamic_registration = false
 
+# Disabled: the edge-runtime health check never passes on some machines even
+# though the runtime serves normally, which blocks `supabase start`. Local
+# Edge Function development uses `supabase functions serve` instead, which
+# runs its own container and does not need this.
 [edge_runtime]
-enabled = true
+enabled = false
 # Supported request policies: `oneshot`, `per_worker`.
 # `per_worker` (default) — enables hot reload during local development.
 # `oneshot` — fallback mode if hot reload causes issues (e.g. in large repos or with symlinks).
@@ -385,6 +389,9 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# Disabled: the analytics (vector/logflare) container panics on some Docker
+# setups ("invalid authority: InvalidIpv4Address"). Analytics is not needed
+# for this project's local development.
 [analytics]
 enabled = false
 port = 54327
