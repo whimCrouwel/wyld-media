@@ -25,10 +25,26 @@ export interface WriterSummary {
 
 export interface WriterDetail extends WriterSummary {
   homepageUrl: string | null;
-  snsLinks: unknown;
+  snsLinks: string[];
   priceInfo: string | null;
   contactUrl: string | null;
   articles: ArticleSummary[];
+}
+
+// http(s) 以外のスキーム(javascript: 等)を弾き、書式不正な文字列も null にする
+export function safeUrl(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  try {
+    const u = new URL(value);
+    return u.protocol === 'http:' || u.protocol === 'https:' ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+// ビルド実行環境のタイムゾーンに依存せず常に JST で日付表示する
+export function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('ja-JP', { timeZone: 'Asia/Tokyo' });
 }
 
 // articles は profiles への FK を2本持つため、埋め込みは FK 名で曖昧性解消する
@@ -149,10 +165,12 @@ export async function fetchWriterBySlug(
     slug: profile.slug,
     name: profile.name,
     bio: profile.bio,
-    homepageUrl: profile.homepage_url ?? null,
-    snsLinks: profile.sns_links ?? [],
+    homepageUrl: safeUrl(profile.homepage_url),
+    snsLinks: Array.isArray(profile.sns_links)
+      ? profile.sns_links.map(safeUrl).filter((u): u is string => u !== null)
+      : [],
     priceInfo: profile.price_info ?? null,
-    contactUrl: profile.contact_url ?? null,
+    contactUrl: safeUrl(profile.contact_url),
     articles: (articles ?? []).map(toSummary),
   };
 }

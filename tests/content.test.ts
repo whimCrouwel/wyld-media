@@ -6,6 +6,7 @@ import {
   fetchWriters,
   fetchWriterBySlug,
   renderMarkdown,
+  safeUrl,
 } from '../src/lib/content';
 
 const db = createClient(
@@ -20,6 +21,29 @@ describe('renderMarkdown', () => {
     expect(html).toContain('<h2>');
     expect(html).toContain('<strong>強調</strong>');
     expect(html).not.toContain('<script');
+  });
+});
+
+describe('safeUrl', () => {
+  it('passes through http:// URLs unchanged', () => {
+    expect(safeUrl('http://example.com')).toBe('http://example.com');
+  });
+
+  it('passes through https:// URLs unchanged', () => {
+    expect(safeUrl('https://example.com/path')).toBe('https://example.com/path');
+  });
+
+  it('rejects javascript: scheme', () => {
+    expect(safeUrl('javascript:alert(1)')).toBeNull();
+  });
+
+  it('rejects non-string values', () => {
+    expect(safeUrl(null)).toBeNull();
+    expect(safeUrl(42)).toBeNull();
+  });
+
+  it('rejects malformed URL strings', () => {
+    expect(safeUrl('not a url')).toBeNull();
   });
 });
 

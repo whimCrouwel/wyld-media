@@ -1,10 +1,9 @@
 ---
 import Base from '../layouts/Base.astro';
 import { supabaseServer } from '../lib/supabase-server';
-import { fetchPublishedArticles } from '../lib/content';
+import { fetchPublishedArticles, formatDate } from '../lib/content';
 
 const { featured, normal } = await fetchPublishedArticles(supabaseServer);
-const fmt = (iso: string) => new Date(iso).toLocaleDateString('ja-JP');
 ---
 <Base title="Wild Media">
   <h1>Wild Media</h1>
@@ -17,7 +16,7 @@ const fmt = (iso: string) => new Date(iso).toLocaleDateString('ja-JP');
           <li>
             <a href={`/articles/${a.slug}`}>{a.title}</a>
             — <a href={`/writers/${a.authorSlug}`}>{a.authorName}</a>
-            <small>({fmt(a.publishedAt)} / 提供: {a.commissionedByName})</small>
+            <small>({formatDate(a.publishedAt)} / 提供: {a.commissionedByName})</small>
           </li>
         ))}
       </ul>
@@ -31,7 +30,7 @@ const fmt = (iso: string) => new Date(iso).toLocaleDateString('ja-JP');
         <li>
           <a href={`/articles/${a.slug}`}>{a.title}</a>
           — <a href={`/writers/${a.authorSlug}`}>{a.authorName}</a>
-          <small>({fmt(a.publishedAt)})</small>
+          <small>({formatDate(a.publishedAt)})</small>
         </li>
       ))}
     </ul>

@@ -1,7 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import { supabaseServer } from '../../lib/supabase-server';
-import { fetchWriters, fetchWriterBySlug } from '../../lib/content';
+import { fetchWriters, fetchWriterBySlug, formatDate } from '../../lib/content';
 import type { WriterDetail } from '../../lib/content';
 
 export async function getStaticPaths() {
@@ -18,15 +18,13 @@ interface Props {
   writer: WriterDetail;
 }
 const { writer } = Astro.props;
-const fmt = (iso: string) => new Date(iso).toLocaleDateString('ja-JP');
 ---
 <Base title={`${writer.name} | Wild Media`}>
   <h1>{writer.name}</h1>
   <p>{writer.bio}</p>
   <ul>
     {writer.homepageUrl && <li><a href={writer.homepageUrl}>ホームページ</a></li>}
-    {Array.isArray(writer.snsLinks) &&
-      writer.snsLinks.map((url) => <li><a href={String(url)}>{String(url)}</a></li>)}
+    {writer.snsLinks.map((url) => <li><a href={url}>{url}</a></li>)}
     {writer.priceInfo && <li>料金: {writer.priceInfo}</li>}
     {writer.contactUrl && <li><a href={writer.contactUrl}>相談窓口</a></li>}
   </ul>
@@ -36,7 +34,7 @@ const fmt = (iso: string) => new Date(iso).toLocaleDateString('ja-JP');
     {writer.articles.map((a) => (
       <li>
         <a href={`/articles/${a.slug}`}>{a.title}</a>
-        <small>({fmt(a.publishedAt)}{a.commissionedByName ? ' / Featured' : ''})</small>
+        <small>({formatDate(a.publishedAt)}{a.commissionedByName ? ' / Featured' : ''})</small>
       </li>
     ))}
   </ul>
