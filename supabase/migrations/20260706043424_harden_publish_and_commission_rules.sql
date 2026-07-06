@@ -4,6 +4,12 @@
 -- pgTAP fixtures run as postgres with no JWT sub (auth.uid() is null), and the
 -- static-site builder / service scripts run with the service key (also no JWT
 -- sub) -- both are trusted by design, same as admins.
+--
+-- INVARIANT this relies on: untrusted client writers ALWAYS present a non-null
+-- auth.uid() (PostgREST only assigns the authenticated role to a GoTrue JWT,
+-- which always carries sub; anon has no write grants). Server-side code must
+-- never write articles on a user's behalf with a bare service_role client --
+-- doing so would be "trusted" and silently bypass these guards.
 
 -- Fix 1 + Fix 3: make published_at server-authoritative for untrusted callers,
 -- and forbid unlinking a commission from a still-published article.
