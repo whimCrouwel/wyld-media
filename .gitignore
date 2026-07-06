@@ -6,3 +6,8 @@ supabase/functions/.env
 # misc
 .DS_Store
 node_modules/
+
+# Astro / Node
+dist/
+.astro/
+.env
