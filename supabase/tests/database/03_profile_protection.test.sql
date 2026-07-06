@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(7);
+select plan(8);
 
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-000000000004', 'prot-writer@test.local'),
@@ -59,6 +59,11 @@ select is(
   (select role from profiles
     where id = '00000000-0000-0000-0000-000000000004')::text,
   'provider', 'role change by admin was persisted');
+select matches(
+  (select commission_code from profiles
+    where id = '00000000-0000-0000-0000-000000000004'),
+  '^WM-[0-9A-F]{8}$',
+  'promotion to provider auto-generates a commission code');
 
 select * from finish();
 rollback;

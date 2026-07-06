@@ -34,6 +34,9 @@ select throws_like(
   'second normal publish within the interval is rejected');
 
 set local role postgres;
+-- clear the leftover writer JWT so this fixture backdate is recognized as a
+-- trusted (no-JWT-sub) postgres action by enforce_publish_rules()
+select set_config('request.jwt.claims', '', true);
 update articles set published_at = now() - interval '11 days'
  where id = '30000000-0000-0000-0000-000000000001';
 select set_config('request.jwt.claims',
@@ -70,6 +73,9 @@ select throws_like(
   'draft-to-published transition is also rate-limited');
 
 set local role postgres;
+-- clear the leftover writer JWT so this fixture backdate is recognized as a
+-- trusted (no-JWT-sub) postgres action by enforce_publish_rules()
+select set_config('request.jwt.claims', '', true);
 update articles set published_at = now() - interval '11 days'
  where id = '30000000-0000-0000-0000-000000000002';
 select set_config('request.jwt.claims',
