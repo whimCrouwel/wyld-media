@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
         'Content-Type': contentType!,
       },
     }),
-    { aws: { signQuery: true } },
+    { aws: { signQuery: true, allHeaders: true } },
   );
 
   return json({
