@@ -1,0 +1,34 @@
+---
+import Base from '../../layouts/Base.astro';
+import { supabaseServer } from '../../lib/supabase-server';
+import { fetchPublishedArticles, fetchArticleBySlug } from '../../lib/content';
+import type { ArticleDetail } from '../../lib/content';
+
+export async function getStaticPaths() {
+  const { featured, normal } = await fetchPublishedArticles(supabaseServer);
+  const details = await Promise.all(
+    [...featured, ...normal].map((a) => fetchArticleBySlug(supabaseServer, a.slug)),
+  );
+  return details
+    .filter((d): d is ArticleDetail => d !== null)
+    .map((article) => ({ params: { slug: article.slug }, props: { article } }));
+}
+
+interface Props {
+  article: ArticleDetail;
+}
+const { article } = Astro.props;
+const fmt = (iso: string) => new Date(iso).toLocaleDateString('ja-JP');
+---
+<Base title={`${article.title} | Wild Media`}>
+  <article>
+    <h1>{article.title}</h1>
+    <p>
+      <a href={`/writers/${article.authorSlug}`}>{article.authorName}</a>
+      / {fmt(article.publishedAt)}
+      {article.commissionedByName && <strong>(Featured — 提供: {article.commissionedByName})</strong>}
+    </p>
+    {article.coverImageUrl && <img src={article.coverImageUrl} alt="" width="800" />}
+    <div set:html={article.bodyHtml} />
+  </article>
+</Base>

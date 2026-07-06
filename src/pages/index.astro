@@ -1,11 +1,39 @@
 ---
-const title = 'Wild Media';
+import Base from '../layouts/Base.astro';
+import { supabaseServer } from '../lib/supabase-server';
+import { fetchPublishedArticles } from '../lib/content';
+
+const { featured, normal } = await fetchPublishedArticles(supabaseServer);
+const fmt = (iso: string) => new Date(iso).toLocaleDateString('ja-JP');
 ---
-<!doctype html>
-<html lang="ja">
-  <head><meta charset="utf-8" /><title>{title}</title></head>
-  <body>
-    <h1>{title}</h1>
-    <p>準備中</p>
-  </body>
-</html>
+<Base title="Wild Media">
+  <h1>Wild Media</h1>
+
+  {featured.length > 0 && (
+    <section>
+      <h2>Featured</h2>
+      <ul>
+        {featured.map((a) => (
+          <li>
+            <a href={`/articles/${a.slug}`}>{a.title}</a>
+            — <a href={`/writers/${a.authorSlug}`}>{a.authorName}</a>
+            <small>({fmt(a.publishedAt)} / 提供: {a.commissionedByName})</small>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+
+  <section>
+    <h2>記事一覧</h2>
+    <ul>
+      {normal.map((a) => (
+        <li>
+          <a href={`/articles/${a.slug}`}>{a.title}</a>
+          — <a href={`/writers/${a.authorSlug}`}>{a.authorName}</a>
+          <small>({fmt(a.publishedAt)})</small>
+        </li>
+      ))}
+    </ul>
+  </section>
+</Base>

@@ -1,0 +1,18 @@
+---
+import Base from '../../layouts/Base.astro';
+import { supabaseServer } from '../../lib/supabase-server';
+import { fetchWriters } from '../../lib/content';
+
+const writers = await fetchWriters(supabaseServer);
+---
+<Base title="ライター一覧 | Wild Media">
+  <h1>ライター一覧</h1>
+  <ul>
+    {writers.map((w) => (
+      <li>
+        <a href={`/writers/${w.slug}`}>{w.name}</a>
+        <p>{w.bio}</p>
+      </li>
+    ))}
+  </ul>
+</Base>
