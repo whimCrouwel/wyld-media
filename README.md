@@ -42,6 +42,8 @@ npm run dev             # http://localhost:4322
 
 ログインはシードユーザー(例 `hana@seed.local` / `seed-pass-1234`)。招待フローの確認には Edge Functions(`supabase functions serve`)が必要。
 
+ログイン後、ダッシュボードの「新しい記事を作成」から記事を執筆できる(マークダウン + ライブプレビュー、下書き保存 / 公開、依頼者コード・スラッグ設定)。
+
 ## 構成
 
 - `admin/` — CMS(別 Astro アプリ、admin. サブドメイン、ブラウザから Supabase 直結)
