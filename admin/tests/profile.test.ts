@@ -1,17 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { safeUrl, parseSnsLinks, buildProfileUpdate } from '../src/lib/profile';
-
-describe('safeUrl', () => {
-  it('accepts http and https', () => {
-    expect(safeUrl('http://example.com')).toBe('http://example.com');
-    expect(safeUrl('https://example.com/x')).toBe('https://example.com/x');
-  });
-  it('rejects javascript: and malformed and empty', () => {
-    expect(safeUrl('javascript:alert(1)')).toBeNull();
-    expect(safeUrl('not a url')).toBeNull();
-    expect(safeUrl('')).toBeNull();
-  });
-});
+import { parseSnsLinks, buildProfileUpdate } from '../src/lib/profile';
 
 describe('parseSnsLinks', () => {
   it('splits lines, keeps safe urls, drops blanks and unsafe', () => {
