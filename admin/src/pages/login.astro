@@ -22,21 +22,23 @@ const title = 'ログイン | Wild Media CMS';
 
       // 既にログイン済みならダッシュボードへ
       const { data: { session } } = await supabaseBrowser.auth.getSession();
-      if (session) redirectTo('/dashboard');
-
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        errorEl.textContent = '';
-        const email = (document.getElementById('email') as HTMLInputElement).value.trim();
-        const password = (document.getElementById('password') as HTMLInputElement).value;
-
-        const validationError = validateLoginInput(email, password);
-        if (validationError) { errorEl.textContent = validationError; return; }
-
-        const { error } = await supabaseBrowser.auth.signInWithPassword({ email, password });
-        if (error) { errorEl.textContent = 'ログインに失敗しました: ' + error.message; return; }
+      if (session) {
         redirectTo('/dashboard');
-      });
+      } else {
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          errorEl.textContent = '';
+          const email = (document.getElementById('email') as HTMLInputElement).value.trim();
+          const password = (document.getElementById('password') as HTMLInputElement).value;
+
+          const validationError = validateLoginInput(email, password);
+          if (validationError) { errorEl.textContent = validationError; return; }
+
+          const { error } = await supabaseBrowser.auth.signInWithPassword({ email, password });
+          if (error) { errorEl.textContent = 'ログインに失敗しました: ' + error.message; return; }
+          redirectTo('/dashboard');
+        });
+      }
     </script>
   </body>
 </html>
