@@ -28,49 +28,55 @@ const title = 'プロフィール編集 | Wild Media CMS';
       import { buildProfileUpdate } from '../lib/profile';
 
       const { data: { session } } = await supabaseBrowser.auth.getSession();
-      if (!session) { redirectTo('/login'); }
+      if (!session) {
+        redirectTo('/login');
+      } else {
+        const messageEl = document.getElementById('message')!;
+        const $ = (id: string) => document.getElementById(id) as HTMLInputElement & HTMLTextAreaElement;
 
-      const messageEl = document.getElementById('message')!;
-      const $ = (id: string) => document.getElementById(id) as HTMLInputElement & HTMLTextAreaElement;
-
-      // 現在のプロフィールをロード(RLS: 自分の行のみ取得可)
-      const { data: profile, error: loadError } = await supabaseBrowser
-        .from('profiles')
-        .select('name, bio, homepage_url, sns_links, price_info, contact_url')
-        .eq('id', session!.user.id)
-        .single();
-      if (loadError) {
-        messageEl.textContent = 'プロフィールの読み込みに失敗しました';
-      } else if (profile) {
-        $('name').value = profile.name ?? '';
-        $('bio').value = profile.bio ?? '';
-        $('homepage').value = profile.homepage_url ?? '';
-        $('sns').value = Array.isArray(profile.sns_links) ? profile.sns_links.join('\n') : '';
-        $('price').value = profile.price_info ?? '';
-        $('contact').value = profile.contact_url ?? '';
-      }
-
-      document.getElementById('profile-form')!.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        messageEl.textContent = '';
-        const payload = buildProfileUpdate({
-          name: $('name').value,
-          bio: $('bio').value,
-          homepageUrl: $('homepage').value,
-          snsRaw: $('sns').value,
-          priceInfo: $('price').value,
-          contactUrl: $('contact').value,
-        });
-        if (!payload.name) { messageEl.textContent = '名前を入力してください'; return; }
-
-        // RLS: 自分の行のみ更新可。role/commission_code は payload に含めない(トリガーが変更を拒否)
-        const { error } = await supabaseBrowser
+        // 現在のプロフィールをロード(RLS: 自分の行のみ取得可)
+        const { data: profile, error: loadError } = await supabaseBrowser
           .from('profiles')
-          .update(payload)
-          .eq('id', session!.user.id);
-        if (error) { messageEl.textContent = '保存に失敗しました: ' + error.message; return; }
-        messageEl.textContent = '保存しました。';
-      });
+          .select('name, bio, homepage_url, sns_links, price_info, contact_url')
+          .eq('id', session!.user.id)
+          .single();
+        if (loadError) {
+          messageEl.textContent = 'プロフィールの読み込みに失敗しました';
+        } else if (profile) {
+          $('name').value = profile.name ?? '';
+          $('bio').value = profile.bio ?? '';
+          $('homepage').value = profile.homepage_url ?? '';
+          $('sns').value = Array.isArray(profile.sns_links) ? profile.sns_links.join('\n') : '';
+          $('price').value = profile.price_info ?? '';
+          $('contact').value = profile.contact_url ?? '';
+        }
+
+        document.getElementById('profile-form')!.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          messageEl.textContent = '';
+          const payload = buildProfileUpdate({
+            name: $('name').value,
+            bio: $('bio').value,
+            homepageUrl: $('homepage').value,
+            snsRaw: $('sns').value,
+            priceInfo: $('price').value,
+            contactUrl: $('contact').value,
+          });
+          if (!payload.name) { messageEl.textContent = '名前を入力してください'; return; }
+
+          // RLS: 自分の行のみ更新可。role/commission_code は payload に含めない(トリガーが変更を拒否)
+          const { error } = await supabaseBrowser
+            .from('profiles')
+            .update(payload)
+            .eq('id', session!.user.id);
+          if (error) {
+            console.error(error);
+            messageEl.textContent = '保存に失敗しました。時間をおいて再度お試しください。';
+            return;
+          }
+          messageEl.textContent = '保存しました。';
+        });
+      }
     </script>
   </body>
 </html>

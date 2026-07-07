@@ -25,38 +25,40 @@ const title = 'ダッシュボード | Wild Media CMS';
 
       // 認証ガード
       const { data: { session } } = await supabaseBrowser.auth.getSession();
-      if (!session) { redirectTo('/login'); }
-
-      document.getElementById('logout')!.addEventListener('click', async () => {
-        await supabaseBrowser.auth.signOut();
+      if (!session) {
         redirectTo('/login');
-      });
+      } else {
+        document.getElementById('logout')!.addEventListener('click', async () => {
+          await supabaseBrowser.auth.signOut();
+          redirectTo('/login');
+        });
 
-      const listEl = document.getElementById('article-list')!;
-      try {
-        const articles = await fetchMyArticles(supabaseBrowser);
-        if (articles.length === 0) {
-          listEl.innerHTML = '<li>まだ記事がありません。</li>';
-        } else {
-          listEl.innerHTML = '';
-          for (const a of articles) {
-            const li = document.createElement('li');
-            const status = a.status === 'draft' ? '下書き' : '公開';
-            const featured = a.isCommissioned ? ' / 依頼記事' : '';
-            // 編集リンクはスタブ(計画4で実装)。テキストは textContent で安全に入れる
-            const label = document.createElement('span');
-            label.textContent = `${a.title}(${status}${featured})`;
-            const edit = document.createElement('a');
-            edit.href = `/articles/${a.id}/edit`;
-            edit.textContent = ' 編集(準備中)';
-            li.appendChild(label);
-            li.appendChild(edit);
-            listEl.appendChild(li);
+        const listEl = document.getElementById('article-list')!;
+        try {
+          const articles = await fetchMyArticles(supabaseBrowser);
+          if (articles.length === 0) {
+            listEl.innerHTML = '<li>まだ記事がありません。</li>';
+          } else {
+            listEl.innerHTML = '';
+            for (const a of articles) {
+              const li = document.createElement('li');
+              const status = a.status === 'draft' ? '下書き' : '公開';
+              const featured = a.isCommissioned ? ' / 依頼記事' : '';
+              // 編集リンクはスタブ(計画4で実装)。テキストは textContent で安全に入れる
+              const label = document.createElement('span');
+              label.textContent = `${a.title}(${status}${featured})`;
+              const edit = document.createElement('a');
+              edit.href = `/articles/${a.id}/edit`;
+              edit.textContent = ' 編集(準備中)';
+              li.appendChild(label);
+              li.appendChild(edit);
+              listEl.appendChild(li);
+            }
           }
+        } catch (err) {
+          listEl.innerHTML = '<li>読み込みに失敗しました。</li>';
+          console.error(err);
         }
-      } catch (err) {
-        listEl.innerHTML = '<li>読み込みに失敗しました。</li>';
-        console.error(err);
       }
     </script>
   </body>
