@@ -1,0 +1,63 @@
+---
+const title = 'ダッシュボード | Wild Media CMS';
+---
+<!doctype html>
+<html lang="ja">
+  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>{title}</title></head>
+  <body>
+    <header>
+      <nav>
+        <a href="/dashboard">ダッシュボード</a> |
+        <a href="/profile">プロフィール編集</a> |
+        <button id="logout" type="button">ログアウト</button>
+      </nav>
+    </header>
+    <main>
+      <h1>自分の記事</h1>
+      <p><a href="/articles/new">＋ 新しい記事を作成</a>(準備中)</p>
+      <ul id="article-list"><li>読み込み中…</li></ul>
+    </main>
+
+    <script>
+      import { supabaseBrowser } from '../lib/supabase-browser';
+      import { redirectTo } from '../lib/auth';
+      import { fetchMyArticles } from '../lib/dashboard';
+
+      // 認証ガード
+      const { data: { session } } = await supabaseBrowser.auth.getSession();
+      if (!session) { redirectTo('/login'); }
+
+      document.getElementById('logout')!.addEventListener('click', async () => {
+        await supabaseBrowser.auth.signOut();
+        redirectTo('/login');
+      });
+
+      const listEl = document.getElementById('article-list')!;
+      try {
+        const articles = await fetchMyArticles(supabaseBrowser);
+        if (articles.length === 0) {
+          listEl.innerHTML = '<li>まだ記事がありません。</li>';
+        } else {
+          listEl.innerHTML = '';
+          for (const a of articles) {
+            const li = document.createElement('li');
+            const status = a.status === 'draft' ? '下書き' : '公開';
+            const featured = a.isCommissioned ? ' / 依頼記事' : '';
+            // 編集リンクはスタブ(計画4で実装)。テキストは textContent で安全に入れる
+            const label = document.createElement('span');
+            label.textContent = `${a.title}(${status}${featured})`;
+            const edit = document.createElement('a');
+            edit.href = `/articles/${a.id}/edit`;
+            edit.textContent = ' 編集(準備中)';
+            li.appendChild(label);
+            li.appendChild(edit);
+            listEl.appendChild(li);
+          }
+        }
+      } catch (err) {
+        listEl.innerHTML = '<li>読み込みに失敗しました。</li>';
+        console.error(err);
+      }
+    </script>
+  </body>
+</html>
