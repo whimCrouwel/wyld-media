@@ -11,3 +11,9 @@ node_modules/
 dist/
 .astro/
 .env
+
+# Admin (CMS) app
+admin/dist/
+admin/.astro/
+admin/.env
+admin/node_modules/
