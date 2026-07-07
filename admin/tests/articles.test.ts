@@ -29,7 +29,7 @@ afterEach(async () => {
   // 作成した記事を後始末(冪等性)
   while (created.length) {
     const id = created.pop()!;
-    await supabase.from('articles').delete().eq('id', id);
+    await deleteArticle(supabase, id);
   }
 });
 
@@ -89,12 +89,27 @@ describe('article CRUD (seeded, as hana)', () => {
     const updated = await fetchArticleForEdit(supabase, id);
     expect(updated!.title).toBe('更新後タイトル');
     expect(updated!.status).toBe('draft');
+
+    await deleteArticle(supabase, id);
+    const gone = await fetchArticleForEdit(supabase, id);
+    expect(gone).toBeNull();
   });
 
   it('checkSlugAvailable is false for an existing published slug of mine, true for a fresh one', async () => {
     // hana は 'koke-no-mori' を公開済み(seed)
     expect(await checkSlugAvailable(supabase, 'koke-no-mori')).toBe(false);
     expect(await checkSlugAvailable(supabase, 'brand-new-unique-slug-xyz')).toBe(true);
+  });
+
+  it('checkSlugAvailable excludes the article own id (edit mode)', async () => {
+    const id = await createDraft(supabase, {
+      title: 'slug自己除外', slug: 'self-exclude-slug-test', body: '本文', coverUrl: '', commissionCode: '',
+    });
+    created.push(id);
+    // without excludeId: the row itself makes the slug appear taken
+    expect(await checkSlugAvailable(supabase, 'self-exclude-slug-test')).toBe(false);
+    // with excludeId = its own id: available (editing keeps its own slug)
+    expect(await checkSlugAvailable(supabase, 'self-exclude-slug-test', id)).toBe(true);
   });
 
   it('publishing a commissioned draft with a bad code raises INVALID_COMMISSION_CODE', async () => {
