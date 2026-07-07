@@ -128,8 +128,15 @@ const title = '記事の編集 | Wild Media CMS';
             }
           });
 
-          document.getElementById('delete')!.addEventListener('click', async () => {
+          const deleteBtn = document.getElementById('delete')!;
+          let deleteArmed = false;
+          deleteBtn.addEventListener('click', async () => {
             messageEl.textContent = '';
+            if (!deleteArmed) {
+              deleteArmed = true;
+              deleteBtn.textContent = '本当に削除?(もう一度押す)';
+              return;
+            }
             try {
               await deleteArticle(supabaseBrowser, id);
               redirectTo('/dashboard');
