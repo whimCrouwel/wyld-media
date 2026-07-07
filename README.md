@@ -28,8 +28,23 @@ Edge Functions(招待・画像アップロードURL発行)の起動:
 supabase functions serve --env-file supabase/functions/.env
 ```
 
+## CMS(管理画面)
+
+CMS はオリジン分離のため別 Astro アプリ(`admin/`)として動き、本番では `admin.` サブドメインに配置する。ブラウザから Supabase に直結(anon キー + RLS)し、service role キーは持たない。
+
+```bash
+cd admin
+cp .env.example .env    # supabase status の ANON_KEY のみを転記(service role は入れない)
+npm install
+npm test                # ロジックの単体テスト(Vitest)
+npm run dev             # http://localhost:4322
+```
+
+ログインはシードユーザー(例 `hana@seed.local` / `seed-pass-1234`)。招待フローの確認には Edge Functions(`supabase functions serve`)が必要。
+
 ## 構成
 
+- `admin/` — CMS(別 Astro アプリ、admin. サブドメイン、ブラウザから Supabase 直結)
 - `supabase/migrations/` — スキーマ・RLS・トリガー(権限とビジネスルールはすべてDB層で強制)
 - `supabase/functions/` — invite-user / r2-upload-url
 - `src/lib/content.ts` — ビルド時データ取得(service role)
