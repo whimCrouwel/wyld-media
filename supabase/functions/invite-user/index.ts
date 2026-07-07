@@ -53,8 +53,10 @@ Deno.serve(async (req) => {
   }
 
   // invite, then create the profile; roll back the auth user on failure
+  // CMS_URL must be set to the admin subdomain in production; the invite link lands on /set-password.
+  const cmsUrl = Deno.env.get('CMS_URL') ?? 'http://localhost:4322';
   const { data: invited, error: inviteError } =
-    await admin.auth.admin.inviteUserByEmail(email);
+    await admin.auth.admin.inviteUserByEmail(email, { redirectTo: `${cmsUrl}/set-password` });
   if (inviteError) return json({ error: inviteError.message }, 400);
 
   const { error: profileError } = await admin.from('profiles').insert({
