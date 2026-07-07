@@ -1,0 +1,145 @@
+---
+const title = '記事の編集 | Wild Media CMS';
+---
+<!doctype html>
+<html lang="ja">
+  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>{title}</title></head>
+  <body>
+    <header><nav><a href="/dashboard">← ダッシュボード</a></nav></header>
+    <main>
+      <h1>記事の編集</h1>
+      <p id="status-label"></p>
+      <form id="article-form">
+        <p><label>タイトル <input type="text" id="title" required /></label></p>
+        <p><label>スラッグ(公開時は必須) <input type="text" id="slug" /></label>
+           <span id="slug-status"></span></p>
+        <p><label>カバー画像URL(任意) <input type="url" id="cover" /></label></p>
+        <p><label>依頼者コード(任意) <input type="text" id="commission" /></label>
+           <span id="commission-status"></span></p>
+        <div style="display:flex; gap:1rem;">
+          <div style="flex:1;">
+            <label>本文(マークダウン)<br />
+              <textarea id="body" rows="16" style="width:100%;"></textarea></label>
+          </div>
+          <div style="flex:1;">
+            <p>プレビュー</p>
+            <div id="preview"></div>
+          </div>
+        </div>
+        <p>
+          <button type="button" id="save-draft">下書き保存</button>
+          <button type="button" id="publish">公開する</button>
+          <button type="button" id="unpublish">下書きに戻す</button>
+          <button type="button" id="delete">削除</button>
+        </p>
+      </form>
+      <p id="message" role="alert"></p>
+    </main>
+
+    <script>
+      import { supabaseBrowser } from '../../lib/supabase-browser';
+      import { redirectTo } from '../../lib/auth';
+      import { fetchArticleForEdit, saveArticle, deleteArticle, validateCommissionCode, checkSlugAvailable } from '../../lib/articles';
+      import { translateSaveError, isValidArticleSlug, renderMarkdownPreview } from '../../lib/editor-helpers';
+
+      const { data: { session } } = await supabaseBrowser.auth.getSession();
+      if (!session) {
+        redirectTo('/login');
+      } else {
+        const id = new URLSearchParams(window.location.search).get('id') ?? '';
+        const $ = (elId: string) => document.getElementById(elId) as HTMLInputElement & HTMLTextAreaElement;
+        const messageEl = document.getElementById('message')!;
+        const previewEl = document.getElementById('preview')!;
+        const statusLabel = document.getElementById('status-label')!;
+        const slugStatus = document.getElementById('slug-status')!;
+        const commissionStatus = document.getElementById('commission-status')!;
+
+        const article = await fetchArticleForEdit(supabaseBrowser, id);
+        if (!article) {
+          messageEl.textContent = '記事が見つかりません(自分の記事のみ編集できます)。';
+        } else {
+          $('title').value = article.title;
+          $('slug').value = article.slug ?? '';
+          $('cover').value = article.coverImageUrl ?? '';
+          $('commission').value = article.commissionCodeInput ?? '';
+          $('body').value = article.body;
+          statusLabel.textContent = `状態: ${article.status === 'draft' ? '下書き' : '公開中'}`;
+          previewEl.innerHTML = renderMarkdownPreview(article.body);
+
+          $('body').addEventListener('input', () => { previewEl.innerHTML = renderMarkdownPreview($('body').value); });
+
+          $('slug').addEventListener('blur', async () => {
+            const slug = $('slug').value.trim();
+            if (!slug) { slugStatus.textContent = ''; return; }
+            if (!isValidArticleSlug(slug)) { slugStatus.textContent = '形式が不正です'; return; }
+            slugStatus.textContent = (await checkSlugAvailable(supabaseBrowser, slug, id)) ? '利用可能' : '使用済み';
+          });
+
+          $('commission').addEventListener('blur', async () => {
+            const code = $('commission').value.trim();
+            if (!code) { commissionStatus.textContent = ''; return; }
+            const name = await validateCommissionCode(supabaseBrowser, code);
+            commissionStatus.textContent = name ? `依頼者: ${name}` : 'コードが見つかりません';
+          });
+
+          const collect = () => ({
+            title: $('title').value, slug: $('slug').value, body: $('body').value,
+            coverUrl: $('cover').value, commissionCode: $('commission').value,
+          });
+
+          const save = async (publish: boolean) => {
+            messageEl.textContent = '';
+            const input = collect();
+            if (!input.title.trim()) { messageEl.textContent = 'タイトルを入力してください'; return; }
+            if (publish && !isValidArticleSlug(input.slug.trim())) {
+              messageEl.textContent = '公開にはスラッグが必要です(小文字英数字とハイフン)'; return;
+            }
+            try {
+              await saveArticle(supabaseBrowser, id, input, publish);
+              messageEl.textContent = publish ? '公開しました。' : '保存しました。';
+              const fresh = await fetchArticleForEdit(supabaseBrowser, id);
+              if (fresh) statusLabel.textContent = `状態: ${fresh.status === 'draft' ? '下書き' : '公開中'}`;
+            } catch (err) {
+              messageEl.textContent = translateSaveError(err);
+              console.error(err);
+            }
+          };
+
+          document.getElementById('save-draft')!.addEventListener('click', () => save(false));
+          document.getElementById('publish')!.addEventListener('click', () => save(true));
+
+          // 下書きに戻す: status を draft に更新(published_at は据え置き。トリガーは公開遷移時のみ発火)
+          document.getElementById('unpublish')!.addEventListener('click', async () => {
+            messageEl.textContent = '';
+            const input = collect();
+            try {
+              // commission_code_input を送りつつ status=draft に。saveArticle は publish=false で status を触らないため、
+              // 明示的に draft へ落とす専用更新を行う。
+              const { error } = await supabaseBrowser
+                .from('articles')
+                .update({ status: 'draft', commission_code_input: input.commissionCode.trim() || null })
+                .eq('id', id);
+              if (error) throw error;
+              messageEl.textContent = '下書きに戻しました。';
+              statusLabel.textContent = '状態: 下書き';
+            } catch (err) {
+              messageEl.textContent = translateSaveError(err);
+              console.error(err);
+            }
+          });
+
+          document.getElementById('delete')!.addEventListener('click', async () => {
+            messageEl.textContent = '';
+            try {
+              await deleteArticle(supabaseBrowser, id);
+              redirectTo('/dashboard');
+            } catch (err) {
+              messageEl.textContent = translateSaveError(err);
+              console.error(err);
+            }
+          });
+        }
+      }
+    </script>
+  </body>
+</html>
