@@ -5,7 +5,12 @@ const title = 'Wild Media CMS';
 <html lang="ja">
   <head><meta charset="utf-8" /><title>{title}</title></head>
   <body>
-    <h1>{title}</h1>
-    <p>準備中</p>
+    <p>読み込み中…</p>
+    <script>
+      import { supabaseBrowser } from '../lib/supabase-browser';
+      import { redirectTo } from '../lib/auth';
+      const { data: { session } } = await supabaseBrowser.auth.getSession();
+      redirectTo(session ? '/dashboard' : '/login');
+    </script>
   </body>
 </html>

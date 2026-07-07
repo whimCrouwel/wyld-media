@@ -1,0 +1,42 @@
+---
+const title = 'ログイン | Wild Media CMS';
+---
+<!doctype html>
+<html lang="ja">
+  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>{title}</title></head>
+  <body>
+    <h1>ログイン</h1>
+    <form id="login-form">
+      <p><label>メールアドレス <input type="email" id="email" required /></label></p>
+      <p><label>パスワード <input type="password" id="password" required /></label></p>
+      <p><button type="submit">ログイン</button></p>
+    </form>
+    <p id="error" role="alert"></p>
+
+    <script>
+      import { supabaseBrowser } from '../lib/supabase-browser';
+      import { validateLoginInput, redirectTo } from '../lib/auth';
+
+      const form = document.getElementById('login-form') as HTMLFormElement;
+      const errorEl = document.getElementById('error')!;
+
+      // 既にログイン済みならダッシュボードへ
+      const { data: { session } } = await supabaseBrowser.auth.getSession();
+      if (session) redirectTo('/dashboard');
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        errorEl.textContent = '';
+        const email = (document.getElementById('email') as HTMLInputElement).value.trim();
+        const password = (document.getElementById('password') as HTMLInputElement).value;
+
+        const validationError = validateLoginInput(email, password);
+        if (validationError) { errorEl.textContent = validationError; return; }
+
+        const { error } = await supabaseBrowser.auth.signInWithPassword({ email, password });
+        if (error) { errorEl.textContent = 'ログインに失敗しました: ' + error.message; return; }
+        redirectTo('/dashboard');
+      });
+    </script>
+  </body>
+</html>
