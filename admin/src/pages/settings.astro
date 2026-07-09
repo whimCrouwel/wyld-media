@@ -25,9 +25,27 @@ const title = 'サイト設定 | Wild Media CMS';
       import { fetchMyRole, fetchSettings, updateSettings } from '../lib/admin';
 
       const { data: { session } } = await supabaseBrowser.auth.getSession();
+
+      // fetchMyRole が失敗しても(通信エラー等)、ここで例外が投げっぱなしになって
+      // 画面が固まらないよう、先に安全に解決してから分岐する。
+      let myRole: string | null = null;
+      let roleLookupFailed = false;
+      if (session) {
+        try {
+          myRole = await fetchMyRole(supabaseBrowser);
+        } catch (err) {
+          roleLookupFailed = true;
+          console.error(err);
+        }
+      }
+
       if (!session) {
         redirectTo('/login');
-      } else if ((await fetchMyRole(supabaseBrowser)) !== 'admin') {
+      } else if (roleLookupFailed) {
+        // リダイレクトループを避けるため、ここではリダイレクトしない。
+        document.getElementById('message')!.textContent =
+          '権限の確認に失敗しました。ページを再読み込みしてください。';
+      } else if (myRole !== 'admin') {
         // UX のためのリダイレクト。実際の防壁は RLS/トリガー。
         redirectTo('/dashboard');
       } else {

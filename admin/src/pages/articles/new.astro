@@ -89,21 +89,31 @@ const title = '新しい記事 | Wild Media CMS';
           coverUrl: cover.getUrl(), commissionCode: $('commission').value,
         });
 
+        const draftBtn = document.getElementById('create-draft') as HTMLButtonElement;
+        let draftInFlight = false;
+
         const create = async () => {
+          if (draftInFlight) return;
           messageEl.textContent = '';
           const input = collect();
           if (!input.title.trim()) { messageEl.textContent = 'タイトルを入力してください'; return; }
+          draftInFlight = true;
+          draftBtn.disabled = true;
           try {
             const id = await createDraft(supabaseBrowser, input);
             // 公開は編集ページから(公開失敗時の孤児下書きをなくすため、新規作成は下書きのみ)
+            // 成功時はここで画面遷移するため、ボタンを再度有効化する必要はない。
             redirectTo(`/articles/edit?id=${id}`);
           } catch (err) {
             messageEl.textContent = translateSaveError(err);
             console.error(err);
+          } finally {
+            draftInFlight = false;
+            draftBtn.disabled = false;
           }
         };
 
-        document.getElementById('create-draft')!.addEventListener('click', () => create());
+        draftBtn.addEventListener('click', () => create());
       }
     </script>
   </body>
