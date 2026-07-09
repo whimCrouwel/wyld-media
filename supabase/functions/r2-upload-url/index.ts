@@ -61,9 +61,10 @@ Deno.serve(async (req) => {
   //   本番:   https://<account-id>.r2.cloudflarestorage.com
   //   ローカル: http://127.0.0.1:54321/storage/v1/s3(Supabase Storage の S3 互換 API を R2 の代わりに使う)
   // 署名 URL に PUT するのはブラウザなので、ブラウザから到達できるホストであること。
-  const objectUrl = new URL(
-    `${Deno.env.get('R2_ENDPOINT')}/${Deno.env.get('R2_BUCKET')}/${key}`,
-  );
+  // 末尾スラッシュを落とす: 付いたままだと //bucket/key に保存され、
+  // R2_PUBLIC_BASE_URL 由来の publicUrl(/bucket/key)と食い違って公開URLが404になる。
+  const endpoint = (Deno.env.get('R2_ENDPOINT') ?? '').replace(/\/$/, '');
+  const objectUrl = new URL(`${endpoint}/${Deno.env.get('R2_BUCKET')}/${key}`);
   objectUrl.searchParams.set('X-Amz-Expires', '300');
 
   const r2 = new AwsClient({
