@@ -84,10 +84,16 @@ const title = 'ユーザー管理 | Wild Media CMS';
                 messageEl.textContent = '';
                 try {
                   await updateUserRole(supabaseBrowser, p.id, sel.value as 'writer' | 'provider');
-                  messageEl.textContent = `${p.name} の種別を変更しました。`;
-                  await renderRows();
                 } catch (err) {
                   messageEl.textContent = '種別の変更に失敗しました。';
+                  console.error(err);
+                  return;
+                }
+                messageEl.textContent = `${p.name} の種別を変更しました。`;
+                try {
+                  await renderRows();
+                } catch (err) {
+                  messageEl.textContent += ' 一覧の再読み込みに失敗しました。ページを再読み込みしてください。';
                   console.error(err);
                 }
               });
@@ -111,8 +117,13 @@ const title = 'ユーザー管理 | Wild Media CMS';
           console.error(err);
         }
 
-        document.getElementById('invite-form')!.addEventListener('submit', async (e) => {
+        const inviteForm = document.getElementById('invite-form') as HTMLFormElement;
+        const inviteBtn = inviteForm.querySelector('button[type="submit"]') as HTMLButtonElement;
+        let inviteInFlight = false;
+
+        inviteForm.addEventListener('submit', async (e) => {
           e.preventDefault();
+          if (inviteInFlight) return;
           messageEl.textContent = '';
           const input = {
             email: $('inv-email').value.trim(),
@@ -122,14 +133,27 @@ const title = 'ユーザー管理 | Wild Media CMS';
           };
           const validationError = validateInviteInput(input);
           if (validationError) { messageEl.textContent = validationError; return; }
+          inviteInFlight = true;
+          inviteBtn.disabled = true;
           try {
-            await inviteUser(supabaseBrowser, input);
+            try {
+              await inviteUser(supabaseBrowser, input);
+            } catch (err) {
+              messageEl.textContent = translateInviteError(err);
+              console.error(err);
+              return;
+            }
             messageEl.textContent = `${input.email} に招待メールを送信しました。`;
-            ($('invite-form') as unknown as HTMLFormElement).reset();
-            await renderRows();
-          } catch (err) {
-            messageEl.textContent = translateInviteError(err);
-            console.error(err);
+            inviteForm.reset();
+            try {
+              await renderRows();
+            } catch (err) {
+              messageEl.textContent += ' 一覧の再読み込みに失敗しました。ページを再読み込みしてください。';
+              console.error(err);
+            }
+          } finally {
+            inviteInFlight = false;
+            inviteBtn.disabled = false;
           }
         });
       }

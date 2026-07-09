@@ -37,8 +37,13 @@ const title = 'ダッシュボード | Wild Media CMS';
         });
 
         // admin にだけ管理ナビを見せる(出し分けは UX。防壁は RLS/トリガー)
-        if ((await fetchMyRole(supabaseBrowser)) === 'admin') {
-          document.getElementById('admin-nav')!.hidden = false;
+        // fetchMyRole が失敗しても記事一覧の表示は妨げない(管理ナビが出ないだけにする)
+        try {
+          if ((await fetchMyRole(supabaseBrowser)) === 'admin') {
+            document.getElementById('admin-nav')!.hidden = false;
+          }
+        } catch (err) {
+          console.error(err);
         }
 
         const listEl = document.getElementById('article-list')!;
