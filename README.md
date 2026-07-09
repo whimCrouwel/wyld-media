@@ -32,6 +32,8 @@ supabase functions serve --env-file supabase/functions/.env
 
 CMS はオリジン分離のため別 Astro アプリ(`admin/`)として動き、本番では `admin.` サブドメインに配置する。ブラウザから Supabase に直結(anon キー + RLS)し、service role キーは持たない。
 
+記事エディタのカバー画像は「ファイル選択 → クロップ(Cropper.js)→ ブラウザ内で長辺1600px・WebP圧縮(512KB以下)→ 署名付きURLで R2 へアップロード」。ローカルでは R2 の代わりに Supabase Storage の S3 互換エンドポイントを使う(`supabase/functions/.env.example` 参照)。
+
 ```bash
 cd admin
 cp .env.example .env    # supabase status の ANON_KEY のみを転記(service role は入れない)
