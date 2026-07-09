@@ -45,3 +45,66 @@ export async function updateUserRole(
   // RLS で行にマッチしなかった場合は静かに 0 行になる — 明示的にエラー化する
   if ((data ?? []).length === 0) throw new Error('ROLE_UPDATE_DENIED');
 }
+
+export interface InviteInput {
+  email: string;
+  name: string;
+  slug: string;
+  role: 'writer' | 'provider';
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+export function validateInviteInput(input: InviteInput): string | null {
+  if (!EMAIL_RE.test(input.email)) return 'メールアドレスを正しく入力してください';
+  if (!input.name.trim()) return '名前を入力してください';
+  if (!SLUG_RE.test(input.slug)) return 'スラッグは小文字英数字とハイフンで入力してください';
+  if (input.role !== 'writer' && input.role !== 'provider') return '種別を選択してください';
+  return null;
+}
+
+export async function inviteUser(supabase: SupabaseClient, input: InviteInput): Promise<void> {
+  const { error } = await supabase.functions.invoke('invite-user', { body: input });
+  if (!error) return;
+  // FunctionsHttpError の .message は汎用文言。EF の { error: "..." } は context(Response)にある。
+  const ctx = (error as { context?: Response }).context;
+  const body = ctx && typeof ctx.json === 'function'
+    ? await ctx.json().catch(() => null)
+    : null;
+  const msg = body && typeof body === 'object' && 'error' in body ? String(body.error) : null;
+  throw new Error(msg ?? (error instanceof Error ? error.message : String(error)));
+}
+
+export function translateInviteError(err: unknown): string {
+  const msg = err instanceof Error ? err.message : '';
+  if (msg.includes('already been registered')) return 'このメールアドレスは既に登録されています。';
+  if (msg.includes('profiles_slug_key')) return 'このスラッグは既に使われています。';
+  if (msg.includes('forbidden')) return '管理者のみ実行できます。';
+  if (msg.includes('required')) return '入力内容を確認してください。';
+  return '招待に失敗しました。時間をおいて再度お試しください。';
+}
+
+export interface SiteSettings {
+  postIntervalDays: number;
+  featuredCount: number;
+}
+
+export async function fetchSettings(supabase: SupabaseClient): Promise<SiteSettings> {
+  const { data, error } = await supabase
+    .from('settings').select('post_interval_days, featured_count').eq('id', 1).single();
+  if (error) throw error;
+  return { postIntervalDays: data.post_interval_days, featuredCount: data.featured_count };
+}
+
+export async function updateSettings(supabase: SupabaseClient, s: SiteSettings): Promise<void> {
+  if (!Number.isInteger(s.postIntervalDays) || s.postIntervalDays < 0) throw new Error('INVALID_SETTINGS');
+  if (!Number.isInteger(s.featuredCount) || s.featuredCount < 0) throw new Error('INVALID_SETTINGS');
+  const { data, error } = await supabase
+    .from('settings')
+    .update({ post_interval_days: s.postIntervalDays, featured_count: s.featuredCount })
+    .eq('id', 1)
+    .select('id');
+  if (error) throw error;
+  if ((data ?? []).length === 0) throw new Error('SETTINGS_UPDATE_DENIED');
+}

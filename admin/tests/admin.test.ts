@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
-import { fetchMyRole, fetchAllProfiles, updateUserRole } from '../src/lib/admin';
+import {
+  fetchMyRole, fetchAllProfiles, updateUserRole,
+  validateInviteInput, inviteUser, translateInviteError,
+  fetchSettings, updateSettings,
+} from '../src/lib/admin';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 const url = process.env.PUBLIC_SUPABASE_URL!;
 const anon = process.env.PUBLIC_SUPABASE_ANON_KEY!;
@@ -82,5 +87,104 @@ describe('updateUserRole', () => {
     await expect(
       updateUserRole(adminClient, kentaId, 'admin' as unknown as 'writer'),
     ).rejects.toThrow('INVALID_ROLE');
+  });
+});
+
+describe('validateInviteInput', () => {
+  const ok = { email: 'x@example.com', name: '山田', slug: 'yamada', role: 'writer' as const };
+  it('正しい入力は null', () => {
+    expect(validateInviteInput(ok)).toBeNull();
+  });
+  it('不正なメール・空の名前・不正な slug を弾く', () => {
+    expect(validateInviteInput({ ...ok, email: 'ダメ' })).toContain('メールアドレス');
+    expect(validateInviteInput({ ...ok, name: '  ' })).toContain('名前');
+    expect(validateInviteInput({ ...ok, slug: 'Bad_Slug' })).toContain('スラッグ');
+  });
+});
+
+describe('inviteUser', () => {
+  function stubInvoke(result: { error: unknown }) {
+    const calls: unknown[] = [];
+    const supabase = {
+      functions: {
+        invoke: async (name: string, opts: unknown) => {
+          calls.push([name, opts]);
+          return result;
+        },
+      },
+    } as unknown as SupabaseClient;
+    return { supabase, calls };
+  }
+  const input = { email: 'x@example.com', name: '山田', slug: 'yamada', role: 'writer' as const };
+
+  it('invite-user にペイロードを送る', async () => {
+    const { supabase, calls } = stubInvoke({ error: null });
+    await inviteUser(supabase, input);
+    expect(calls[0]).toEqual(['invite-user', { body: input }]);
+  });
+
+  it('EF のエラー本文を掘り出して throw する', async () => {
+    const err = Object.assign(new Error('Edge Function returned a non-2xx status code'), {
+      context: new Response(JSON.stringify({ error: 'forbidden' }), { status: 403 }),
+    });
+    const { supabase } = stubInvoke({ error: err });
+    await expect(inviteUser(supabase, input)).rejects.toThrow('forbidden');
+  });
+
+  it('本文が JSON でなければ元のメッセージで throw する', async () => {
+    const err = Object.assign(new Error('non-2xx'), {
+      context: new Response('oops', { status: 500 }),
+    });
+    const { supabase } = stubInvoke({ error: err });
+    await expect(inviteUser(supabase, input)).rejects.toThrow('non-2xx');
+  });
+});
+
+describe('translateInviteError', () => {
+  it('既知のエラーを日本語にする', () => {
+    expect(translateInviteError(new Error('A user with this email address has already been registered')))
+      .toContain('既に登録');
+    expect(translateInviteError(new Error('duplicate key value violates unique constraint "profiles_slug_key"')))
+      .toContain('スラッグ');
+    expect(translateInviteError(new Error('forbidden'))).toContain('管理者のみ');
+    expect(translateInviteError(new Error('email, name, slug, and role (writer|provider) are required')))
+      .toContain('入力内容');
+  });
+  it('未知は汎用メッセージ', () => {
+    expect(translateInviteError(new Error('boom'))).toContain('招待に失敗');
+  });
+});
+
+describe('settings', () => {
+  it('authenticated なら誰でも読める', async () => {
+    const s = await fetchSettings(hanaClient);
+    expect(s.postIntervalDays).toBeGreaterThanOrEqual(0);
+    expect(s.featuredCount).toBeGreaterThanOrEqual(0);
+  });
+
+  it('非 admin の更新は RLS で 0 行 → SETTINGS_UPDATE_DENIED', async () => {
+    const current = await fetchSettings(hanaClient);
+    await expect(updateSettings(hanaClient, current)).rejects.toThrow('SETTINGS_UPDATE_DENIED');
+  });
+
+  it('admin は featured_count を更新できる(post_interval_days は現値のまま)', async () => {
+    // ⚠️ post_interval_days は並列実行中の articles.test.ts(頻度制限)が読むため変更しない。
+    // featured_count はどのトリガーからも読まれないので安全に動かせる。
+    const before = await fetchSettings(adminClient);
+    try {
+      await updateSettings(adminClient, { ...before, featuredCount: before.featuredCount + 1 });
+      const after = await fetchSettings(adminClient);
+      expect(after.featuredCount).toBe(before.featuredCount + 1);
+      expect(after.postIntervalDays).toBe(before.postIntervalDays);
+    } finally {
+      await updateSettings(adminClient, before);
+    }
+  });
+
+  it('不正な値は送信前に弾く', async () => {
+    await expect(updateSettings(adminClient, { postIntervalDays: -1, featuredCount: 3 }))
+      .rejects.toThrow('INVALID_SETTINGS');
+    await expect(updateSettings(adminClient, { postIntervalDays: 10, featuredCount: 1.5 }))
+      .rejects.toThrow('INVALID_SETTINGS');
   });
 });
