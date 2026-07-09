@@ -57,9 +57,12 @@ Deno.serve(async (req) => {
   }
 
   const key = `${userData.user.id}/${crypto.randomUUID()}.${ext}`;
+  // R2_ENDPOINT 例:
+  //   本番:   https://<account-id>.r2.cloudflarestorage.com
+  //   ローカル: http://127.0.0.1:54321/storage/v1/s3(Supabase Storage の S3 互換 API を R2 の代わりに使う)
+  // 署名 URL に PUT するのはブラウザなので、ブラウザから到達できるホストであること。
   const objectUrl = new URL(
-    `https://${Deno.env.get('R2_ACCOUNT_ID')}.r2.cloudflarestorage.com/` +
-      `${Deno.env.get('R2_BUCKET')}/${key}`,
+    `${Deno.env.get('R2_ENDPOINT')}/${Deno.env.get('R2_BUCKET')}/${key}`,
   );
   objectUrl.searchParams.set('X-Amz-Expires', '300');
 
@@ -67,7 +70,7 @@ Deno.serve(async (req) => {
     accessKeyId: Deno.env.get('R2_ACCESS_KEY_ID')!,
     secretAccessKey: Deno.env.get('R2_SECRET_ACCESS_KEY')!,
     service: 's3',
-    region: 'auto',
+    region: Deno.env.get('R2_REGION') ?? 'auto',
   });
 
   // Content-Length / Content-Type を署名に含める → クライアントは
