@@ -15,7 +15,7 @@ const title = 'ログイン | Wild Media CMS';
 
     <script>
       import { supabaseBrowser } from '../lib/supabase-browser';
-      import { validateLoginInput, redirectTo } from '../lib/auth';
+      import { validateLoginInput, redirectTo, translateAuthError } from '../lib/auth';
 
       const form = document.getElementById('login-form') as HTMLFormElement;
       const errorEl = document.getElementById('error')!;
@@ -35,7 +35,7 @@ const title = 'ログイン | Wild Media CMS';
           if (validationError) { errorEl.textContent = validationError; return; }
 
           const { error } = await supabaseBrowser.auth.signInWithPassword({ email, password });
-          if (error) { errorEl.textContent = 'ログインに失敗しました: ' + error.message; return; }
+          if (error) { errorEl.textContent = translateAuthError(error); console.error(error); return; }
           redirectTo('/dashboard');
         });
       }
