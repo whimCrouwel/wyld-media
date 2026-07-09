@@ -1,6 +1,8 @@
 // カバー画像のクライアント側処理(純粋ロジック部分)。
 // Canvas 依存のエンコード処理はコールバックで注入する(cover-widget.ts 側が持つ)。
 
+import type { SupabaseClient } from '@supabase/supabase-js';
+
 export const MAX_UPLOAD_BYTES = 512_000; // supabase/functions/r2-upload-url の MAX_BYTES と一致させる
 export const MAX_EDGE = 1600; // 長辺の上限 px
 
@@ -46,4 +48,33 @@ export function translateUploadError(err: unknown): string {
     return '画像を十分小さく圧縮できませんでした。別の画像をお試しください。';
   }
   return '画像のアップロードに失敗しました。時間をおいて再度お試しください。';
+}
+
+export interface UploadTicket {
+  uploadUrl: string;
+  publicUrl: string;
+  headers: Record<string, string>;
+}
+
+export async function requestUploadUrl(
+  supabase: SupabaseClient, blob: Blob,
+): Promise<UploadTicket> {
+  const { data, error } = await supabase.functions.invoke('r2-upload-url', {
+    body: { contentType: blob.type, contentLength: blob.size },
+  });
+  if (error) throw error;
+  return data as UploadTicket;
+}
+
+export async function uploadCover(
+  supabase: SupabaseClient, blob: Blob, fetchFn: typeof fetch = fetch,
+): Promise<string> {
+  const ticket = await requestUploadUrl(supabase, blob);
+  const res = await fetchFn(ticket.uploadUrl, {
+    method: 'PUT',
+    headers: ticket.headers,
+    body: blob,
+  });
+  if (!res.ok) throw new Error(`UPLOAD_FAILED: ${res.status}`);
+  return ticket.publicUrl;
 }
