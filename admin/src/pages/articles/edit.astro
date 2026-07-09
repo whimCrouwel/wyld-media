@@ -71,6 +71,7 @@ const title = '記事の編集 | Wild Media CMS';
         const article = await fetchArticleForEdit(supabaseBrowser, id);
         if (!article) {
           messageEl.textContent = '記事が見つかりません(自分の記事のみ編集できます)。';
+          (document.getElementById('article-form') as HTMLElement).hidden = true;
         } else {
           $('title').value = article.title;
           $('slug').value = article.slug ?? '';

@@ -39,9 +39,9 @@ const title = '新しい記事 | Wild Media CMS';
           </div>
         </div>
         <p>
-          <button type="button" id="save-draft">下書き保存</button>
-          <button type="button" id="publish">公開する</button>
+          <button type="button" id="create-draft">下書きを作成して編集へ</button>
         </p>
+        <p>公開は、下書き作成後の編集ページから行います。</p>
       </form>
       <p id="message" role="alert"></p>
     </main>
@@ -49,7 +49,7 @@ const title = '新しい記事 | Wild Media CMS';
     <script>
       import { supabaseBrowser } from '../../lib/supabase-browser';
       import { redirectTo } from '../../lib/auth';
-      import { createDraft, saveArticle, validateCommissionCode, checkSlugAvailable } from '../../lib/articles';
+      import { createDraft, validateCommissionCode, checkSlugAvailable } from '../../lib/articles';
       import { translateSaveError, isValidArticleSlug, renderMarkdownPreview } from '../../lib/editor-helpers';
       import { initCoverWidget } from '../../lib/cover-widget';
 
@@ -89,19 +89,13 @@ const title = '新しい記事 | Wild Media CMS';
           coverUrl: cover.getUrl(), commissionCode: $('commission').value,
         });
 
-        const create = async (publish: boolean) => {
+        const create = async () => {
           messageEl.textContent = '';
           const input = collect();
           if (!input.title.trim()) { messageEl.textContent = 'タイトルを入力してください'; return; }
-          if (publish && !isValidArticleSlug(input.slug.trim())) {
-            messageEl.textContent = '公開にはスラッグが必要です(小文字英数字とハイフン)'; return;
-          }
           try {
             const id = await createDraft(supabaseBrowser, input);
-            if (publish) {
-              await saveArticle(supabaseBrowser, id, input, true);
-            }
-            // 作成後は編集ページへ(クエリ文字列で id を渡す)
+            // 公開は編集ページから(公開失敗時の孤児下書きをなくすため、新規作成は下書きのみ)
             redirectTo(`/articles/edit?id=${id}`);
           } catch (err) {
             messageEl.textContent = translateSaveError(err);
@@ -109,8 +103,7 @@ const title = '新しい記事 | Wild Media CMS';
           }
         };
 
-        document.getElementById('save-draft')!.addEventListener('click', () => create(false));
-        document.getElementById('publish')!.addEventListener('click', () => create(true));
+        document.getElementById('create-draft')!.addEventListener('click', () => create());
       }
     </script>
   </body>
