@@ -22,6 +22,20 @@ export function initCoverWidget(supabase: SupabaseClient): CoverWidget {
   const currentEl = document.getElementById('cover-current')!;
 
   let cropper: Cropper | null = null;
+  // 選択(またはクリア)のたびに増分するトークン。非同期処理の完了時にこれと
+  // 比較し、値がずれていれば「使用者が既に次の操作に進んだ」とみなして
+  // 結果を静かに破棄する(古い応答が現在の状態を上書きしないようにする)。
+  let selectionId = 0;
+  // 現在表示中の画像の Blob URL。新しい画像選択・クリア・resetCropper() の
+  // タイミングで確実に revoke し、メモリリークを防ぐ。
+  let currentObjectUrl: string | null = null;
+
+  const revokeCurrentObjectUrl = () => {
+    if (currentObjectUrl) {
+      URL.revokeObjectURL(currentObjectUrl);
+      currentObjectUrl = null;
+    }
+  };
 
   const renderCurrent = () => {
     currentEl.innerHTML = '';
@@ -42,20 +56,32 @@ export function initCoverWidget(supabase: SupabaseClient): CoverWidget {
     cropBox.innerHTML = '';
     applyBtn.hidden = true;
     fileInput.value = '';
+    revokeCurrentObjectUrl();
   };
 
   fileInput.addEventListener('change', () => {
+    // 新しい選択が始まった時点でトークンを進め、進行中の非同期処理(適用中の
+    // アップロードや読み込み待ちの <img>)を無効化する。
+    selectionId += 1;
+    const mySelection = selectionId;
     const file = fileInput.files?.[0];
     cropper?.destroy();
     cropper = null;
     cropBox.innerHTML = '';
     applyBtn.hidden = true;
+    applyBtn.disabled = false;
+    revokeCurrentObjectUrl();
     if (!file) return;
     const img = document.createElement('img');
-    img.src = URL.createObjectURL(file);
+    const objectUrl = URL.createObjectURL(file);
+    currentObjectUrl = objectUrl;
+    img.src = objectUrl;
     img.style.maxWidth = '100%';
     cropBox.appendChild(img);
     img.addEventListener('load', () => {
+      // 読み込み完了までの間に別のファイルが選択されていたら、この img は
+      // もう画面上のものと一致しないため cropper を差し替えない。
+      if (mySelection !== selectionId) return;
       cropper = new Cropper(img, { viewMode: 1, autoCropArea: 1 });
       applyBtn.hidden = false;
     });
@@ -63,6 +89,7 @@ export function initCoverWidget(supabase: SupabaseClient): CoverWidget {
 
   applyBtn.addEventListener('click', async () => {
     if (!cropper) return;
+    const mySelection = selectionId;
     statusEl.textContent = 'アップロード中…';
     applyBtn.disabled = true;
     try {
@@ -74,19 +101,36 @@ export function initCoverWidget(supabase: SupabaseClient): CoverWidget {
       const blob = await encodeUnderLimit(
         (attempt) => encodeCanvas(canvas, attempt.quality, attempt.scale),
       );
-      hidden.value = await uploadCover(supabase, blob);
+      // 圧縮中にユーザーがクリアするか別画像を選び直していたら、この結果は
+      // もう current ではないのでアップロードせず静かに破棄する。
+      if (mySelection !== selectionId) return;
+      const url = await uploadCover(supabase, blob);
+      // アップロード完了時点でも同様に再確認する。ここで古い状態のまま
+      // hidden.value / #cover-current / resetCropper() を触ると、ユーザーが
+      // 既にクリアした値を復活させたり、選び直した別画像の編集状態を
+      // 破壊してしまう。
+      if (mySelection !== selectionId) return;
+      hidden.value = url;
       renderCurrent();
       resetCropper();
       statusEl.textContent = 'アップロードしました。記事を保存すると反映されます。';
     } catch (err) {
-      statusEl.textContent = translateUploadError(err);
       console.error(err);
+      if (mySelection === selectionId) {
+        statusEl.textContent = translateUploadError(err);
+      }
     } finally {
-      applyBtn.disabled = false;
+      // 古い(既に選択し直された)フローの場合、disabled の管理は現行の
+      // フローに委ねる(change ハンドラが選択時にリセットする)。
+      if (mySelection === selectionId) {
+        applyBtn.disabled = false;
+      }
     }
   });
 
   clearBtn.addEventListener('click', () => {
+    // クリアも進行中の非同期処理を無効化する操作なのでトークンを進める。
+    selectionId += 1;
     hidden.value = '';
     renderCurrent();
     resetCropper();
