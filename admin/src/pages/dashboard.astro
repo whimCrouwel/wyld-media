@@ -9,6 +9,8 @@ const title = 'ダッシュボード | Wild Media CMS';
       <nav>
         <a href="/dashboard">ダッシュボード</a> |
         <a href="/profile">プロフィール編集</a> |
+        <span id="admin-nav" hidden><a href="/users">ユーザー管理</a> |
+        <a href="/settings">サイト設定</a> |</span>
         <button id="logout" type="button">ログアウト</button>
       </nav>
     </header>
@@ -22,6 +24,7 @@ const title = 'ダッシュボード | Wild Media CMS';
       import { supabaseBrowser } from '../lib/supabase-browser';
       import { redirectTo } from '../lib/auth';
       import { fetchMyArticles } from '../lib/dashboard';
+      import { fetchMyRole } from '../lib/admin';
 
       // 認証ガード
       const { data: { session } } = await supabaseBrowser.auth.getSession();
@@ -32,6 +35,11 @@ const title = 'ダッシュボード | Wild Media CMS';
           await supabaseBrowser.auth.signOut();
           redirectTo('/login');
         });
+
+        // admin にだけ管理ナビを見せる(出し分けは UX。防壁は RLS/トリガー)
+        if ((await fetchMyRole(supabaseBrowser)) === 'admin') {
+          document.getElementById('admin-nav')!.hidden = false;
+        }
 
         const listEl = document.getElementById('article-list')!;
         try {
