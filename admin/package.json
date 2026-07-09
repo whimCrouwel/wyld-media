@@ -12,6 +12,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
     "astro": "^5.0.0",
+    "cropperjs": "^1.6.2",
     "marked": "^14.0.0",
     "sanitize-html": "^2.13.0"
   },

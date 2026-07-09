@@ -13,7 +13,20 @@ const title = '記事の編集 | Wild Media CMS';
         <p><label>タイトル <input type="text" id="title" required /></label></p>
         <p><label>スラッグ(公開時は必須) <input type="text" id="slug" /></label>
            <span id="slug-status"></span></p>
-        <p><label>カバー画像URL(任意) <input type="url" id="cover" /></label></p>
+        <fieldset>
+          <legend>カバー画像(任意)</legend>
+          <input type="hidden" id="cover" />
+          <p id="cover-current"></p>
+          <p>
+            <input type="file" id="cover-file" accept="image/jpeg,image/png,image/webp" />
+            <button type="button" id="cover-clear">画像を外す</button>
+          </p>
+          <div id="cover-crop" style="max-width:480px;"></div>
+          <p>
+            <button type="button" id="cover-apply" hidden>切り抜いてアップロード</button>
+            <span id="cover-status"></span>
+          </p>
+        </fieldset>
         <p><label>依頼者コード(任意) <input type="text" id="commission" /></label>
            <span id="commission-status"></span></p>
         <div style="display:flex; gap:1rem;">
@@ -41,6 +54,7 @@ const title = '記事の編集 | Wild Media CMS';
       import { redirectTo } from '../../lib/auth';
       import { fetchArticleForEdit, saveArticle, deleteArticle, validateCommissionCode, checkSlugAvailable } from '../../lib/articles';
       import { translateSaveError, isValidArticleSlug, renderMarkdownPreview } from '../../lib/editor-helpers';
+      import { initCoverWidget } from '../../lib/cover-widget';
 
       const { data: { session } } = await supabaseBrowser.auth.getSession();
       if (!session) {
@@ -60,7 +74,8 @@ const title = '記事の編集 | Wild Media CMS';
         } else {
           $('title').value = article.title;
           $('slug').value = article.slug ?? '';
-          $('cover').value = article.coverImageUrl ?? '';
+          const cover = initCoverWidget(supabaseBrowser);
+          cover.setUrl(article.coverImageUrl);
           $('commission').value = article.commissionCodeInput ?? '';
           $('body').value = article.body;
           statusLabel.textContent = `状態: ${article.status === 'draft' ? '下書き' : '公開中'}`;
@@ -84,7 +99,7 @@ const title = '記事の編集 | Wild Media CMS';
 
           const collect = () => ({
             title: $('title').value, slug: $('slug').value, body: $('body').value,
-            coverUrl: $('cover').value, commissionCode: $('commission').value,
+            coverUrl: cover.getUrl(), commissionCode: $('commission').value,
           });
 
           const save = async (publish: boolean) => {
