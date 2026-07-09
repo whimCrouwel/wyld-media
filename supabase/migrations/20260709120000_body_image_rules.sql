@@ -21,11 +21,48 @@ declare
   base text;
   urls text[];
   u text;
+  image_markers int;
+  inline_images int;
 begin
+  -- body が変わらない UPDATE は本文検証を一切スキップする。これは
+  -- settings.image_base_url をローテーションした後の救済経路: 既存記事の
+  -- body が古いホストの画像 URL を参照していても、タイトルやステータス
+  -- など body 以外のフィールドは編集し続けられる。新しい body を保存する
+  -- には URL を新しいホストに直す必要がある(そこは引き続き強制する)。
+  --
+  -- ここに「信頼できる呼び出し元」の例外(auth.uid() is null or
+  -- is_admin() など)は意図的に置かない。ルール1〜3は body の内容整合性の
+  -- 不変条件であり、admin であってもビルド時の service role クライアント
+  -- であっても常に成り立つ必要がある。これは
+  -- 20260706043424_harden_publish_and_commission_rules.sql の
+  -- enforce_publish_rules(著者向けのワークフローポリシーであり、内容の
+  -- 整合性そのものではない)とは意図的に異なる方針。
+  if tg_op = 'UPDATE' and new.body is not distinct from old.body then
+    return new;
+  end if;
+
   -- ルール1。これがあるおかげで markdown 記法だけを数えればよく、
   -- トリガーで HTML をパースせずに済む。
   if new.body ~* '<img' then
     raise exception 'HTML_IMG_NOT_ALLOWED';
+  end if;
+
+  -- ルール1(続き)。CommonMark の reference-style(![alt][ref] +
+  -- [ref]: url)や shortcut(![alt] + [alt]: url)画像は、marked が実際に
+  -- <img> へ解決し、sanitize-html もそれを通してしまう。しかし以下の
+  -- inline 画像用の正規表現(![alt](url))はこれらの形式にマッチしない。
+  -- Postgres の正規表現には先読みがないので、"![...]" 全体の出現数と
+  -- "![...](" の出現数を比較する: 前者が多ければ inline 以外の画像記法が
+  -- 使われている ―― 放置するとホスト許可リストを完全に迂回できてしまう
+  -- ので、カウント・ホストチェックより先に拒否する。
+  select count(*) into image_markers
+    from regexp_matches(new.body, '!\[[^\]]*\]', 'g');
+
+  select count(*) into inline_images
+    from regexp_matches(new.body, '!\[[^\]]*\]\(', 'g');
+
+  if image_markers > inline_images then
+    raise exception 'IMAGE_SYNTAX_NOT_ALLOWED';
   end if;
 
   select image_base_url into base from settings where id = 1;
@@ -46,6 +83,13 @@ begin
   -- base || '/' で比較するのは、https://img.test が
   -- https://img.test.evil.example に前方一致するのを防ぐため。
   foreach u in array urls loop
+    -- CommonMark の山括弧付き宛先 ![a](<https://...>) は正当な記法。
+    -- trim(both '<>' ...) は連続した文字も剥がしてしまうので使わず、
+    -- 先頭の '<' と末尾の '>' が両方揃っているときだけ1文字ずつ剥がす。
+    if left(u, 1) = '<' and right(u, 1) = '>' then
+      u := substring(u from 2 for length(u) - 2);
+    end if;
+
     if base = '' or left(u, length(base) + 1) <> base || '/' then
       raise exception 'IMAGE_HOST_NOT_ALLOWED';
     end if;
