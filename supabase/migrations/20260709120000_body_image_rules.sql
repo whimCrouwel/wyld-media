@@ -10,6 +10,26 @@
 alter table public.settings
   add column image_base_url text not null default '';
 
+-- 本文から markdown 画像の URL を取り出す。a_enforce_body_image_rules と
+-- a_block_media_in_use(20260709120500_media_library.sql)の両方がこれを
+-- 使う。二つが食い違うと、「保存はできるのに削除もできない」画像が生まれる。
+create or replace function public.body_image_urls(body text)
+returns setof text
+language sql
+immutable
+set search_path = public
+as $$
+  select case
+           when left(u, 1) = '<' and right(u, 1) = '>'
+             then substring(u from 2 for length(u) - 2)
+           else u
+         end
+    from (
+      select m[1] as u
+        from regexp_matches(body, '!\[[^\]]*\]\(\s*([^)\s]+)', 'g') as m
+    ) raw;
+$$;
+
 create or replace function public.enforce_body_image_rules()
 returns trigger
 language plpgsql security definer
@@ -67,8 +87,10 @@ begin
 
   select image_base_url into base from settings where id = 1;
 
-  select array_agg(m[1]) into urls
-    from regexp_matches(new.body, '!\[[^\]]*\]\(\s*([^)\s]+)', 'g') as m;
+  -- URL 抽出(山括弧付き宛先の剥がしも含む)は public.body_image_urls に
+  -- 集約されている。a_block_media_in_use もここを通るので、この関数の
+  -- 定義を変えると両方の挙動が同時に変わる。
+  select array_agg(bu) into urls from public.body_image_urls(new.body) as bu;
 
   if urls is null then
     return new;
@@ -83,13 +105,6 @@ begin
   -- base || '/' で比較するのは、https://img.test が
   -- https://img.test.evil.example に前方一致するのを防ぐため。
   foreach u in array urls loop
-    -- CommonMark の山括弧付き宛先 ![a](<https://...>) は正当な記法。
-    -- trim(both '<>' ...) は連続した文字も剥がしてしまうので使わず、
-    -- 先頭の '<' と末尾の '>' が両方揃っているときだけ1文字ずつ剥がす。
-    if left(u, 1) = '<' and right(u, 1) = '>' then
-      u := substring(u from 2 for length(u) - 2);
-    end if;
-
     if base = '' or left(u, length(base) + 1) <> base || '/' then
       raise exception 'IMAGE_HOST_NOT_ALLOWED';
     end if;
