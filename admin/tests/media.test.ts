@@ -78,6 +78,11 @@ describe('translateMediaError', () => {
   it('未知のエラーは汎用文言に落とす', () => {
     expect(translateMediaError(new Error('boom'))).toContain('失敗');
   });
+
+  it('実際の PostgrestError の形(Error を継承しないプレーンオブジェクト)でも訳す', () => {
+    const postgrestError = { message: 'MEDIA_IN_USE', code: 'P0001', details: null, hint: null };
+    expect(translateMediaError(postgrestError)).toContain('使われて');
+  });
 });
 
 // deleteMedia の呼び出し順序と、DB 行削除後の R2 削除失敗の扱いを検証する

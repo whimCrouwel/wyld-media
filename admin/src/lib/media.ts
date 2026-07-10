@@ -73,7 +73,8 @@ export async function deleteMedia(supabase: SupabaseClient, item: MediaItem): Pr
 }
 
 export function translateMediaError(err: unknown): string {
-  const msg = err instanceof Error ? err.message : String(err ?? '');
+  const e = err as { message?: string } | null;
+  const msg = e?.message ?? '';
   if (msg.includes('MEDIA_IN_USE')) {
     return 'この画像は記事で使われているため削除できません。先に記事から外してください。';
   }
