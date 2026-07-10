@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeAll, afterEach } from 'vitest';
-import { createClient } from '@supabase/supabase-js';
+import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { listMyMedia, recordMedia, deleteMedia, translateMediaError } from '../src/lib/media';
+import type { MediaItem } from '../src/lib/media';
 
 const supabase = createClient(
   process.env.PUBLIC_SUPABASE_URL!,
@@ -70,7 +71,89 @@ describe('translateMediaError', () => {
     expect(translateMediaError(new Error('IMAGE_HOST_NOT_ALLOWED'))).toContain('許可されていない');
   });
 
+  it('MEDIA_DELETE_DENIED を訳す', () => {
+    expect(translateMediaError(new Error('MEDIA_DELETE_DENIED'))).toContain('自分がアップロード');
+  });
+
   it('未知のエラーは汎用文言に落とす', () => {
     expect(translateMediaError(new Error('boom'))).toContain('失敗');
+  });
+});
+
+// deleteMedia の呼び出し順序と、DB 行削除後の R2 削除失敗の扱いを検証する
+// モックテスト。実 DB には触れない。
+describe('deleteMedia (mocked)', () => {
+  const item: MediaItem = {
+    id: 'media-1',
+    url: 'https://pub-example.r2.dev/uid-1/photo.webp',
+    bytes: 1234,
+    createdAt: '2026-01-01T00:00:00.000Z',
+  };
+
+  // 実コードの呼び出し連鎖 (from().delete({count:'exact'}).eq()、
+  // functions.invoke()) の形だけを模した fake クライアント。
+  // order には呼ばれたメソッドを呼ばれた順に積む。
+  const makeFakeSupabase = (
+    deleteResult: { error: unknown; count: number | null },
+    invokeResult: { error: unknown },
+    order: string[],
+  ) => ({
+    from: (_table: string) => ({
+      delete: (_opts: { count: 'exact' }) => ({
+        eq: (_col: string, _val: string) => {
+          order.push('delete');
+          return Promise.resolve(deleteResult);
+        },
+      }),
+    }),
+    functions: {
+      invoke: (_name: string, _opts: { body: { url: string } }) => {
+        order.push('invoke');
+        return Promise.resolve(invokeResult);
+      },
+    },
+  }) as unknown as SupabaseClient;
+
+  it('成功時: 行削除の後に R2 削除を呼び、例外を投げない', async () => {
+    const order: string[] = [];
+    const supabase = makeFakeSupabase({ error: null, count: 1 }, { error: null }, order);
+
+    await expect(deleteMedia(supabase, item)).resolves.toBeUndefined();
+    expect(order).toEqual(['delete', 'invoke']);
+  });
+
+  it('使用中: MEDIA_IN_USE で行削除が失敗したら投げ、R2 削除は呼ばない', async () => {
+    const order: string[] = [];
+    const supabase = makeFakeSupabase(
+      { error: new Error('MEDIA_IN_USE'), count: null },
+      { error: null },
+      order,
+    );
+
+    await expect(deleteMedia(supabase, item)).rejects.toThrow(/MEDIA_IN_USE/);
+    expect(order).toEqual(['delete']);
+  });
+
+  it('count===0: MEDIA_DELETE_DENIED を投げ、R2 削除は呼ばない', async () => {
+    const order: string[] = [];
+    const supabase = makeFakeSupabase({ error: null, count: 0 }, { error: null }, order);
+
+    await expect(deleteMedia(supabase, item)).rejects.toThrow(/MEDIA_DELETE_DENIED/);
+    expect(order).toEqual(['delete']);
+  });
+
+  it('行削除は成功したが R2 削除が失敗: 例外を投げず、console.error で記録する', async () => {
+    const order: string[] = [];
+    const supabase = makeFakeSupabase(
+      { error: null, count: 1 },
+      { error: { message: 'boom' } },
+      order,
+    );
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(deleteMedia(supabase, item)).resolves.toBeUndefined();
+    expect(consoleError).toHaveBeenCalled();
+
+    consoleError.mockRestore();
   });
 });

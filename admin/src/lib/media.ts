@@ -50,7 +50,14 @@ export async function recordMedia(
 
 // 順序が重要: 先に DB 行を消す。使用中なら MEDIA_IN_USE で落ち、R2 の
 // オブジェクトは無傷のまま残る。逆順だと、使用中と分かる前に消してしまう。
-// オブジェクト削除に失敗しても R2 に孤児が残るだけで見た目に影響はない。
+//
+// DB 行の削除が成功した時点で「この画像はもう存在しない」という真実は
+// 確定している。行が消えた後の R2 オブジェクト削除が失敗しても、それは
+// バケットに無害な孤児オブジェクトが残るだけで、呼び出し元に対しては
+// 削除全体が失敗したかのように見せてはいけない。ここで投げてしまうと
+// 呼び出し元を誤解させるだけでなく、行がすでに無いのに再試行すると
+// MEDIA_DELETE_DENIED という筋の通らないエラーになる。そのため、行削除後の
+// R2 削除失敗は console.error に記録するだけで、例外は投げずに正常終了する。
 export async function deleteMedia(supabase: SupabaseClient, item: MediaItem): Promise<void> {
   const { error, count } = await supabase
     .from('media')
@@ -62,7 +69,7 @@ export async function deleteMedia(supabase: SupabaseClient, item: MediaItem): Pr
   const { error: fnError } = await supabase.functions.invoke('r2-delete-object', {
     body: { url: item.url },
   });
-  if (fnError) throw fnError;
+  if (fnError) console.error(fnError);
 }
 
 export function translateMediaError(err: unknown): string {
