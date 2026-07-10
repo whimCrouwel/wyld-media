@@ -32,16 +32,22 @@ Deno.serve(async (req) => {
     return json({ error: 'invalid json' }, 400);
   }
 
+  if (typeof payload.url !== 'string') {
+    return json({ error: 'url must be a string' }, 400);
+  }
+
   const publicBase = (Deno.env.get('R2_PUBLIC_BASE_URL') ?? '').replace(/\/$/, '');
-  const url = payload.url ?? '';
+  const url = payload.url;
   if (!publicBase || !url.startsWith(`${publicBase}/`)) {
     return json({ error: 'url must live under R2_PUBLIC_BASE_URL' }, 400);
   }
 
   const key = url.slice(publicBase.length + 1);
-  // 自分の uid 配下のオブジェクトしか消せない。
-  // r2-upload-url が発行するキーは `${uid}/${uuid}.${ext}`。
-  if (!key.startsWith(`${userData.user.id}/`)) {
+  // 削除対象キーは r2-upload-url が発行する形 `${uid}/${uuid}.${ext}` のみ許可する。
+  // prefix 一致だけだと `${uid}/../${victim}/x.webp` が通り、URL 正規化後に
+  // 他人(あるいは別バケット)のオブジェクトを消せてしまう(パストラバーサル)。
+  const KEY_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(webp|jpg|png)$/;
+  if (!KEY_RE.test(key) || !key.startsWith(`${userData.user.id}/`)) {
     return json({ error: 'forbidden' }, 403);
   }
 
