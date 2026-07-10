@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { requestUploadUrl, uploadCover } from '../src/lib/images';
+import { requestUploadUrl, uploadImage } from '../src/lib/images';
 
 const TICKET = {
   uploadUrl: 'https://r2.example/bucket/key?sig=abc',
@@ -40,7 +40,7 @@ describe('requestUploadUrl', () => {
   });
 });
 
-describe('uploadCover', () => {
+describe('uploadImage', () => {
   const blob = new Blob([new Uint8Array(10)], { type: 'image/webp' });
 
   it('署名付き URL に PUT して publicUrl を返す', async () => {
@@ -51,7 +51,7 @@ describe('uploadCover', () => {
       return { ok: true, status: 200 } as Response;
     }) as typeof fetch;
 
-    const url = await uploadCover(supabase, blob, fetchFn);
+    const url = await uploadImage(supabase, blob, fetchFn);
 
     expect(url).toBe(TICKET.publicUrl);
     const [putUrl, init] = puts[0] as [string, RequestInit];
@@ -64,6 +64,6 @@ describe('uploadCover', () => {
   it('PUT が拒否されたら UPLOAD_FAILED を投げる', async () => {
     const { supabase } = stubSupabase({ data: TICKET, error: null });
     const fetchFn = (async () => ({ ok: false, status: 403 } as Response)) as typeof fetch;
-    await expect(uploadCover(supabase, blob, fetchFn)).rejects.toThrow('UPLOAD_FAILED: 403');
+    await expect(uploadImage(supabase, blob, fetchFn)).rejects.toThrow('UPLOAD_FAILED: 403');
   });
 });

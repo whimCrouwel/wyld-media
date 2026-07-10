@@ -66,7 +66,12 @@ export async function requestUploadUrl(
   return data as UploadTicket;
 }
 
-export async function uploadCover(
+// 本文画像の上限。supabase の enforce_body_image_rules の max_images と一致させること。
+// 権威は DB 側。ここでの判定は UX(ボタンを止める)目的でしかない。
+export const MAX_BODY_IMAGES = 5;
+
+// カバー画像・本文画像の両方で使う。
+export async function uploadImage(
   supabase: SupabaseClient, blob: Blob, fetchFn: typeof fetch = fetch,
 ): Promise<string> {
   const ticket = await requestUploadUrl(supabase, blob);
@@ -77,4 +82,30 @@ export async function uploadCover(
   });
   if (!res.ok) throw new Error(`UPLOAD_FAILED: ${res.status}`);
   return ticket.publicUrl;
+}
+
+// markdown の画像記法 ![alt](url) の数。DB 側の regexp と同じ形。
+// リンク記法 [text](url) は先頭の ! がないので数えない。
+export function countBodyImages(markdown: string): number {
+  return (markdown.match(/!\[[^\]]*\]\(\s*[^)\s]+/g) ?? []).length;
+}
+
+export function insertAtCursor(textarea: HTMLTextAreaElement, text: string): void {
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  textarea.value = textarea.value.slice(0, start) + text + textarea.value.slice(end);
+  const caret = start + text.length;
+  textarea.selectionStart = caret;
+  textarea.selectionEnd = caret;
+}
+
+// 許可ホスト。settings は authenticated なら誰でも select できる(RLS)。
+export async function fetchImageBaseUrl(supabase: SupabaseClient): Promise<string> {
+  const { data, error } = await supabase
+    .from('settings')
+    .select('image_base_url')
+    .eq('id', 1)
+    .single();
+  if (error) throw error;
+  return (data as { image_base_url: string }).image_base_url;
 }

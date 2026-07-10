@@ -2,7 +2,7 @@ import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
-  MAX_EDGE, encodeUnderLimit, scaledSize, uploadCover, translateUploadError,
+  MAX_EDGE, encodeUnderLimit, scaledSize, uploadImage, translateUploadError,
 } from './images';
 
 export interface CoverWidget {
@@ -104,7 +104,7 @@ export function initCoverWidget(supabase: SupabaseClient): CoverWidget {
       // 圧縮中にユーザーがクリアするか別画像を選び直していたら、この結果は
       // もう current ではないのでアップロードせず静かに破棄する。
       if (mySelection !== selectionId) return;
-      const url = await uploadCover(supabase, blob);
+      const url = await uploadImage(supabase, blob);
       // アップロード完了時点でも同様に再確認する。ここで古い状態のまま
       // hidden.value / #cover-current / resetCropper() を触ると、ユーザーが
       // 既にクリアした値を復活させたり、選び直した別画像の編集状態を
