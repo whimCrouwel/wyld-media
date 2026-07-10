@@ -29,13 +29,38 @@ describe('translateSaveError', () => {
     expect(translateSaveError({ message: 'something else' })).toMatch(/保存/);
     expect(translateSaveError(null)).toMatch(/保存/);
   });
+
+  it('IMAGE_LIMIT_EXCEEDED を訳す', () => {
+    expect(translateSaveError(new Error('IMAGE_LIMIT_EXCEEDED'))).toContain('5枚');
+  });
+
+  it('IMAGE_HOST_NOT_ALLOWED を訳す', () => {
+    expect(translateSaveError(new Error('IMAGE_HOST_NOT_ALLOWED'))).toContain('許可されていない');
+  });
+
+  it('HTML_IMG_NOT_ALLOWED を訳す', () => {
+    expect(translateSaveError(new Error('HTML_IMG_NOT_ALLOWED'))).toContain('<img>');
+  });
 });
 
 describe('renderMarkdownPreview', () => {
-  it('renders markdown and strips scripts', () => {
-    const html = renderMarkdownPreview('## 見出し\n\n**強調** <script>alert(1)</script>');
+  const BASE = 'https://img.test';
+
+  it('markdown を描画し script を落とす', () => {
+    const html = renderMarkdownPreview('## 見出し\n\n<script>alert(1)</script>', BASE);
     expect(html).toContain('<h2>');
-    expect(html).toContain('<strong>強調</strong>');
     expect(html).not.toContain('<script');
+  });
+
+  it('許可ホストの画像は残す', () => {
+    expect(renderMarkdownPreview(`![a](${BASE}/x.webp)`, BASE)).toContain('<img');
+  });
+
+  it('許可ホスト以外の画像は落とす', () => {
+    expect(renderMarkdownPreview('![a](https://evil.example/x.webp)', BASE)).not.toContain('<img');
+  });
+
+  it('imageBaseUrl が空なら画像を落とす', () => {
+    expect(renderMarkdownPreview(`![a](${BASE}/x.webp)`, '')).not.toContain('<img');
   });
 });

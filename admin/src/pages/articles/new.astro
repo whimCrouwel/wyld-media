@@ -32,6 +32,16 @@ const title = '新しい記事 | Wild Media CMS';
           <div style="flex:1;">
             <label>本文(マークダウン)<br />
               <textarea id="body" rows="16" style="width:100%;"></textarea></label>
+            <p id="editor-hint">本文で「/」を入力するとコマンドが出ます。</p>
+            <div id="slash-menu" role="listbox" hidden></div>
+            <input type="file" id="body-image-file" accept="image/*" hidden />
+            <span id="body-image-status" role="status"></span>
+
+            <div id="media-modal" role="dialog" aria-label="メディアライブラリ" hidden>
+              <button type="button" id="media-close">閉じる</button>
+              <p id="media-status" role="status"></p>
+              <div id="media-grid"></div>
+            </div>
           </div>
           <div style="flex:1;">
             <p>プレビュー</p>
@@ -52,6 +62,12 @@ const title = '新しい記事 | Wild Media CMS';
       import { createDraft, validateCommissionCode, checkSlugAvailable } from '../../lib/articles';
       import { translateSaveError, isValidArticleSlug, renderMarkdownPreview } from '../../lib/editor-helpers';
       import { initCoverWidget } from '../../lib/cover-widget';
+      import {
+        fetchImageBaseUrl, countBodyImages, insertAtCursor, MAX_BODY_IMAGES, translateUploadError,
+      } from '../../lib/images';
+      import { uploadAndRecord } from '../../lib/body-image';
+      import { initSlashMenu } from '../../lib/slash-menu';
+      import { initMediaPicker } from '../../lib/media-picker';
 
       const { data: { session } } = await supabaseBrowser.auth.getSession();
       if (!session) {
@@ -63,10 +79,65 @@ const title = '新しい記事 | Wild Media CMS';
         const slugStatus = document.getElementById('slug-status')!;
         const commissionStatus = document.getElementById('commission-status')!;
         const cover = initCoverWidget(supabaseBrowser);
+        const imageBaseUrl = await fetchImageBaseUrl(supabaseBrowser);
 
         // ライブプレビュー(sanitize 済み)
-        const updatePreview = () => { previewEl.innerHTML = renderMarkdownPreview($('body').value); };
+        const updatePreview = () => {
+          previewEl.innerHTML = renderMarkdownPreview($('body').value, imageBaseUrl);
+        };
         $('body').addEventListener('input', updatePreview);
+
+        const bodyEl = $('body') as HTMLTextAreaElement;
+        const fileInput = document.getElementById('body-image-file') as HTMLInputElement;
+        const uploadStatus = document.getElementById('body-image-status')!;
+
+        // 本文に markdown 画像を差し込む。上限チェックは UX 目的(権威は DB)。
+        const insertImage = (url: string) => {
+          if (countBodyImages(bodyEl.value) >= MAX_BODY_IMAGES) {
+            uploadStatus.textContent = `本文の画像は${MAX_BODY_IMAGES}枚までです。`;
+            return;
+          }
+          insertAtCursor(bodyEl, `\n\n![](${url})\n\n`);
+          updatePreview();
+        };
+
+        const picker = initMediaPicker(supabaseBrowser, {
+          modalEl: document.getElementById('media-modal') as HTMLElement,
+          gridEl: document.getElementById('media-grid') as HTMLElement,
+          statusEl: document.getElementById('media-status') as HTMLElement,
+          closeBtn: document.getElementById('media-close') as HTMLButtonElement,
+          onPick: insertImage,
+        });
+
+        // 同じファイルを続けて選べるよう、毎回 value を空にしてから開く
+        fileInput.addEventListener('change', async () => {
+          const file = fileInput.files?.[0];
+          fileInput.value = '';
+          if (!file) return;
+
+          if (countBodyImages(bodyEl.value) >= MAX_BODY_IMAGES) {
+            uploadStatus.textContent = `本文の画像は${MAX_BODY_IMAGES}枚までです。`;
+            return;
+          }
+
+          uploadStatus.textContent = 'アップロード中…';
+          try {
+            const url = await uploadAndRecord(supabaseBrowser, file);
+            insertImage(url);
+            uploadStatus.textContent = '画像を挿入しました。';
+          } catch (err) {
+            uploadStatus.textContent = translateUploadError(err);
+            console.error(err);
+          }
+        });
+
+        initSlashMenu(bodyEl, document.getElementById('slash-menu') as HTMLElement, [
+          { id: 'image', label: '画像を挿入', run: () => fileInput.click() },
+          { id: 'media', label: 'メディアから選ぶ', run: () => picker.open() },
+          { id: 'heading', label: '見出し', run: () => { insertAtCursor(bodyEl, '## '); updatePreview(); } },
+          { id: 'list', label: '箇条書き', run: () => { insertAtCursor(bodyEl, '- '); updatePreview(); } },
+          { id: 'quote', label: '引用', run: () => { insertAtCursor(bodyEl, '> '); updatePreview(); } },
+        ]);
 
         // slug ライブチェック
         $('slug').addEventListener('blur', async () => {

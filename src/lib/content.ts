@@ -74,15 +74,33 @@ function toSummary(row: any): ArticleSummary {
   };
 }
 
-export function renderMarkdown(markdown: string): string {
+// imageBaseUrl 配下でない img は丸ごと落とす。空文字なら画像を一切通さない
+// (settings.image_base_url 未設定時の fail closed)。
+// base + '/' で比較するのは https://img.test が
+// https://img.test.evil.example に前方一致するのを防ぐため。
+export function renderMarkdown(markdown: string, imageBaseUrl: string): string {
   const html = marked.parse(markdown, { async: false }) as string;
+  const prefix = imageBaseUrl === '' ? null : `${imageBaseUrl}/`;
   return sanitizeHtml(html, {
     allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2']),
     allowedAttributes: {
       ...sanitizeHtml.defaults.allowedAttributes,
       img: ['src', 'alt'],
     },
+    exclusiveFilter: (frame) =>
+      frame.tag === 'img' &&
+      (prefix === null || !(frame.attribs.src ?? '').startsWith(prefix)),
   });
+}
+
+export async function fetchImageBaseUrl(db: SupabaseClient): Promise<string> {
+  const { data, error } = await db
+    .from('settings')
+    .select('image_base_url')
+    .eq('id', 1)
+    .single();
+  if (error) throw error;
+  return (data as { image_base_url: string }).image_base_url;
 }
 
 export async function fetchPublishedArticles(
@@ -127,7 +145,8 @@ export async function fetchArticleBySlug(
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
-  return { ...toSummary(data), bodyHtml: renderMarkdown((data as any).body) };
+  const imageBaseUrl = await fetchImageBaseUrl(db);
+  return { ...toSummary(data), bodyHtml: renderMarkdown((data as any).body, imageBaseUrl) };
 }
 
 export async function fetchWriters(db: SupabaseClient): Promise<WriterSummary[]> {

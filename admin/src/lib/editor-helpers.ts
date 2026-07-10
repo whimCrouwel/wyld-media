@@ -22,16 +22,31 @@ export function translateSaveError(err: unknown): string {
   if (e?.code === '23505') {
     return 'このスラッグは既に使われています。';
   }
+  if (msg.includes('IMAGE_LIMIT_EXCEEDED')) {
+    return '本文に入れられる画像は5枚までです。';
+  }
+  if (msg.includes('IMAGE_HOST_NOT_ALLOWED')) {
+    return '許可されていない場所の画像は使えません。「/」から画像を挿入してください。';
+  }
+  if (msg.includes('HTML_IMG_NOT_ALLOWED')) {
+    return '本文に <img> タグは書けません。「/」から画像を挿入してください。';
+  }
   return '保存に失敗しました。入力内容を確認して再度お試しください。';
 }
 
-export function renderMarkdownPreview(md: string): string {
+// 公開サイトの renderMarkdown(src/lib/content.ts)と同じ規則で img を絞る。
+// 片方だけ緩いと「プレビューで見えたのに公開ページで消える」ことになる。
+export function renderMarkdownPreview(md: string, imageBaseUrl: string): string {
   const html = marked.parse(md, { async: false }) as string;
+  const prefix = imageBaseUrl === '' ? null : `${imageBaseUrl}/`;
   return sanitizeHtml(html, {
     allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2']),
     allowedAttributes: {
       ...sanitizeHtml.defaults.allowedAttributes,
       img: ['src', 'alt'],
     },
+    exclusiveFilter: (frame) =>
+      frame.tag === 'img' &&
+      (prefix === null || !(frame.attribs.src ?? '').startsWith(prefix)),
   });
 }

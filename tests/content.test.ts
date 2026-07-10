@@ -16,11 +16,29 @@ const db = createClient(
 );
 
 describe('renderMarkdown', () => {
+  const BASE = 'https://img.test';
+
   it('renders markdown and strips scripts', () => {
-    const html = renderMarkdown('## 見出し\n\n**強調** <script>alert(1)</script>');
+    const html = renderMarkdown('## 見出し\n\n**強調** <script>alert(1)</script>', BASE);
     expect(html).toContain('<h2>');
     expect(html).toContain('<strong>強調</strong>');
     expect(html).not.toContain('<script');
+  });
+
+  it('許可ホストの画像は残す', () => {
+    expect(renderMarkdown(`![a](${BASE}/x.webp)`, BASE)).toContain(`src="${BASE}/x.webp"`);
+  });
+
+  it('許可ホスト以外の画像は落とす', () => {
+    expect(renderMarkdown('![a](https://evil.example/x.webp)', BASE)).not.toContain('<img');
+  });
+
+  it('前方一致の抜け道を塞ぐ', () => {
+    expect(renderMarkdown('![a](https://img.test.evil.example/x.webp)', BASE)).not.toContain('<img');
+  });
+
+  it('imageBaseUrl が空なら画像を落とす', () => {
+    expect(renderMarkdown(`![a](${BASE}/x.webp)`, '')).not.toContain('<img');
   });
 });
 
