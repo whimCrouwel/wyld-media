@@ -41,6 +41,10 @@ describe('translateSaveError', () => {
   it('HTML_IMG_NOT_ALLOWED を訳す', () => {
     expect(translateSaveError(new Error('HTML_IMG_NOT_ALLOWED'))).toContain('<img>');
   });
+
+  it('IMAGE_SYNTAX_NOT_ALLOWED を訳す', () => {
+    expect(translateSaveError(new Error('IMAGE_SYNTAX_NOT_ALLOWED'))).toContain('/');
+  });
 });
 
 describe('renderMarkdownPreview', () => {

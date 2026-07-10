@@ -31,6 +31,9 @@ export function translateSaveError(err: unknown): string {
   if (msg.includes('HTML_IMG_NOT_ALLOWED')) {
     return '本文に <img> タグは書けません。「/」から画像を挿入してください。';
   }
+  if (msg.includes('IMAGE_SYNTAX_NOT_ALLOWED')) {
+    return '画像は「/」から挿入したものだけ使えます(参照形式のリンクは使えません)。';
+  }
   return '保存に失敗しました。入力内容を確認して再度お試しください。';
 }
 
