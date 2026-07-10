@@ -4,6 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   MAX_EDGE, encodeUnderLimit, scaledSize, uploadImage, translateUploadError,
 } from './images';
+import { recordMedia } from './media';
 
 export interface CoverWidget {
   getUrl(): string;
@@ -105,6 +106,7 @@ export function initCoverWidget(supabase: SupabaseClient): CoverWidget {
       // もう current ではないのでアップロードせず静かに破棄する。
       if (mySelection !== selectionId) return;
       const url = await uploadImage(supabase, blob);
+      await recordMedia(supabase, url, blob.size);
       // アップロード完了時点でも同様に再確認する。ここで古い状態のまま
       // hidden.value / #cover-current / resetCropper() を触ると、ユーザーが
       // 既にクリアした値を復活させたり、選び直した別画像の編集状態を
