@@ -15,6 +15,7 @@ supabase db reset       # マイグレーション適用
 supabase test db        # DB層テスト(pgTAP)
 
 cp .env.example .env    # supabase status のキーを転記
+                         # PUBLIC_IMAGE_BASE_URL は R2 の公開URL(Edge Function の R2_PUBLIC_BASE_URL と同じ値にする)
 npm install
 npm run seed            # サンプルデータ投入(冪等)
 npm test                # データ層テスト(Vitest)

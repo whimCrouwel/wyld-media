@@ -15,6 +15,14 @@
 - [ ] R2 バケットに CORS ポリシーを設定(admin サブドメインのオリジンから PUT / Content-Type ヘッダを許可。これが無いとブラウザからのアップロードが CORS で失敗する)
 - [ ] `R2_PUBLIC_BASE_URL` は R2 のカスタムドメイン or 公開バケット URL(公開サイト・CMS の両方から画像が見えること)
 - [ ] R2 がサイズ/タイプ不一致の PUT を 403 で拒否することを実バケットで確認
+- [ ] DB の `settings.image_base_url` を `R2_PUBLIC_BASE_URL` と同じ値に設定する
+      (`update settings set image_base_url = 'https://...' where id = 1;`)。
+      未設定だと本文に画像を入れられず、値がずれると記事の保存が
+      `IMAGE_HOST_NOT_ALLOWED` で落ちる。
+- [ ] Edge Function `r2-delete-object` をデプロイする(`supabase functions deploy r2-delete-object`)
+- [ ] 画像ホストを後から変える場合は、この値と既存のURLを同時に書き換える:
+      `update articles set cover_image_url = replace(cover_image_url, '<旧>', '<新>'), body = replace(body, '<旧>', '<新>');`
+      `update media set url = replace(url, '<旧>', '<新>');`
 
 ## フロントエンド(Cloudflare Pages ×2)
 - [ ] 公開サイト(リポジトリ直下)を本番 `PUBLIC_*` env でビルドしてデプロイ(ルートドメイン)

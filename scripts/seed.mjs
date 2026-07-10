@@ -94,6 +94,19 @@ async function main() {
   });
   if (draftError) throw draftError;
 
+  // 5) settings.image_base_url を Edge Function の R2_PUBLIC_BASE_URL と揃える
+  const imageBaseUrl = process.env.PUBLIC_IMAGE_BASE_URL;
+  if (!imageBaseUrl) {
+    throw new Error(
+      'PUBLIC_IMAGE_BASE_URL を .env に設定してください(Edge Function の R2_PUBLIC_BASE_URL と同じ値)',
+    );
+  }
+  const { error: settingsError } = await db
+    .from('settings')
+    .update({ image_base_url: imageBaseUrl })
+    .eq('id', 1);
+  if (settingsError) throw settingsError;
+
   console.log('Seed complete: 4 users, 5 published articles (2 commissioned), 1 draft');
 }
 
