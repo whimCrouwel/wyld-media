@@ -9,6 +9,7 @@ const title = '記事の編集 | Wild Media CMS';
     <main>
       <h1>記事の編集</h1>
       <p id="status-label"></p>
+      <p id="autosave-label" role="status"></p>
       <form id="article-form">
         <p><label>タイトル <input type="text" id="title" required /></label></p>
         <p><label>スラッグ(公開時は必須) <input type="text" id="slug" /></label>
@@ -30,12 +31,37 @@ const title = '記事の編集 | Wild Media CMS';
         <p><label>依頼者コード(任意) <input type="text" id="commission" /></label>
            <span id="commission-status"></span></p>
         <div style="display:flex; gap:1rem;">
+          <aside style="width:180px;">
+            <p>目次</p>
+            <div id="toc-panel"></div>
+          </aside>
           <div style="flex:1;">
-            <label>本文(マークダウン)<br />
-              <textarea id="body" rows="16" style="width:100%;"></textarea></label>
-            <p id="editor-hint">本文で「/」を入力するとコマンドが出ます。</p>
-            <div id="slash-menu" role="listbox" hidden></div>
+            <div id="bubble-toolbar" hidden>
+              <button type="button" data-action="headingH2" aria-pressed="false">見出し2</button>
+              <button type="button" data-action="headingH3" aria-pressed="false">見出し3</button>
+              <button type="button" data-action="paragraph" aria-pressed="false">本文</button>
+              <button type="button" data-action="bold" aria-pressed="false">太字</button>
+              <button type="button" data-action="strike" aria-pressed="false">取り消し線</button>
+              <button type="button" data-action="bulletList" aria-pressed="false">箇条書き</button>
+              <button type="button" data-action="orderedList" aria-pressed="false">番号付きリスト</button>
+              <button type="button" data-action="blockquote" aria-pressed="false">引用</button>
+              <button type="button" data-action="codeBlock" aria-pressed="false">コード</button>
+              <button type="button" data-action="alignLeft" aria-pressed="false">左揃え</button>
+              <button type="button" data-action="alignCenter" aria-pressed="false">中央揃え</button>
+              <button type="button" data-action="alignRight" aria-pressed="false">右揃え</button>
+              <button type="button" data-action="link" aria-pressed="false">リンク</button>
+              <button type="button" data-action="unlink" aria-pressed="false">リンク解除</button>
+              <button type="button" data-action="delete">削除</button>
+            </div>
+            <div id="editor-body-wrap" style="position:relative;">
+              <div id="editor-body"></div>
+            </div>
+            <p>
+              <span id="char-total"></span>
+              <span id="char-selection"></span>
+            </p>
             <input type="file" id="body-image-file" accept="image/*" hidden />
+            <input type="file" id="body-file-file" accept="application/pdf,text/plain" hidden />
             <span id="body-image-status" role="status"></span>
 
             <div id="media-modal" role="dialog" aria-label="メディアライブラリ" hidden>
@@ -44,18 +70,19 @@ const title = '記事の編集 | Wild Media CMS';
               <div id="media-grid"></div>
             </div>
           </div>
-          <div style="flex:1;">
-            <p>プレビュー</p>
-            <div id="preview"></div>
-          </div>
         </div>
         <p>
           <button type="button" id="save-draft">下書き保存</button>
           <button type="button" id="publish">公開する</button>
           <button type="button" id="unpublish">下書きに戻す</button>
+          <button type="button" id="preview-toggle">プレビュー</button>
           <button type="button" id="delete">削除</button>
         </p>
       </form>
+      <div id="preview-modal" role="dialog" aria-label="プレビュー" hidden>
+        <button type="button" id="preview-close">閉じる</button>
+        <div id="preview-body"></div>
+      </div>
       <p id="message" role="alert"></p>
     </main>
 
@@ -63,14 +90,20 @@ const title = '記事の編集 | Wild Media CMS';
       import { supabaseBrowser } from '../../lib/supabase-browser';
       import { redirectTo } from '../../lib/auth';
       import { fetchArticleForEdit, saveArticle, deleteArticle, validateCommissionCode, checkSlugAvailable } from '../../lib/articles';
-      import { translateSaveError, isValidArticleSlug, renderMarkdownPreview } from '../../lib/editor-helpers';
+      import { translateSaveError, isValidArticleSlug } from '../../lib/editor-helpers';
       import { initCoverWidget } from '../../lib/cover-widget';
-      import {
-        fetchImageBaseUrl, countBodyImages, insertAtCursor, MAX_BODY_IMAGES, translateUploadError,
-      } from '../../lib/images';
-      import { uploadAndRecord } from '../../lib/body-image';
-      import { initSlashMenu } from '../../lib/slash-menu';
+      import { fetchImageBaseUrl, translateUploadError } from '../../lib/images';
       import { initMediaPicker } from '../../lib/media-picker';
+      import { createBlockEditor, getBodyBlocks } from '../../lib/block-editor';
+      import { createSlashCommandsExtension, initInsertButton, type BlockCommand } from '../../lib/insert-menu';
+      import { createBubbleMenuExtension, initBubbleToolbar } from '../../lib/bubble-toolbar';
+      import { insertImageBlock, insertFileBlock, insertImageUrlBlock } from '../../lib/block-uploads';
+      import { insertEmbedBlock } from '../../lib/embed-dialog';
+      import { renderTocPanel } from '../../lib/toc-panel';
+      import { renderPreviewHtml } from '../../lib/editor-preview';
+      import { initCharCount } from '../../lib/char-count';
+      import { createAutosave, saveDraftBackup, loadDraftBackup, clearDraftBackup } from '../../lib/autosave';
+      import CharacterCount from '@tiptap/extension-character-count';
 
       const { data: { session } } = await supabaseBrowser.auth.getSession();
       if (!session) {
@@ -79,8 +112,8 @@ const title = '記事の編集 | Wild Media CMS';
         const id = new URLSearchParams(window.location.search).get('id') ?? '';
         const $ = (elId: string) => document.getElementById(elId) as HTMLInputElement & HTMLTextAreaElement;
         const messageEl = document.getElementById('message')!;
-        const previewEl = document.getElementById('preview')!;
         const statusLabel = document.getElementById('status-label')!;
+        const autosaveLabel = document.getElementById('autosave-label')!;
         const slugStatus = document.getElementById('slug-status')!;
         const commissionStatus = document.getElementById('commission-status')!;
         const imageBaseUrl = await fetchImageBaseUrl(supabaseBrowser);
@@ -95,53 +128,75 @@ const title = '記事の編集 | Wild Media CMS';
           const cover = initCoverWidget(supabaseBrowser);
           cover.setUrl(article.coverImageUrl);
           $('commission').value = article.commissionCodeInput ?? '';
-          $('body').value = article.body;
           statusLabel.textContent = `状態: ${article.status === 'draft' ? '下書き' : '公開中'}`;
 
-          const updatePreview = () => {
-            previewEl.innerHTML = renderMarkdownPreview($('body').value, imageBaseUrl);
-          };
-          updatePreview();
+          let currentUpdatedAt = article.updatedAt;
+          let initialBody = article.body;
+          const backup = loadDraftBackup(id);
+          if (backup && window.confirm(`未送信の変更(${backup.savedAt})が見つかりました。復元しますか?`)) {
+            initialBody = backup.body;
+          }
 
-          $('body').addEventListener('input', updatePreview);
-
-          const bodyEl = $('body') as HTMLTextAreaElement;
           const fileInput = document.getElementById('body-image-file') as HTMLInputElement;
+          const fileFileInput = document.getElementById('body-file-file') as HTMLInputElement;
           const uploadStatus = document.getElementById('body-image-status')!;
+          const bubbleToolbarEl = document.getElementById('bubble-toolbar') as HTMLElement;
 
-          // 本文に markdown 画像を差し込む。上限チェックは UX 目的(権威は DB)。
-          const insertImage = (url: string) => {
-            if (countBodyImages(bodyEl.value) >= MAX_BODY_IMAGES) {
-              uploadStatus.textContent = `本文の画像は${MAX_BODY_IMAGES}枚までです。`;
-              return;
-            }
-            insertAtCursor(bodyEl, `\n\n![](${url})\n\n`);
-            updatePreview();
-          };
+          const commands: BlockCommand[] = [
+            { id: 'heading2', label: '見出し(H2)', run: (ed) => ed.chain().focus().toggleHeading({ level: 2 }).run() },
+            { id: 'heading3', label: '見出し(H3)', run: (ed) => ed.chain().focus().toggleHeading({ level: 3 }).run() },
+            { id: 'bulletList', label: '箇条書き', run: (ed) => ed.chain().focus().toggleBulletList().run() },
+            { id: 'orderedList', label: '番号付きリスト', run: (ed) => ed.chain().focus().toggleOrderedList().run() },
+            { id: 'quote', label: '引用', run: (ed) => ed.chain().focus().toggleBlockquote().run() },
+            { id: 'hr', label: '区切り線', run: (ed) => ed.chain().focus().setHorizontalRule().run() },
+            { id: 'codeBlock', label: 'コード', run: (ed) => ed.chain().focus().toggleCodeBlock().run() },
+            { id: 'toc', label: '目次', run: (ed) => ed.chain().focus().insertContent({ type: 'toc' }).run() },
+            { id: 'image', label: '画像を挿入', run: () => fileInput.click() },
+            { id: 'media', label: 'メディアから選ぶ', run: () => picker.open() },
+            { id: 'file', label: 'ファイルを添付', run: () => fileFileInput.click() },
+            {
+              id: 'embed', label: '埋め込み(YouTube/X/Vimeo)',
+              run: (ed) => {
+                const url = window.prompt('埋め込みURL(YouTube / X / Vimeo)');
+                if (!url) return;
+                const result = insertEmbedBlock(ed, url);
+                if (!result.ok) uploadStatus.textContent = result.message;
+              },
+            },
+          ];
+
+          const editorEl = document.getElementById('editor-body')!;
+          const editor = createBlockEditor({
+            element: editorEl,
+            content: initialBody,
+            extraExtensions: [
+              createSlashCommandsExtension(commands),
+              createBubbleMenuExtension(bubbleToolbarEl),
+              CharacterCount.configure({ limit: null }),
+            ],
+          });
+
+          bubbleToolbarEl.hidden = false;
+          initBubbleToolbar(editor, bubbleToolbarEl);
+          initInsertButton(editor, document.getElementById('editor-body-wrap')!);
+          renderTocPanel(editor, document.getElementById('toc-panel')!);
+          initCharCount(editor, document.getElementById('char-total')!, document.getElementById('char-selection')!);
 
           const picker = initMediaPicker(supabaseBrowser, {
             modalEl: document.getElementById('media-modal') as HTMLElement,
             gridEl: document.getElementById('media-grid') as HTMLElement,
             statusEl: document.getElementById('media-status') as HTMLElement,
             closeBtn: document.getElementById('media-close') as HTMLButtonElement,
-            onPick: insertImage,
+            onPick: (url) => insertImageUrlBlock(editor, url),
           });
 
-          // 同じファイルを続けて選べるよう、毎回 value を空にしてから開く
           fileInput.addEventListener('change', async () => {
             const file = fileInput.files?.[0];
             fileInput.value = '';
             if (!file) return;
-
-            if (countBodyImages(bodyEl.value) >= MAX_BODY_IMAGES) {
-              uploadStatus.textContent = `本文の画像は${MAX_BODY_IMAGES}枚までです。`;
-              return;
-            }
-
             uploadStatus.textContent = 'アップロード中…';
             try {
-              const url = await uploadAndRecord(supabaseBrowser, file);
-              insertImage(url);
+              await insertImageBlock(supabaseBrowser, editor, file);
               uploadStatus.textContent = '画像を挿入しました。';
             } catch (err) {
               uploadStatus.textContent = translateUploadError(err);
@@ -149,13 +204,19 @@ const title = '記事の編集 | Wild Media CMS';
             }
           });
 
-          initSlashMenu(bodyEl, document.getElementById('slash-menu') as HTMLElement, [
-            { id: 'image', label: '画像を挿入', run: () => fileInput.click() },
-            { id: 'media', label: 'メディアから選ぶ', run: () => picker.open() },
-            { id: 'heading', label: '見出し', run: () => { insertAtCursor(bodyEl, '## '); updatePreview(); } },
-            { id: 'list', label: '箇条書き', run: () => { insertAtCursor(bodyEl, '- '); updatePreview(); } },
-            { id: 'quote', label: '引用', run: () => { insertAtCursor(bodyEl, '> '); updatePreview(); } },
-          ]);
+          fileFileInput.addEventListener('change', async () => {
+            const file = fileFileInput.files?.[0];
+            fileFileInput.value = '';
+            if (!file) return;
+            uploadStatus.textContent = 'アップロード中…';
+            try {
+              await insertFileBlock(supabaseBrowser, editor, file);
+              uploadStatus.textContent = 'ファイルを挿入しました。';
+            } catch (err) {
+              uploadStatus.textContent = translateUploadError(err);
+              console.error(err);
+            }
+          });
 
           $('slug').addEventListener('blur', async () => {
             const slug = $('slug').value.trim();
@@ -172,7 +233,7 @@ const title = '記事の編集 | Wild Media CMS';
           });
 
           const collect = () => ({
-            title: $('title').value, slug: $('slug').value, body: $('body').value,
+            title: $('title').value, slug: $('slug').value, body: getBodyBlocks(editor),
             coverUrl: cover.getUrl(), commissionCode: $('commission').value,
           });
 
@@ -184,12 +245,19 @@ const title = '記事の編集 | Wild Media CMS';
               messageEl.textContent = '公開にはスラッグが必要です(小文字英数字とハイフン)'; return;
             }
             try {
-              await saveArticle(supabaseBrowser, id, input, publish);
+              const result = await saveArticle(supabaseBrowser, id, input, publish, currentUpdatedAt);
+              currentUpdatedAt = result.updatedAt;
+              clearDraftBackup(id);
               messageEl.textContent = publish ? '公開しました。' : '保存しました。';
               const fresh = await fetchArticleForEdit(supabaseBrowser, id);
               if (fresh) statusLabel.textContent = `状態: ${fresh.status === 'draft' ? '下書き' : '公開中'}`;
             } catch (err) {
-              messageEl.textContent = translateSaveError(err);
+              if (err instanceof Error && err.message === 'CONFLICT') {
+                messageEl.textContent = '他の場所でこの記事が更新されています。ページを再読み込みしてください。';
+              } else {
+                messageEl.textContent = translateSaveError(err);
+              }
+              saveDraftBackup(id, input.body);
               console.error(err);
             }
           };
@@ -197,13 +265,10 @@ const title = '記事の編集 | Wild Media CMS';
           document.getElementById('save-draft')!.addEventListener('click', () => save(false));
           document.getElementById('publish')!.addEventListener('click', () => save(true));
 
-          // 下書きに戻す: status を draft に更新(published_at は据え置き。トリガーは公開遷移時のみ発火)
           document.getElementById('unpublish')!.addEventListener('click', async () => {
             messageEl.textContent = '';
             const input = collect();
             try {
-              // commission_code_input を送りつつ status=draft に。saveArticle は publish=false で status を触らないため、
-              // 明示的に draft へ落とす専用更新を行う。
               const { error } = await supabaseBrowser
                 .from('articles')
                 .update({ status: 'draft', commission_code_input: input.commissionCode.trim() || null })
@@ -215,6 +280,16 @@ const title = '記事の編集 | Wild Media CMS';
               messageEl.textContent = translateSaveError(err);
               console.error(err);
             }
+          });
+
+          const previewModal = document.getElementById('preview-modal') as HTMLElement;
+          const previewBody = document.getElementById('preview-body')!;
+          document.getElementById('preview-toggle')!.addEventListener('click', () => {
+            previewBody.innerHTML = renderPreviewHtml(editor, imageBaseUrl);
+            previewModal.hidden = false;
+          });
+          document.getElementById('preview-close')!.addEventListener('click', () => {
+            previewModal.hidden = true;
           });
 
           const deleteBtn = document.getElementById('delete')!;
@@ -234,6 +309,31 @@ const title = '記事の編集 | Wild Media CMS';
               console.error(err);
             }
           });
+
+          const autosave = createAutosave({
+            intervalMs: 20000,
+            getSnapshot: () => ({ body: getBodyBlocks(editor), updatedAt: currentUpdatedAt }),
+            save: async (body, expectedUpdatedAt) => {
+              const input = { ...collect(), body };
+              const result = await saveArticle(supabaseBrowser, id, input, false, expectedUpdatedAt);
+              return result;
+            },
+            onSaved: (updatedAt) => {
+              currentUpdatedAt = updatedAt;
+              clearDraftBackup(id);
+              autosaveLabel.textContent = `自動保存しました(${new Date().toLocaleTimeString('ja-JP')})`;
+            },
+            onConflict: () => {
+              autosaveLabel.textContent = '他の場所で更新されています。自動保存を停止しました。ページを再読み込みしてください。';
+              autosave.stop();
+            },
+            onError: (err) => {
+              saveDraftBackup(id, getBodyBlocks(editor));
+              autosaveLabel.textContent = '自動保存に失敗しました(端末に一時保存しました)。';
+              console.error(err);
+            },
+          });
+          autosave.start();
         }
       }
     </script>
