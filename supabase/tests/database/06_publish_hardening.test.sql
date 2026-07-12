@@ -19,10 +19,11 @@ set local role authenticated;
 --    insert itself must not be blocked, but the stored published_at must be
 --    "now", not the 100-day-old value the client sent.
 select lives_ok(
-  $$insert into articles (id, author_id, slug, title, status, published_at)
+  $$insert into articles (id, author_id, slug, title, status, published_at, body)
     values ('40000000-0000-0000-0000-000000000001',
             '00000000-0000-0000-0000-00000000000c',
-            'hard-a', 'first post', 'published', now() - interval '100 days')$$,
+            'hard-a', 'first post', 'published', now() - interval '100 days',
+            '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb)$$,
   'writer publish with a backdated published_at is accepted');
 
 set local role postgres;
@@ -38,9 +39,10 @@ select set_config('request.jwt.claims',
 set local role authenticated;
 
 select throws_like(
-  $$insert into articles (author_id, slug, title, status)
+  $$insert into articles (author_id, slug, title, status, body)
     values ('00000000-0000-0000-0000-00000000000c',
-            'hard-b', 'second post', 'published')$$,
+            'hard-b', 'second post', 'published',
+            '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb)$$,
   '%POST_INTERVAL_NOT_ELAPSED%',
   'second normal publish immediately after is still rejected');
 
@@ -80,10 +82,11 @@ select set_config('request.jwt.claims',
 set local role authenticated;
 
 select lives_ok(
-  $$insert into articles (id, author_id, slug, title, status, commission_code_input)
+  $$insert into articles (id, author_id, slug, title, status, commission_code_input, body)
     values ('40000000-0000-0000-0000-000000000003',
             '00000000-0000-0000-0000-00000000000c',
-            'hard-c', 'commissioned post', 'published', 'WM-55EE66FF')$$,
+            'hard-c', 'commissioned post', 'published', 'WM-55EE66FF',
+            '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb)$$,
   'writer publishes a commissioned article (rate limit exempt)');
 
 select throws_like(

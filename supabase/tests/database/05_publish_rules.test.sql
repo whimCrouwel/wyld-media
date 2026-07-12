@@ -16,10 +16,11 @@ select set_config('request.jwt.claims',
 set local role authenticated;
 
 select lives_ok(
-  $$insert into articles (id, author_id, slug, title, status)
+  $$insert into articles (id, author_id, slug, title, status, body)
     values ('30000000-0000-0000-0000-000000000001',
             '00000000-0000-0000-0000-000000000009',
-            'pub-a', 'first post', 'published')$$,
+            'pub-a', 'first post', 'published',
+            '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb)$$,
   'first normal publish succeeds');
 select ok(
   (select published_at from articles
@@ -27,9 +28,10 @@ select ok(
   'published_at is set automatically');
 
 select throws_like(
-  $$insert into articles (author_id, slug, title, status)
+  $$insert into articles (author_id, slug, title, status, body)
     values ('00000000-0000-0000-0000-000000000009',
-            'pub-too-soon', 'too soon', 'published')$$,
+            'pub-too-soon', 'too soon', 'published',
+            '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb)$$,
   '%POST_INTERVAL_NOT_ELAPSED%',
   'second normal publish within the interval is rejected');
 
@@ -44,27 +46,31 @@ select set_config('request.jwt.claims',
 set local role authenticated;
 
 select lives_ok(
-  $$insert into articles (id, author_id, slug, title, status)
+  $$insert into articles (id, author_id, slug, title, status, body)
     values ('30000000-0000-0000-0000-000000000002',
             '00000000-0000-0000-0000-000000000009',
-            'pub-b', 'second post', 'published')$$,
+            'pub-b', 'second post', 'published',
+            '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb)$$,
   'normal publish succeeds after the interval elapsed');
 
 select lives_ok(
-  $$insert into articles (author_id, slug, title, status, commission_code_input)
+  $$insert into articles (author_id, slug, title, status, commission_code_input, body)
     values ('00000000-0000-0000-0000-000000000009',
-            'pub-c', 'commissioned 1', 'published', 'WM-33CC44DD')$$,
+            'pub-c', 'commissioned 1', 'published', 'WM-33CC44DD',
+            '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb)$$,
   'commissioned article publishes immediately (exempt)');
 select lives_ok(
-  $$insert into articles (author_id, slug, title, status, commission_code_input)
+  $$insert into articles (author_id, slug, title, status, commission_code_input, body)
     values ('00000000-0000-0000-0000-000000000009',
-            'pub-d', 'commissioned 2', 'published', 'WM-33CC44DD')$$,
+            'pub-d', 'commissioned 2', 'published', 'WM-33CC44DD',
+            '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb)$$,
   'multiple commissioned articles are all exempt');
 
 select lives_ok(
-  $$insert into articles (id, author_id, title)
+  $$insert into articles (id, author_id, title, body)
     values ('30000000-0000-0000-0000-000000000003',
-            '00000000-0000-0000-0000-000000000009', 'draft e')$$,
+            '00000000-0000-0000-0000-000000000009', 'draft e',
+            '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb)$$,
   'drafts are never rate-limited');
 select throws_like(
   $$update articles set status = 'published', slug = 'pub-e'

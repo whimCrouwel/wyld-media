@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(3);
+select plan(5);
 
 update settings set image_base_url = 'https://img.test' where id = 1;
 
@@ -32,6 +32,19 @@ select throws_ok(
       '[{"type":"embed","attrs":{"url":"https://youtube.com/watch?v=abc","provider":"youtube"}}]'::jsonb,
       'draft')$$,
   'P0001', 'EMBED_HOST_NOT_ALLOWED', 'bare youtube.com without www is rejected'
+);
+
+select throws_ok(
+  $$insert into articles (author_id, title, slug, body, status)
+    values ('00000000-0000-0000-0000-0000000000b2', 'empty', 'empty-body-publish', '[]'::jsonb, 'published')$$,
+  'P0001', 'BODY_EMPTY_ON_PUBLISH', 'publishing with an empty body array is rejected'
+);
+
+select lives_ok(
+  $$insert into articles (author_id, title, slug, body, status)
+    values ('00000000-0000-0000-0000-0000000000b2', 'nonempty', 'nonempty-body-publish',
+      '[{"type":"paragraph","content":[{"type":"text","text":"本文"}]}]'::jsonb, 'published')$$,
+  'publishing with a text-bearing body is allowed'
 );
 
 select * from finish();

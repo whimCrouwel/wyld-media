@@ -31,8 +31,9 @@ select throws_ok(
 );
 
 select throws_ok(
-  $$insert into articles (author_id, status, published_at, title)
-    values ('00000000-0000-0000-0000-00000000000a', 'published', now(), 't')$$,
+  $$insert into articles (author_id, status, published_at, title, body)
+    values ('00000000-0000-0000-0000-00000000000a', 'published', now(), 't',
+      '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb)$$,
   '23514', null, 'published article requires slug'
 );
 

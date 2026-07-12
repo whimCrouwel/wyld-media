@@ -16,8 +16,9 @@ insert into profiles (id, role, slug, name) values
 insert into articles (id, author_id, title) values
   ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', 'w1 draft'),
   ('10000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000003', 'w2 draft');
-insert into articles (author_id, slug, title, status, published_at) values
-  ('00000000-0000-0000-0000-000000000002', 'rls-w1-published', 'w1 published', 'published', now());
+insert into articles (author_id, slug, title, status, published_at, body) values
+  ('00000000-0000-0000-0000-000000000002', 'rls-w1-published', 'w1 published', 'published', now(),
+   '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb);
 
 -- act as writer1
 select set_config('request.jwt.claims',
