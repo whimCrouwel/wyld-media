@@ -60,7 +60,7 @@ Wild Media の「いまの姿」の地図。意思決定の経緯は [設計ス�
   body は構造化 JSON のため、生の `<img>` タグや reference/shortcut 記法での
   抜け道はそもそも存在しない。
 - 公開するには本文ブロックにテキストを持つノードが1つ以上必要
-  (`enforce_publish_rules` の `BODY_EMPTY_ON_PUBLISH` チェック)。
+  (トリガー `b_enforce_publish_rules`、`enforce_publish_rules` 内の `BODY_EMPTY_ON_PUBLISH` チェック)。
 - アップロード済み画像は `media` テーブルに記録される。記事から参照されている
   画像は削除できない(`a_block_media_in_use`)。R2 のオブジェクト削除は
   Edge Function `r2-delete-object` が行い、呼び出し元の uid 配下のキーに限る。
