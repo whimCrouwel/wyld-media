@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { detectEmbedProvider } from '../src/lib/embed-dialog';
+import { describe, it, expect, vi } from 'vitest';
+import { detectEmbedProvider, insertEmbedBlock } from '../src/lib/embed-dialog';
 
 describe('detectEmbedProvider', () => {
   it('detects youtube.com and youtu.be', () => {
@@ -22,5 +22,36 @@ describe('detectEmbedProvider', () => {
   });
   it('returns null for an invalid url', () => {
     expect(detectEmbedProvider('not a url')).toBeNull();
+  });
+});
+
+function fakeEditor() {
+  const run = vi.fn();
+  const insertContent = vi.fn(() => ({ run }));
+  const focus = vi.fn(() => ({ insertContent }));
+  const chain = vi.fn(() => ({ focus }));
+  return { chain, insertContent, run } as unknown as import('@tiptap/core').Editor & {
+    insertContent: typeof insertContent;
+  };
+}
+
+describe('insertEmbedBlock', () => {
+  it('inserts an embed node for an allowed provider url', () => {
+    const editor = fakeEditor();
+    const result = insertEmbedBlock(editor, 'https://www.youtube.com/watch?v=abc');
+    expect(result).toEqual({ ok: true });
+    expect(editor.insertContent).toHaveBeenCalledWith({
+      type: 'embed', attrs: { url: 'https://www.youtube.com/watch?v=abc', provider: 'youtube' },
+    });
+  });
+
+  it('rejects a disallowed host without touching the editor', () => {
+    const editor = fakeEditor();
+    const result = insertEmbedBlock(editor, 'https://evil.example/embed/1');
+    expect(result).toEqual({
+      ok: false,
+      message: '許可されていない埋め込み元です(YouTube / X / Vimeo のみ)。',
+    });
+    expect(editor.insertContent).not.toHaveBeenCalled();
   });
 });

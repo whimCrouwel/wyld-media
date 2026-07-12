@@ -1,3 +1,5 @@
+import type { Editor } from '@tiptap/core';
+
 // 許可ホストは DB トリガーと同期させること(権威は DB 側)。
 // supabase/migrations/20260712090200_body_embed_rules.sql の
 // allowed_embed_hosts と同じ6つのホスト名。
@@ -18,4 +20,18 @@ export function detectEmbedProvider(url: string): 'youtube' | 'twitter' | 'vimeo
     if (hosts.includes(host)) return provider as 'youtube' | 'twitter' | 'vimeo';
   }
   return null;
+}
+
+export function insertEmbedBlock(
+  editor: Editor, url: string,
+): { ok: true } | { ok: false; message: string } {
+  const provider = detectEmbedProvider(url);
+  if (!provider) {
+    return { ok: false, message: '許可されていない埋め込み元です(YouTube / X / Vimeo のみ)。' };
+  }
+  editor.chain().focus().insertContent({
+    type: 'embed',
+    attrs: { url, provider },
+  }).run();
+  return { ok: true };
 }
