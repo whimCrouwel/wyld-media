@@ -12,12 +12,15 @@
   },
   "dependencies": {
     "@tiptap/core": "2.27.2",
-    "@tiptap/starter-kit": "2.27.2",
     "@tiptap/extension-link": "2.27.2",
     "@tiptap/extension-text-align": "2.27.2",
+    "@tiptap/starter-kit": "2.27.2",
+    "jsdom": "^27.0.1",
     "sanitize-html": "^2.13.0"
   },
   "devDependencies": {
+    "@types/jsdom": "^28.0.3",
+    "@types/node": "^26.1.1",
     "@types/sanitize-html": "^2.11.0",
     "vitest": "^2.1.0"
   }
