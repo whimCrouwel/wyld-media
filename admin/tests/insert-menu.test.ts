@@ -1,5 +1,7 @@
+// @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
-import { filterCommands, type BlockCommand } from '../src/lib/insert-menu';
+import { filterCommands, initInsertButton, type BlockCommand } from '../src/lib/insert-menu';
+import { createBlockEditor } from '../src/lib/block-editor';
 
 const commands: BlockCommand[] = [
   { id: 'heading', label: '見出し', run: () => {} },
@@ -19,5 +21,24 @@ describe('filterCommands', () => {
   });
   it('returns empty array when nothing matches', () => {
     expect(filterCommands(commands, 'zzz')).toEqual([]);
+  });
+});
+
+describe('initInsertButton', () => {
+  it('shows the button immediately when the caret already starts in an empty textblock', () => {
+    const el = document.createElement('div');
+    const editor = createBlockEditor({
+      element: el,
+      content: [{ type: 'paragraph' }],
+      extraExtensions: [],
+    });
+
+    const wrapper = document.createElement('div');
+    initInsertButton(editor, wrapper);
+
+    const button = wrapper.querySelector('button.insert-block-button') as HTMLButtonElement;
+    expect(button.hidden).toBe(false);
+
+    editor.destroy();
   });
 });

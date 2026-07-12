@@ -59,4 +59,5 @@ export function initInsertButton(editor: Editor, wrapperEl: HTMLElement): void {
 
   editor.on('selectionUpdate', updateVisibility);
   editor.on('transaction', updateVisibility);
+  updateVisibility();
 }
