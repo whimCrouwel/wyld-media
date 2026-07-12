@@ -288,8 +288,8 @@ const title = '記事の編集 | Wild Media CMS';
 
           const previewModal = document.getElementById('preview-modal') as HTMLElement;
           const previewBody = document.getElementById('preview-body')!;
-          document.getElementById('preview-toggle')!.addEventListener('click', () => {
-            previewBody.innerHTML = renderPreviewHtml(editor, imageBaseUrl);
+          document.getElementById('preview-toggle')!.addEventListener('click', async () => {
+            previewBody.innerHTML = await renderPreviewHtml(editor, imageBaseUrl);
             previewModal.hidden = false;
           });
           document.getElementById('preview-close')!.addEventListener('click', () => {

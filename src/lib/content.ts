@@ -1,6 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { marked } from 'marked';
-import sanitizeHtml from 'sanitize-html';
+import { renderBlocksToHtml } from '@wild-media/blocks-renderer';
 
 export interface ArticleSummary {
   id: string;
@@ -74,25 +73,6 @@ function toSummary(row: any): ArticleSummary {
   };
 }
 
-// imageBaseUrl 配下でない img は丸ごと落とす。空文字なら画像を一切通さない
-// (settings.image_base_url 未設定時の fail closed)。
-// base + '/' で比較するのは https://img.test が
-// https://img.test.evil.example に前方一致するのを防ぐため。
-export function renderMarkdown(markdown: string, imageBaseUrl: string): string {
-  const html = marked.parse(markdown, { async: false }) as string;
-  const prefix = imageBaseUrl === '' ? null : `${imageBaseUrl}/`;
-  return sanitizeHtml(html, {
-    allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2']),
-    allowedAttributes: {
-      ...sanitizeHtml.defaults.allowedAttributes,
-      img: ['src', 'alt'],
-    },
-    exclusiveFilter: (frame) =>
-      frame.tag === 'img' &&
-      (prefix === null || !(frame.attribs.src ?? '').startsWith(prefix)),
-  });
-}
-
 export async function fetchImageBaseUrl(db: SupabaseClient): Promise<string> {
   const { data, error } = await db
     .from('settings')
@@ -146,7 +126,10 @@ export async function fetchArticleBySlug(
   if (error) throw error;
   if (!data) return null;
   const imageBaseUrl = await fetchImageBaseUrl(db);
-  return { ...toSummary(data), bodyHtml: renderMarkdown((data as any).body, imageBaseUrl) };
+  return {
+    ...toSummary(data),
+    bodyHtml: await renderBlocksToHtml({ type: 'doc', content: (data as any).body }, imageBaseUrl),
+  };
 }
 
 export async function fetchWriters(db: SupabaseClient): Promise<WriterSummary[]> {

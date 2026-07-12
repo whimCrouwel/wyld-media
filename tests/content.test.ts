@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
+import { renderBlocksToHtml } from '@wild-media/blocks-renderer';
 import {
   fetchPublishedArticles,
   fetchArticleBySlug,
   fetchWriters,
   fetchWriterBySlug,
-  renderMarkdown,
   safeUrl,
 } from '../src/lib/content';
 
@@ -15,30 +15,34 @@ const db = createClient(
   { auth: { persistSession: false } },
 );
 
-describe('renderMarkdown', () => {
+describe('article rendering via renderBlocksToHtml', () => {
   const BASE = 'https://img.test';
 
-  it('renders markdown and strips scripts', () => {
-    const html = renderMarkdown('## 見出し\n\n**強調** <script>alert(1)</script>', BASE);
-    expect(html).toContain('<h2>');
+  it('renders blocks and strips scripts', async () => {
+    const doc = { type: 'doc', content: [
+      { type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: '見出し' }] },
+      { type: 'paragraph', content: [{ type: 'text', text: '強調', marks: [{ type: 'bold' }] }] },
+      { type: 'paragraph', content: [{ type: 'text', text: '<script>alert(1)</script>' }] },
+    ] };
+    const html = await renderBlocksToHtml(doc, BASE);
+    expect(html).toContain('<h2 id="見出し">');
     expect(html).toContain('<strong>強調</strong>');
     expect(html).not.toContain('<script');
   });
 
-  it('許可ホストの画像は残す', () => {
-    expect(renderMarkdown(`![a](${BASE}/x.webp)`, BASE)).toContain(`src="${BASE}/x.webp"`);
+  it('許可ホストの画像は残す', async () => {
+    const doc = { type: 'doc', content: [{ type: 'image', attrs: { url: `${BASE}/x.webp`, alt: '', caption: '' } }] };
+    expect(await renderBlocksToHtml(doc, BASE)).toContain(`src="${BASE}/x.webp"`);
   });
 
-  it('許可ホスト以外の画像は落とす', () => {
-    expect(renderMarkdown('![a](https://evil.example/x.webp)', BASE)).not.toContain('<img');
+  it('許可ホスト以外の画像は落とす', async () => {
+    const doc = { type: 'doc', content: [{ type: 'image', attrs: { url: 'https://evil.example/x.webp', alt: '', caption: '' } }] };
+    expect(await renderBlocksToHtml(doc, BASE)).not.toContain('<img');
   });
 
-  it('前方一致の抜け道を塞ぐ', () => {
-    expect(renderMarkdown('![a](https://img.test.evil.example/x.webp)', BASE)).not.toContain('<img');
-  });
-
-  it('imageBaseUrl が空なら画像を落とす', () => {
-    expect(renderMarkdown(`![a](${BASE}/x.webp)`, '')).not.toContain('<img');
+  it('imageBaseUrl が空なら画像を落とす', async () => {
+    const doc = { type: 'doc', content: [{ type: 'image', attrs: { url: `${BASE}/x.webp`, alt: '', caption: '' } }] };
+    expect(await renderBlocksToHtml(doc, '')).not.toContain('<img');
   });
 });
 
@@ -78,7 +82,7 @@ describe('content data layer (requires seeded local Supabase)', () => {
     expect(article).not.toBeNull();
     expect(article!.authorName).toBe('田中 花');
     expect(article!.authorSlug).toBe('tanaka-hana');
-    expect(article!.bodyHtml).toContain('<h2>');
+    expect(article!.bodyHtml).toContain('<h2 id="川辺にて">');
     expect(article!.bodyHtml).not.toContain('<script');
   });
 

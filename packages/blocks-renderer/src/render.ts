@@ -13,16 +13,20 @@ import { blockExtensions } from './extensions';
 // ではjsdomでその場限りのDOMを用意する。
 //
 // createRequireの取得はトップレベルの `import { createRequire } from
-// 'node:module'` にせず、あえてeval('require')経由にしている。
+// 'node:module'` にせず、あえて動的import('node:module')経由にしている。
 // Vite/Rollupはブラウザ向けビルドでもトップレベルimportを静的に解析し、
 // node:moduleを解決しようとしてビルド自体を失敗させる(ブラウザ向けの
-// node:module外部化スタブにcreateRequireが存在しないため)。eval(...)の
-// 中身は静的解析の対象外になるため、この関数はNode実行時にのみ
+// node:module外部化スタブにcreateRequireが存在しないため)。動的import()は
+// 静的なnamed-import解決の対象外になるため、この関数はNode実行時にのみ
 // 到達する(typeof windowガード)ことと合わせて、ブラウザ向けバンドルに
 // jsdomの中身(fs等のNode API)が静的に取り込まれることはない。
-function ensureDomGlobals(): void {
+// なお eval('require') はCommonJS的スコープでしか解決できず、本物の
+// Node ESM(Astroの本番ビルド)では ReferenceError: require is not defined に
+// なるため使えない。動的import('node:module')は本物のNode ESMでも動く。
+async function ensureDomGlobals(): Promise<void> {
   if (typeof (globalThis as unknown as { window?: unknown }).window !== 'undefined') return;
-  const nodeRequire = (eval('require') as NodeRequire)('node:module').createRequire(import.meta.url);
+  const { createRequire } = await import('node:module');
+  const nodeRequire = createRequire(import.meta.url);
   const { JSDOM } = nodeRequire('jsdom') as typeof import('jsdom');
   const dom = new JSDOM('<!doctype html><html><body></body></html>');
   const g = globalThis as unknown as Record<string, unknown>;
@@ -66,8 +70,8 @@ function addHeadingIds(html: string): string {
   });
 }
 
-export function renderBlocksToHtml(doc: JSONContent, imageBaseUrl: string): string {
-  ensureDomGlobals();
+export async function renderBlocksToHtml(doc: JSONContent, imageBaseUrl: string): Promise<string> {
+  await ensureDomGlobals();
   const filtered: JSONContent = {
     type: 'doc',
     content: (doc.content ?? []).map((n) => dropDisallowedAssets(n, imageBaseUrl)).filter((n): n is JSONContent => n !== null),
