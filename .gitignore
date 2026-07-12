@@ -17,3 +17,4 @@ admin/dist/
 admin/.astro/
 admin/.env
 admin/node_modules/
+.worktrees/
