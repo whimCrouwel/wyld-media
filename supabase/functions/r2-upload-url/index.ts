@@ -3,10 +3,15 @@ import { AwsClient } from 'npm:aws4fetch';
 import { corsHeaders } from '../_shared/cors.ts';
 
 const MAX_BYTES = 512_000;
-const ALLOWED_TYPES: Record<string, string> = {
-  'image/webp': 'webp',
-  'image/jpeg': 'jpg',
-  'image/png': 'png',
+
+// kinds: どの kind パラメータでこの MIME タイプを許可するか。
+// 'image' は既存の画像アップロード(本文画像・カバー画像)専用のまま、
+// 'file' はファイルブロック用に PDF を追加で許可する。
+const ALLOWED_TYPES: Record<string, { ext: string; kinds: Array<'image' | 'file'> }> = {
+  'image/webp': { ext: 'webp', kinds: ['image', 'file'] },
+  'image/jpeg': { ext: 'jpg', kinds: ['image', 'file'] },
+  'image/png': { ext: 'png', kinds: ['image', 'file'] },
+  'application/pdf': { ext: 'pdf', kinds: ['file'] },
 };
 
 function json(body: unknown, status = 200) {
@@ -33,18 +38,22 @@ Deno.serve(async (req) => {
   const { data: userData } = await admin.auth.getUser(jwt);
   if (!userData?.user) return json({ error: 'unauthorized' }, 401);
 
-  let payload: { contentType?: string; contentLength?: number };
+  let payload: { contentType?: string; contentLength?: number; kind?: 'image' | 'file' };
   try {
     payload = await req.json();
   } catch {
     return json({ error: 'invalid json' }, 400);
   }
   const { contentType, contentLength } = payload;
+  const kind = payload.kind ?? 'image';
 
-  const ext = ALLOWED_TYPES[contentType ?? ''];
-  if (!ext) {
+  const allowed = ALLOWED_TYPES[contentType ?? ''];
+  if (!allowed || !allowed.kinds.includes(kind)) {
+    const validForKind = Object.entries(ALLOWED_TYPES)
+      .filter(([, v]) => v.kinds.includes(kind))
+      .map(([k]) => k);
     return json(
-      { error: `contentType must be one of: ${Object.keys(ALLOWED_TYPES).join(', ')}` },
+      { error: `contentType must be one of: ${validForKind.join(', ')}` },
       400,
     );
   }
@@ -56,7 +65,7 @@ Deno.serve(async (req) => {
     return json({ error: `contentLength must be 1..${MAX_BYTES} bytes` }, 400);
   }
 
-  const key = `${userData.user.id}/${crypto.randomUUID()}.${ext}`;
+  const key = `${userData.user.id}/${crypto.randomUUID()}.${allowed.ext}`;
   // R2_ENDPOINT 例:
   //   本番:   https://<account-id>.r2.cloudflarestorage.com
   //   ローカル: http://127.0.0.1:54321/storage/v1/s3(Supabase Storage の S3 互換 API を R2 の代わりに使う)
