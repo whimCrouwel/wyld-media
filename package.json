@@ -14,12 +14,9 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
     "@wild-media/blocks-renderer": "^0.1.0",
-    "astro": "^5.0.0",
-    "marked": "^14.0.0",
-    "sanitize-html": "^2.13.0"
+    "astro": "^5.0.0"
   },
   "devDependencies": {
-    "@types/sanitize-html": "^2.11.0",
     "dotenv": "^16.4.0",
     "vitest": "^2.1.0"
   }
