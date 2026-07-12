@@ -37,4 +37,26 @@ describe('renderBlocksToHtml', () => {
     ] };
     expect(await renderBlocksToHtml(doc, '')).not.toContain('<img');
   });
+
+  it('youtube/vimeo embed は iframe として描画される', async () => {
+    const doc: JSONContent = { type: 'doc', content: [
+      { type: 'embed', attrs: { url: 'https://www.youtube.com/embed/abc123', provider: 'youtube' } },
+    ] };
+    const html = await renderBlocksToHtml(doc, BASE);
+    expect(html).toContain('<iframe');
+    expect(html).toContain('src="https://www.youtube.com/embed/abc123"');
+  });
+
+  it('twitter embed は動作しないiframeではなく、明示的なリンクとして描画される', async () => {
+    const doc: JSONContent = { type: 'doc', content: [
+      { type: 'embed', attrs: { url: 'https://x.com/user/status/1', provider: 'twitter' } },
+    ] };
+    const html = await renderBlocksToHtml(doc, BASE);
+    expect(html).not.toContain('<iframe');
+    expect(html).toContain('<a');
+    expect(html).toContain('href="https://x.com/user/status/1"');
+    expect(html).toContain('target="_blank"');
+    expect(html).toContain('rel="noopener noreferrer"');
+    expect(html).toContain('https://x.com/user/status/1');
+  });
 });

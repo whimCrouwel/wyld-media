@@ -84,7 +84,7 @@ export async function renderBlocksToHtml(doc: JSONContent, imageBaseUrl: string)
       ...sanitizeHtml.defaults.allowedAttributes,
       h2: ['id'], h3: ['id'],
       img: ['src', 'alt'],
-      a: ['href', 'download'],
+      a: ['href', 'download', 'target', 'rel'],
       iframe: ['src', 'sandbox', 'referrerpolicy', 'loading'],
     },
   });

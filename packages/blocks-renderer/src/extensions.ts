@@ -36,6 +36,15 @@ const Embed = Node.create({
     return [{ tag: 'div[data-block="embed"]' }];
   },
   renderHTML({ HTMLAttributes }) {
+    // X/Twitterは通常のURLベースの<iframe>埋め込みに対応していない
+    // (実際の埋め込みにはwidgets.jsのスクリプト実行が必要で、script非実行の
+    // sanitize-htmlパイプラインとは相容れない)。動作しない空のiframeを
+    // 出すよりも、正直にリンクとして表示する。
+    if (HTMLAttributes.provider === 'twitter') {
+      return ['div', { 'data-block': 'embed', 'data-provider': 'twitter' },
+        ['a', { href: HTMLAttributes.url, target: '_blank', rel: 'noopener noreferrer' },
+          `Xの投稿を見る: ${HTMLAttributes.url}`]];
+    }
     return ['div', { 'data-block': 'embed', 'data-provider': HTMLAttributes.provider },
       ['iframe', {
         src: HTMLAttributes.url, sandbox: 'allow-scripts allow-same-origin allow-presentation',
