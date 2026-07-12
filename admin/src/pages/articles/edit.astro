@@ -269,11 +269,15 @@ const title = '記事の編集 | Wild Media CMS';
             messageEl.textContent = '';
             const input = collect();
             try {
-              const { error } = await supabaseBrowser
+              const { data, error } = await supabaseBrowser
                 .from('articles')
                 .update({ status: 'draft', commission_code_input: input.commissionCode.trim() || null })
-                .eq('id', id);
+                .eq('id', id)
+                .select('updated_at')
+                .maybeSingle();
               if (error) throw error;
+              if (data) currentUpdatedAt = data.updated_at as string;
+              clearDraftBackup(id);
               messageEl.textContent = '下書きに戻しました。';
               statusLabel.textContent = '状態: 下書き';
             } catch (err) {
