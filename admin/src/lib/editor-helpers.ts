@@ -1,6 +1,3 @@
-import { marked } from 'marked';
-import sanitizeHtml from 'sanitize-html';
-
 const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 export function isValidArticleSlug(slug: string): boolean {
@@ -28,28 +25,14 @@ export function translateSaveError(err: unknown): string {
   if (msg.includes('IMAGE_HOST_NOT_ALLOWED')) {
     return '許可されていない場所の画像は使えません。「/」から画像を挿入してください。';
   }
-  if (msg.includes('HTML_IMG_NOT_ALLOWED')) {
-    return '本文に <img> タグは書けません。「/」から画像を挿入してください。';
+  if (msg.includes('FILE_HOST_NOT_ALLOWED')) {
+    return '許可されていない場所のファイルは使えません。「/」からファイルを添付してください。';
   }
-  if (msg.includes('IMAGE_SYNTAX_NOT_ALLOWED')) {
-    return '画像は「/」から挿入したものだけ使えます(参照形式のリンクは使えません)。';
+  if (msg.includes('EMBED_HOST_NOT_ALLOWED')) {
+    return '許可されていない埋め込み元です(YouTube / X / Vimeo のみ)。';
+  }
+  if (msg.includes('BODY_EMPTY_ON_PUBLISH')) {
+    return '公開するには本文にテキストを入力してください。';
   }
   return '保存に失敗しました。入力内容を確認して再度お試しください。';
-}
-
-// 公開サイトの renderMarkdown(src/lib/content.ts)と同じ規則で img を絞る。
-// 片方だけ緩いと「プレビューで見えたのに公開ページで消える」ことになる。
-export function renderMarkdownPreview(md: string, imageBaseUrl: string): string {
-  const html = marked.parse(md, { async: false }) as string;
-  const prefix = imageBaseUrl === '' ? null : `${imageBaseUrl}/`;
-  return sanitizeHtml(html, {
-    allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2']),
-    allowedAttributes: {
-      ...sanitizeHtml.defaults.allowedAttributes,
-      img: ['src', 'alt'],
-    },
-    exclusiveFilter: (frame) =>
-      frame.tag === 'img' &&
-      (prefix === null || !(frame.attribs.src ?? '').startsWith(prefix)),
-  });
 }

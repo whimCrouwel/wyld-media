@@ -84,21 +84,6 @@ export async function uploadImage(
   return ticket.publicUrl;
 }
 
-// markdown の画像記法 ![alt](url) の数。DB 側の regexp と同じ形。
-// リンク記法 [text](url) は先頭の ! がないので数えない。
-export function countBodyImages(markdown: string): number {
-  return (markdown.match(/!\[[^\]]*\]\(\s*[^)\s]+/g) ?? []).length;
-}
-
-export function insertAtCursor(textarea: HTMLTextAreaElement, text: string): void {
-  const start = textarea.selectionStart;
-  const end = textarea.selectionEnd;
-  textarea.value = textarea.value.slice(0, start) + text + textarea.value.slice(end);
-  const caret = start + text.length;
-  textarea.selectionStart = caret;
-  textarea.selectionEnd = caret;
-}
-
 // 許可ホスト。settings は authenticated なら誰でも select できる(RLS)。
 export async function fetchImageBaseUrl(supabase: SupabaseClient): Promise<string> {
   const { data, error } = await supabase

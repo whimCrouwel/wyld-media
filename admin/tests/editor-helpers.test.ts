@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { translateSaveError, isValidArticleSlug, renderMarkdownPreview } from '../src/lib/editor-helpers';
+import { translateSaveError, isValidArticleSlug } from '../src/lib/editor-helpers';
 
 describe('isValidArticleSlug', () => {
   it('accepts lowercase-hyphen slugs', () => {
@@ -38,33 +38,13 @@ describe('translateSaveError', () => {
     expect(translateSaveError(new Error('IMAGE_HOST_NOT_ALLOWED'))).toContain('許可されていない');
   });
 
-  it('HTML_IMG_NOT_ALLOWED を訳す', () => {
-    expect(translateSaveError(new Error('HTML_IMG_NOT_ALLOWED'))).toContain('<img>');
+  it('FILE_HOST_NOT_ALLOWED を訳す', () => {
+    expect(translateSaveError(new Error('FILE_HOST_NOT_ALLOWED'))).toContain('許可されていない');
   });
-
-  it('IMAGE_SYNTAX_NOT_ALLOWED を訳す', () => {
-    expect(translateSaveError(new Error('IMAGE_SYNTAX_NOT_ALLOWED'))).toContain('/');
+  it('EMBED_HOST_NOT_ALLOWED を訳す', () => {
+    expect(translateSaveError(new Error('EMBED_HOST_NOT_ALLOWED'))).toContain('YouTube');
   });
-});
-
-describe('renderMarkdownPreview', () => {
-  const BASE = 'https://img.test';
-
-  it('markdown を描画し script を落とす', () => {
-    const html = renderMarkdownPreview('## 見出し\n\n<script>alert(1)</script>', BASE);
-    expect(html).toContain('<h2>');
-    expect(html).not.toContain('<script');
-  });
-
-  it('許可ホストの画像は残す', () => {
-    expect(renderMarkdownPreview(`![a](${BASE}/x.webp)`, BASE)).toContain('<img');
-  });
-
-  it('許可ホスト以外の画像は落とす', () => {
-    expect(renderMarkdownPreview('![a](https://evil.example/x.webp)', BASE)).not.toContain('<img');
-  });
-
-  it('imageBaseUrl が空なら画像を落とす', () => {
-    expect(renderMarkdownPreview(`![a](${BASE}/x.webp)`, '')).not.toContain('<img');
+  it('BODY_EMPTY_ON_PUBLISH を訳す', () => {
+    expect(translateSaveError(new Error('BODY_EMPTY_ON_PUBLISH'))).toContain('本文');
   });
 });

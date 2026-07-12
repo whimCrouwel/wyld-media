@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import {
   MAX_UPLOAD_BYTES, MAX_EDGE, ENCODE_ATTEMPTS,
   scaledSize, encodeUnderLimit, translateUploadError,
-  MAX_BODY_IMAGES, countBodyImages, insertAtCursor, fetchImageBaseUrl,
+  MAX_BODY_IMAGES, fetchImageBaseUrl,
 } from '../src/lib/images';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -11,6 +11,10 @@ describe('constants', () => {
   it('サーバー側の上限をミラーする', () => {
     expect(MAX_UPLOAD_BYTES).toBe(512_000); // r2-upload-url の MAX_BYTES と同値
     expect(MAX_EDGE).toBe(1600);
+  });
+
+  it('DB 側の上限と同じ 5 を公開している', () => {
+    expect(MAX_BODY_IMAGES).toBe(5);
   });
 });
 
@@ -74,45 +78,6 @@ describe('translateUploadError', () => {
   });
   it('それ以外は汎用メッセージ', () => {
     expect(translateUploadError(new Error('boom'))).toContain('アップロードに失敗');
-  });
-});
-
-describe('countBodyImages', () => {
-  it('markdown 画像記法の数を数える', () => {
-    expect(countBodyImages('![a](x) text ![](y)')).toBe(2);
-  });
-
-  it('画像がなければ 0', () => {
-    expect(countBodyImages('# 見出し\n\nただの本文')).toBe(0);
-  });
-
-  it('リンク記法は画像として数えない', () => {
-    expect(countBodyImages('[リンク](https://example.com)')).toBe(0);
-  });
-
-  it('DB 側の上限と同じ 5 を公開している', () => {
-    expect(MAX_BODY_IMAGES).toBe(5);
-  });
-});
-
-describe('insertAtCursor', () => {
-  it('カーソル位置に差し込む', () => {
-    const ta = document.createElement('textarea');
-    ta.value = 'ab';
-    ta.selectionStart = 1;
-    ta.selectionEnd = 1;
-    insertAtCursor(ta, 'X');
-    expect(ta.value).toBe('aXb');
-    expect(ta.selectionStart).toBe(2);
-  });
-
-  it('選択されたテキストを置き換える', () => {
-    const ta = document.createElement('textarea');
-    ta.value = 'abc';
-    ta.selectionStart = 1;
-    ta.selectionEnd = 2;
-    insertAtCursor(ta, 'ZZ');
-    expect(ta.value).toBe('aZZc');
   });
 });
 
