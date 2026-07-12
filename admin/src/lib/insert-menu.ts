@@ -1,5 +1,7 @@
 import { Extension, type Editor } from '@tiptap/core';
-import Suggestion from '@tiptap/suggestion';
+import Suggestion, {
+  type SuggestionKeyDownProps, type SuggestionProps,
+} from '@tiptap/suggestion';
 
 export interface BlockCommand {
   id: string;
@@ -10,6 +12,114 @@ export interface BlockCommand {
 export function filterCommands(commands: BlockCommand[], query: string): BlockCommand[] {
   const q = query.toLowerCase();
   return commands.filter((c) => c.label.toLowerCase().includes(q) || c.id.toLowerCase().includes(q));
+}
+
+// "/" 入力で開くコマンド一覧のポップアップ。@tiptap/suggestion は状態管理のみ
+// 行い、DOM描画・キー操作は render() が返すコールバックの責務(標準パターン)。
+// onKeyDown は SuggestionKeyDownProps (view/event/range のみ) しか受け取らず
+// command() を含まないため、onStart/onUpdate で受け取った props を閉じ込めて
+// 使い回す。
+function createSlashMenuRenderer() {
+  let popupEl: HTMLElement | null = null;
+  let listEl: HTMLElement | null = null;
+  let items: BlockCommand[] = [];
+  let selectedIndex = 0;
+  let latestProps: SuggestionProps<BlockCommand, BlockCommand> | null = null;
+
+  const positionPopup = (clientRect: DOMRect | null | undefined) => {
+    if (!popupEl || !clientRect) return;
+    popupEl.style.position = 'fixed';
+    popupEl.style.left = `${clientRect.left}px`;
+    popupEl.style.top = `${clientRect.bottom}px`;
+  };
+
+  const selectItem = (item: BlockCommand) => {
+    latestProps?.command(item);
+  };
+
+  const renderItems = () => {
+    if (!listEl) return;
+    listEl.replaceChildren();
+    items.forEach((item, index) => {
+      const li = document.createElement('li');
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = item.label;
+      button.dataset.commandId = item.id;
+      const isSelected = index === selectedIndex;
+      button.setAttribute('aria-selected', String(isSelected));
+      button.classList.toggle('is-selected', isSelected);
+      // mousedown ではなく click だとエディタが先にフォーカスを失い、
+      // suggestion の状態がクリック前に閉じてしまう可能性があるため mousedown を使う。
+      button.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        selectItem(item);
+      });
+      li.append(button);
+      listEl!.append(li);
+    });
+  };
+
+  const closePopup = () => {
+    popupEl?.remove();
+    popupEl = null;
+    listEl = null;
+  };
+
+  return {
+    onStart(props: SuggestionProps<BlockCommand, BlockCommand>) {
+      latestProps = props;
+      items = props.items;
+      selectedIndex = 0;
+
+      popupEl = document.createElement('div');
+      popupEl.className = 'slash-menu-popup';
+      listEl = document.createElement('ul');
+      popupEl.append(listEl);
+      document.body.append(popupEl);
+
+      renderItems();
+      positionPopup(props.clientRect?.());
+    },
+    onUpdate(props: SuggestionProps<BlockCommand, BlockCommand>) {
+      latestProps = props;
+      items = props.items;
+      if (selectedIndex >= items.length) {
+        selectedIndex = items.length === 0 ? 0 : items.length - 1;
+      }
+
+      renderItems();
+      positionPopup(props.clientRect?.());
+    },
+    onKeyDown(props: SuggestionKeyDownProps): boolean {
+      if (!popupEl) return false;
+
+      if (props.event.key === 'ArrowDown') {
+        if (items.length > 0) selectedIndex = (selectedIndex + 1) % items.length;
+        renderItems();
+        return true;
+      }
+      if (props.event.key === 'ArrowUp') {
+        if (items.length > 0) selectedIndex = (selectedIndex - 1 + items.length) % items.length;
+        renderItems();
+        return true;
+      }
+      if (props.event.key === 'Enter') {
+        const item = items[selectedIndex];
+        if (item) selectItem(item);
+        return true;
+      }
+      if (props.event.key === 'Escape') {
+        closePopup();
+        return true;
+      }
+      return false;
+    },
+    onExit() {
+      closePopup();
+      latestProps = null;
+    },
+  };
 }
 
 export function createSlashCommandsExtension(commands: BlockCommand[]): Extension {
@@ -26,6 +136,7 @@ export function createSlashCommandsExtension(commands: BlockCommand[]): Extensio
             editor.chain().focus().deleteRange(range).run();
             props.run(editor);
           },
+          render: createSlashMenuRenderer,
         },
       };
     },
