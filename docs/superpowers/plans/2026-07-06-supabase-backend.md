@@ -1228,5 +1228,5 @@ git commit -m "feat: add r2-upload-url edge function with size/type limits"
 
 - Astro プロジェクトの雛形、公開ページ(トップ/記事/ライター)、CMS 画面(ログイン/エディタ/管理)
 - マークダウンエディタ(EasyMDE)、Cropper.js によるクロップ、ブラウザ内リサイズ・WebP 圧縮
-- Supabase Database Webhook → Cloudflare Pages Deploy Hook の再ビルド設定
+- Supabase Database Webhook → Vercel Deploy Hook の再ビルド設定
 - ホスト版 Supabase へのデプロイ(`supabase link` / `supabase db push` / `supabase functions deploy`)と R2 本番設定

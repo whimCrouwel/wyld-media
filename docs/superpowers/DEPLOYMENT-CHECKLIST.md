@@ -1,6 +1,24 @@
-# デプロイチェックリスト(ホスト版 Supabase + Cloudflare)
+# デプロイチェックリスト(ホスト版 Supabase + Vercel + R2)
 
 計画1〜3で判明した、ローカルからホスト環境へ移す際に必ず行うこと。デプロイタスクで消化する。
+
+**初回デプロイは一度きりの手作業。** 完了後の日常運用は自動(記事公開 → DB Webhook → 再ビルド / git push → Vercel 再デプロイ)。以降の手作業はスキーマ変更時の `supabase db push` のみ。
+
+## 手順の骨格(コマンド)
+
+前提: supabase.com でプロジェクト作成、Cloudflare で R2 バケット+APIトークン作成、Vercel アカウント(ブラウザ作業)。
+
+```bash
+supabase login                                   # 初回のみ(ブラウザ認証)
+supabase link --project-ref <project-id>
+supabase db push                                 # migrations/ を全適用
+supabase secrets set CMS_URL=https://admin.example.com \
+  R2_ENDPOINT=... R2_REGION=auto R2_BUCKET=... \
+  R2_ACCESS_KEY_ID=... R2_SECRET_ACCESS_KEY=... R2_PUBLIC_BASE_URL=...
+supabase functions deploy invite-user r2-upload-url
+```
+
+残り(signup 無効化・Vercel プロジェクト×2・Webhook 配線)は各ダッシュボードで下記チェックリストの通りに。
 
 ## Supabase(ホストプロジェクト)
 - [ ] `enable_signup = false` をダッシュボード/config push で適用(`db push` では反映されない。セルフサインアップ無効化の要)
@@ -24,10 +42,11 @@
       `update articles set cover_image_url = replace(cover_image_url, '<旧>', '<新>'), body = replace(body, '<旧>', '<新>');`
       `update media set url = replace(url, '<旧>', '<新>');`
 
-## フロントエンド(Cloudflare Pages ×2)
-- [ ] 公開サイト(リポジトリ直下)を本番 `PUBLIC_*` env でビルドしてデプロイ(ルートドメイン)
-- [ ] CMS(`admin/`)を本番 `PUBLIC_SUPABASE_URL` / `PUBLIC_SUPABASE_ANON_KEY` でビルドしてデプロイ(admin サブドメイン)。service role キーは絶対に含めない
-- [ ] Supabase Database Webhook(記事の公開/更新/削除)→ 公開サイトの Cloudflare Pages Deploy Hook で自動再ビルド
+## フロントエンド(Vercel プロジェクト ×2)
+- [ ] 公開サイト: Vercel プロジェクト作成(Root Directory = リポジトリ直下、Framework = Astro)。env に `PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`(ビルド時のみ使用)を設定し、ルートドメインを割り当て
+- [ ] CMS: 別の Vercel プロジェクト作成(Root Directory = `admin/`)。env は `PUBLIC_SUPABASE_URL` / `PUBLIC_SUPABASE_ANON_KEY` のみ(service role キーは絶対に含めない)。admin サブドメインを割り当て
+- [ ] 公開サイト側プロジェクトで Deploy Hook を作成(Settings → Git → Deploy Hooks)
+- [ ] Supabase Database Webhook(articles の INSERT/UPDATE/DELETE)→ 上記 Vercel Deploy Hook URL を POST で叩き自動再ビルド
 
 ## 検証
 - [ ] 招待受諾(パスワード設定)フローをホストの SMTP で E2E 確認

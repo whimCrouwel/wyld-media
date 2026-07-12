@@ -920,5 +920,5 @@ git commit -m "docs: add local development quickstart"
 ## この計画のスコープ外
 
 - CMS 画面一式(ログイン / ダッシュボード / プロフィール編集 / 記事エディタ / 画像クロップ&アップロード / 管理者画面)→ **計画3**
-- Supabase Database Webhook → Cloudflare Pages Deploy Hook の再ビルド設定、ホスト版デプロイ → デプロイタスク
+- Supabase Database Webhook → Vercel Deploy Hook の再ビルド設定、ホスト版デプロイ → デプロイタスク
 - デザイン / CSS(MVP は素の HTML)

@@ -15,14 +15,14 @@
 
 | 層 | 技術 | 役割 |
 |---|---|---|
-| 公開サイト | Astro(完全静的ビルド)+ Cloudflare Pages | 記事・ライターページの高速表示、SEO |
+| 公開サイト | Astro(完全静的ビルド)+ Vercel | 記事・ライターページの高速表示、SEO |
 | CMS画面 | 同一 Astro プロジェクト内のクライアントレンダリングページ | ログイン、投稿、プロフィール編集、管理 |
 | DB・認証 | Supabase(Postgres + Auth + RLS) | ユーザー・記事・設定の管理、権限制御 |
 | サーバー処理 | Supabase Edge Functions(2つのみ) | ①ユーザー招待(管理者専用) ②R2署名付きURL発行 |
 | 画像 | Cloudflare R2 | 画像ストレージ |
 
 - **別バックエンドは作らない。** CMS画面はブラウザから Supabase JS クライアントで直結し、権限は RLS で強制する。
-- **再ビルド方式**: 記事の公開・更新・削除時に Supabase Database Webhook が Cloudflare Pages の Deploy Hook を叩き、静的サイトを自動再ビルドする。投稿頻度が低い(通常投稿は1ユーザーあたり10日に1回)ため再ビルド回数は少なく、この方式で成立する。
+- **再ビルド方式**: 記事の公開・更新・削除時に Supabase Database Webhook が Vercel の Deploy Hook を叩き、静的サイトを自動再ビルドする。投稿頻度が低い(通常投稿は1ユーザーあたり10日に1回)ため再ビルド回数は少なく、この方式で成立する。
 - 静的ビルドは Supabase の service role キーで全公開データを取得して行う。
 
 ## データモデル

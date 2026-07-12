@@ -987,7 +987,7 @@ git commit -m "docs: add CMS local development section"
 - 記事エディタ(マークダウン EasyMDE、slug 入力+重複チェック、依頼者コード入力+実在チェック RPC、下書き保存/公開)
 - 画像パイプライン(Cropper.js クロップ → ブラウザ内リサイズ・WebP 圧縮 → `r2-upload-url` Edge Function で署名付き URL 取得 → R2 へ PUT)
 - 管理者画面(ユーザー招待 UI・ロール設定・依頼者コード発行・サイト設定 post_interval_days/featured_count)
-- Supabase Database Webhook → Cloudflare Pages Deploy Hook の再ビルド、ホスト版デプロイ(公開 + admin の2プロジェクト)→ デプロイタスク
+- Supabase Database Webhook → Vercel Deploy Hook の再ビルド、ホスト版デプロイ(公開 + admin の2プロジェクト)→ デプロイタスク
 
 ## 計画1・2から引き継いだ注意点(この計画で守る)
 
