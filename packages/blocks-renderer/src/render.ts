@@ -1,4 +1,3 @@
-import { createRequire } from 'node:module';
 import { generateHTML } from '@tiptap/core';
 import sanitizeHtml from 'sanitize-html';
 import type { JSONContent } from '@tiptap/core';
@@ -11,13 +10,20 @@ import { blockExtensions } from './extensions';
 // `document` option ... should be passed" — だが@tiptap/coreはそれを
 // 呼び出し元に公開していない)。admin(Vite/ブラウザ)では既にwindowが
 // 存在するので何もしない。公開サイトのAstroビルド(Node.js、DOM無し)
-// ではjsdomでその場限りのDOMを用意する。requireはこの関数内でのみ
-// 評価するため、ブラウザ向けバンドルにjsdomの中身(fs等のNode API)が
-// 静的に取り込まれることはない。
+// ではjsdomでその場限りのDOMを用意する。
+//
+// createRequireの取得はトップレベルの `import { createRequire } from
+// 'node:module'` にせず、あえてeval('require')経由にしている。
+// Vite/Rollupはブラウザ向けビルドでもトップレベルimportを静的に解析し、
+// node:moduleを解決しようとしてビルド自体を失敗させる(ブラウザ向けの
+// node:module外部化スタブにcreateRequireが存在しないため)。eval(...)の
+// 中身は静的解析の対象外になるため、この関数はNode実行時にのみ
+// 到達する(typeof windowガード)ことと合わせて、ブラウザ向けバンドルに
+// jsdomの中身(fs等のNode API)が静的に取り込まれることはない。
 function ensureDomGlobals(): void {
   if (typeof (globalThis as unknown as { window?: unknown }).window !== 'undefined') return;
-  const require = createRequire(import.meta.url);
-  const { JSDOM } = require('jsdom') as typeof import('jsdom');
+  const nodeRequire = (eval('require') as NodeRequire)('node:module').createRequire(import.meta.url);
+  const { JSDOM } = nodeRequire('jsdom') as typeof import('jsdom');
   const dom = new JSDOM('<!doctype html><html><body></body></html>');
   const g = globalThis as unknown as Record<string, unknown>;
   g.window = dom.window;
