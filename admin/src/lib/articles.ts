@@ -1,10 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { JSONContent } from '@tiptap/core';
 import { safeUrl } from './url';
 
 export interface ArticleInput {
   title: string;
   slug: string;
-  body: string;
+  body: JSONContent[];
   coverUrl: string;
   commissionCode: string;
 }
@@ -12,7 +13,7 @@ export interface ArticleInput {
 export interface ArticlePayload {
   title: string;
   slug: string | null;
-  body: string;
+  body: JSONContent[];
   cover_image_url: string | null;
   commission_code_input: string | null;
 }
@@ -21,10 +22,15 @@ export interface EditableArticle {
   id: string;
   title: string;
   slug: string | null;
-  body: string;
+  body: JSONContent[];
   coverImageUrl: string | null;
   commissionCodeInput: string | null;
   status: 'draft' | 'published';
+  updatedAt: string;
+}
+
+export interface SaveResult {
+  updatedAt: string;
 }
 
 function emptyToNull(v: string): string | null {
@@ -60,7 +66,7 @@ export async function fetchArticleForEdit(
 ): Promise<EditableArticle | null> {
   const { data, error } = await supabase
     .from('articles')
-    .select('id, title, slug, body, cover_image_url, commission_code_input, status')
+    .select('id, title, slug, body, cover_image_url, commission_code_input, status, updated_at')
     .eq('id', id)
     .maybeSingle();
   if (error) throw error;
@@ -69,23 +75,31 @@ export async function fetchArticleForEdit(
     id: data.id,
     title: data.title,
     slug: data.slug,
-    body: data.body,
+    body: (data.body ?? []) as JSONContent[],
     coverImageUrl: data.cover_image_url,
     commissionCodeInput: data.commission_code_input,
     status: data.status,
+    updatedAt: data.updated_at,
   };
 }
 
 export async function saveArticle(
   supabase: SupabaseClient, id: string, input: ArticleInput, publish: boolean,
-): Promise<void> {
+  expectedUpdatedAt?: string,
+): Promise<SaveResult> {
   const payload = buildArticlePayload(input);
   // publish=true のときだけ status を published に上げる。false なら status を触らない
   // (未指定にすると現状維持)。published_at は送らない(トリガーが権威)。
   const update: Record<string, unknown> = { ...payload };
   if (publish) update.status = 'published';
-  const { error } = await supabase.from('articles').update(update).eq('id', id);
+
+  let query = supabase.from('articles').update(update).eq('id', id);
+  if (expectedUpdatedAt) query = query.eq('updated_at', expectedUpdatedAt);
+
+  const { data, error } = await query.select('updated_at').maybeSingle();
   if (error) throw error;
+  if (!data) throw new Error(expectedUpdatedAt ? 'CONFLICT' : 'NOT_FOUND');
+  return { updatedAt: data.updated_at as string };
 }
 
 export async function deleteArticle(supabase: SupabaseClient, id: string): Promise<void> {

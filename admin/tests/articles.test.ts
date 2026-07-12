@@ -35,25 +35,26 @@ afterEach(async () => {
 
 describe('buildArticlePayload', () => {
   it('maps form input, nulling empties and sanitizing cover url', () => {
+    const body = [{ type: 'paragraph', content: [{ type: 'text', text: '本文' }] }];
     expect(buildArticlePayload({
-      title: 'テスト', slug: 'test-slug', body: '本文',
+      title: 'テスト', slug: 'test-slug', body,
       coverUrl: 'https://img.example/x.webp', commissionCode: 'WM-11AA22BB',
     })).toEqual({
-      title: 'テスト', slug: 'test-slug', body: '本文',
+      title: 'テスト', slug: 'test-slug', body,
       cover_image_url: 'https://img.example/x.webp',
       commission_code_input: 'WM-11AA22BB',
     });
   });
   it('nulls empty slug/cover/commission and rejects unsafe cover', () => {
     const p = buildArticlePayload({
-      title: 'T', slug: '', body: '', coverUrl: 'javascript:x', commissionCode: '',
+      title: 'T', slug: '', body: [], coverUrl: 'javascript:x', commissionCode: '',
     });
     expect(p.slug).toBeNull();
     expect(p.cover_image_url).toBeNull();
     expect(p.commission_code_input).toBeNull();
   });
   it('never includes status/published_at/commissioned_by', () => {
-    const p = buildArticlePayload({ title: 'T', slug: '', body: '', coverUrl: '', commissionCode: '' });
+    const p = buildArticlePayload({ title: 'T', slug: '', body: [], coverUrl: '', commissionCode: '' });
     expect(p).not.toHaveProperty('status');
     expect(p).not.toHaveProperty('published_at');
     expect(p).not.toHaveProperty('commissioned_by');
@@ -73,7 +74,9 @@ describe('validateCommissionCode (seeded)', () => {
 describe('article CRUD (seeded, as hana)', () => {
   it('creates a draft, fetches it, updates it, deletes it', async () => {
     const id = await createDraft(supabase, {
-      title: '新しい下書き', slug: '', body: '# 見出し\n\n本文', coverUrl: '', commissionCode: '',
+      title: '新しい下書き', slug: '',
+      body: [{ type: 'paragraph', content: [{ type: 'text', text: '見出しと本文' }] }],
+      coverUrl: '', commissionCode: '',
     });
     created.push(id);
     expect(typeof id).toBe('string');
@@ -84,7 +87,9 @@ describe('article CRUD (seeded, as hana)', () => {
     expect(article!.title).toBe('新しい下書き');
 
     await saveArticle(supabase, id, {
-      title: '更新後タイトル', slug: '', body: '本文2', coverUrl: '', commissionCode: '',
+      title: '更新後タイトル', slug: '',
+      body: [{ type: 'paragraph', content: [{ type: 'text', text: '本文2' }] }],
+      coverUrl: '', commissionCode: '',
     }, false);
     const updated = await fetchArticleForEdit(supabase, id);
     expect(updated!.title).toBe('更新後タイトル');
@@ -103,7 +108,9 @@ describe('article CRUD (seeded, as hana)', () => {
 
   it('checkSlugAvailable excludes the article own id (edit mode)', async () => {
     const id = await createDraft(supabase, {
-      title: 'slug自己除外', slug: 'self-exclude-slug-test', body: '本文', coverUrl: '', commissionCode: '',
+      title: 'slug自己除外', slug: 'self-exclude-slug-test',
+      body: [{ type: 'paragraph', content: [{ type: 'text', text: '本文' }] }],
+      coverUrl: '', commissionCode: '',
     });
     created.push(id);
     // without excludeId: the row itself makes the slug appear taken
@@ -113,15 +120,64 @@ describe('article CRUD (seeded, as hana)', () => {
   });
 
   it('publishing a commissioned draft with a bad code raises INVALID_COMMISSION_CODE', async () => {
+    const body = [{ type: 'paragraph', content: [{ type: 'text', text: '本文' }] }];
     const id = await createDraft(supabase, {
-      title: '依頼下書き', slug: 'commissioned-draft-test', body: '本文', coverUrl: '', commissionCode: '',
+      title: '依頼下書き', slug: 'commissioned-draft-test', body, coverUrl: '', commissionCode: '',
     });
     created.push(id);
     await expect(
       saveArticle(supabase, id, {
-        title: '依頼下書き', slug: 'commissioned-draft-test', body: '本文',
+        title: '依頼下書き', slug: 'commissioned-draft-test', body,
         coverUrl: '', commissionCode: 'WM-BADCODE0',
       }, true),
     ).rejects.toThrow(/INVALID_COMMISSION_CODE/);
+  });
+});
+
+describe('optimistic concurrency (Task 18)', () => {
+  it('fetchArticleForEdit exposes updatedAt as an ISO timestamp', async () => {
+    const id = await createDraft(supabase, {
+      title: '更新日時テスト', slug: '',
+      body: [{ type: 'paragraph', content: [{ type: 'text', text: '本文' }] }],
+      coverUrl: '', commissionCode: '',
+    });
+    created.push(id);
+    const article = await fetchArticleForEdit(supabase, id);
+    expect(article).not.toBeNull();
+    expect(typeof article!.updatedAt).toBe('string');
+    expect(Number.isNaN(Date.parse(article!.updatedAt))).toBe(false);
+  });
+
+  it('saveArticle succeeds when expectedUpdatedAt matches the current row', async () => {
+    const id = await createDraft(supabase, {
+      title: '一致テスト', slug: '', body: [], coverUrl: '', commissionCode: '',
+    });
+    created.push(id);
+    const before = await fetchArticleForEdit(supabase, id);
+    const result = await saveArticle(supabase, id, {
+      title: '一致テスト2', slug: '', body: [], coverUrl: '', commissionCode: '',
+    }, false, before!.updatedAt);
+    expect(typeof result.updatedAt).toBe('string');
+  });
+
+  it('saveArticle throws CONFLICT when expectedUpdatedAt is stale', async () => {
+    const id = await createDraft(supabase, {
+      title: '競合テスト', slug: '', body: [], coverUrl: '', commissionCode: '',
+    });
+    created.push(id);
+    const staleTimestamp = new Date(0).toISOString();
+    await expect(
+      saveArticle(supabase, id, {
+        title: '競合テスト2', slug: '', body: [], coverUrl: '', commissionCode: '',
+      }, false, staleTimestamp),
+    ).rejects.toThrow('CONFLICT');
+  });
+
+  it('saveArticle throws NOT_FOUND when the article id does not exist and no expectedUpdatedAt is given', async () => {
+    await expect(
+      saveArticle(supabase, '00000000-0000-0000-0000-000000000000', {
+        title: '存在しない', slug: '', body: [], coverUrl: '', commissionCode: '',
+      }, false),
+    ).rejects.toThrow('NOT_FOUND');
   });
 });
