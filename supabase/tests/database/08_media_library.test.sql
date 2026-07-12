@@ -61,7 +61,7 @@ values ('00000000-0000-0000-0000-0000000000c1',
         'https://img.test/00000000-0000-0000-0000-0000000000c1/used.webp', 10);
 insert into articles (author_id, title, body)
 values ('00000000-0000-0000-0000-0000000000c1', 'uses image',
-        '![](https://img.test/00000000-0000-0000-0000-0000000000c1/used.webp)');
+        '[{"type":"image","attrs":{"url":"https://img.test/00000000-0000-0000-0000-0000000000c1/used.webp"}}]'::jsonb);
 
 select throws_ok(
   $$delete from media
@@ -98,7 +98,7 @@ set local role authenticated;
 
 insert into articles (author_id, title, body)
 values ('00000000-0000-0000-0000-0000000000c2', 'plain prose mention',
-  'see the file at https://img.test/00000000-0000-0000-0000-0000000000c1/phantom.webp for reference, not an image');
+  $j$[{"type":"paragraph","content":[{"type":"text","text":"see the file at https://img.test/00000000-0000-0000-0000-0000000000c1/phantom.webp for reference, not an image"}]}]$j$::jsonb);
 
 -- writer1 に戻す
 select set_config('request.jwt.claims',
@@ -130,7 +130,7 @@ values ('00000000-0000-0000-0000-0000000000c1',
         'https://img.test/00000000-0000-0000-0000-0000000000c1/admin-target.webp', 10);
 insert into articles (author_id, title, body)
 values ('00000000-0000-0000-0000-0000000000c1', 'admin target image',
-        '![](https://img.test/00000000-0000-0000-0000-0000000000c1/admin-target.webp)');
+        '[{"type":"image","attrs":{"url":"https://img.test/00000000-0000-0000-0000-0000000000c1/admin-target.webp"}}]'::jsonb);
 
 -- admin として振る舞う
 select set_config('request.jwt.claims',
@@ -162,7 +162,7 @@ values ('00000000-0000-0000-0000-0000000000c4',
         'https://img.test/00000000-0000-0000-0000-0000000000c4/cascade.webp', 10);
 insert into articles (author_id, title, body)
 values ('00000000-0000-0000-0000-0000000000c4', 'cascade target',
-        '![](https://img.test/00000000-0000-0000-0000-0000000000c4/cascade.webp)');
+        '[{"type":"image","attrs":{"url":"https://img.test/00000000-0000-0000-0000-0000000000c4/cascade.webp"}}]'::jsonb);
 
 -- postgres として振る舞う(auth.uid() is null = 信頼済み呼び出し元)
 set local role postgres;
