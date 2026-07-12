@@ -3,6 +3,7 @@
   "type": "module",
   "version": "0.1.0",
   "private": true,
+  "workspaces": ["admin", "packages/*"],
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
