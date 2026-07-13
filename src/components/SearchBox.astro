@@ -54,6 +54,7 @@
     try {
       const { data, error } = await supabaseBrowser.functions.invoke('search-articles', {
         body: { query },
+        signal,
       });
       if (signal.aborted) return;
       if (error) {
