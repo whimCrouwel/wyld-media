@@ -31,8 +31,13 @@ cd admin && npm run dev               # CMS(:4322、別ターミナル)
 
 ```bash
 npm run build && npm run preview      # 公開サイトの静的ビルドをそのまま確認(:4321)
-supabase functions serve --env-file supabase/functions/.env  # 招待・画像URL発行
+supabase functions serve --env-file supabase/functions/.env  # 招待・画像URL発行・検索インデックス更新・検索
 ```
+
+## 環境変数(Edge Functions)
+
+`supabase/functions/.env`(ローカル)・本番のFunction Secretsに `OPENAI_API_KEY` が必要
+(ハイブリッド検索のembedding生成用)。
 
 シードログイン: `hana@seed.local` / `seed-pass-1234`
 

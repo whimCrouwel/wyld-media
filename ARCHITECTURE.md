@@ -35,7 +35,7 @@ Wild Media の「いまの姿」の地図。意思決定の経緯は [設計ス�
 | `admin/` | CMS(別 Astro アプリ)。ブラウザから Supabase JS クライアントで直結。anon key のみ保持し、service role key は絶対に持たない。本文編集は Tiptap(ProseMirror)ベースのブロックエディタ |
 | `packages/blocks-renderer/` | npm workspace パッケージ(ルート `package.json` の `workspaces: ["admin", "packages/*"]`)。ブロックスキーマ定義(`extensions.ts`)と `renderBlocksToHtml()`(`render.ts`)を admin と公開サイトの両方に提供する単一の情報源 |
 | `supabase/migrations/` | スキーマ・RLS・トリガー。権限とビジネスルールの実体はここ |
-| `supabase/functions/` | Edge Functions は2つだけ: `invite-user`(管理者専用のユーザー招待)/ `r2-upload-url`(R2 署名付きURL発行) |
+| `supabase/functions/` | Edge Functionsは4つ: `invite-user`(管理者専用のユーザー招待)/ `r2-upload-url`(R2署名付きURL発行)/ `chunk-article`(記事保存時に本文をチャンク化しembedding生成)/ `search-articles`(ハイブリッド検索) |
 | `scripts/seed.mjs` | ローカル用シード(冪等) |
 
 ## 信頼境界(最重要)
@@ -64,6 +64,15 @@ Wild Media の「いまの姿」の地図。意思決定の経緯は [設計ス�
 - アップロード済み画像は `media` テーブルに記録される。記事から参照されている
   画像は削除できない(`a_block_media_in_use`)。R2 のオブジェクト削除は
   Edge Function `r2-delete-object` が行い、呼び出し元の uid 配下のキーに限る。
+- 記事検索はハイブリッド検索(pgvector類似検索 + pgroonga全文検索をRRFでマージ)。
+  記事の手動保存/公開時に `chunk-article` Edge Functionが本文を見出し単位で
+  チャンク分割し、OpenAI `text-embedding-3-small` でembeddingを生成して
+  `post_chunks` テーブルに保存する(20秒毎のautosaveでは呼ばない)。
+  `post_chunks` はservice role専用(RLS+GRANTの両方でanon/authenticatedを拒否)。
+  検索は `search-articles` Edge Function → DB関数 `search_articles_hybrid` が
+  `articles.status = 'published'` をDB層で強制し、下書きは結果に混ざらない。
+  記事削除時は `post_chunks.article_id` の `on delete cascade` で自動的に
+  チャンクも削除される。
 
 ## テスト3層
 

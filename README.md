@@ -24,6 +24,8 @@ cd admin && npm run dev         # CMS         http://localhost:4322(別ターミ
 
 `supabase functions serve` は `supabase start` / `supabase stop` では起動・停止されない独立プロセス。CMS で画像をアップロードする(カバー画像・本文画像)なら毎回別ターミナルで起動しておくこと。招待フロー確認以外は不要、という誤解をしないこと。
 
+記事保存時の検索インデックス更新(`chunk-article`)と検索(`search-articles`)にはOpenAI APIキーが必要。`supabase/functions/.env` に `OPENAI_API_KEY=` を設定すること(`supabase/functions/.env.example` 参照)。
+
 作業を終えるとき(任意。Docker のリソースを解放したい場合のみ):
 
 ```bash
