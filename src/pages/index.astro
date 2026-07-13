@@ -2,11 +2,14 @@
 import Base from '../layouts/Base.astro';
 import { supabaseServer } from '../lib/supabase-server';
 import { fetchPublishedArticles, formatDate } from '../lib/content';
+import SearchBox from '../components/SearchBox.astro';
 
 const { featured, normal } = await fetchPublishedArticles(supabaseServer);
 ---
 <Base title="Wild Media">
   <h1>Wild Media</h1>
+
+  <SearchBox />
 
   {featured.length > 0 && (
     <section>
