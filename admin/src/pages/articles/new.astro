@@ -233,7 +233,7 @@ const title = '新しい記事 | Wild Media CMS';
           draftBtn.disabled = true;
           try {
             const id = await createDraft(supabaseBrowser, input);
-            await triggerChunking(supabaseBrowser, id);
+            triggerChunking(supabaseBrowser, id);
             redirectTo(`/articles/edit?id=${id}`);
           } catch (err) {
             messageEl.textContent = translateSaveError(err);

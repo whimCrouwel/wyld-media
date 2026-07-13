@@ -248,7 +248,7 @@ const title = '記事の編集 | Wild Media CMS';
             try {
               const result = await saveArticle(supabaseBrowser, id, input, publish, currentUpdatedAt);
               currentUpdatedAt = result.updatedAt;
-              await triggerChunking(supabaseBrowser, id);
+              triggerChunking(supabaseBrowser, id);
               clearDraftBackup(id);
               messageEl.textContent = publish ? '公開しました。' : '保存しました。';
               const fresh = await fetchArticleForEdit(supabaseBrowser, id);
