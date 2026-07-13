@@ -34,6 +34,7 @@ as $$
     from public.post_chunks pc
     join public.articles a on a.id = pc.article_id
     where a.status = 'published' and pc.content &@~ query_text
+    order by extensions.pgroonga_score(pc.tableoid, pc.ctid) desc
     limit 50
   ),
   fused as (
