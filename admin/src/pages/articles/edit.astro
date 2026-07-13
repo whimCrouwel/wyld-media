@@ -103,6 +103,7 @@ const title = '記事の編集 | Wild Media CMS';
       import { renderPreviewHtml } from '../../lib/editor-preview';
       import { initCharCount } from '../../lib/char-count';
       import { createAutosave, saveDraftBackup, loadDraftBackup, clearDraftBackup } from '../../lib/autosave';
+      import { triggerChunking } from '../../lib/search-index';
       import CharacterCount from '@tiptap/extension-character-count';
 
       const { data: { session } } = await supabaseBrowser.auth.getSession();
@@ -247,6 +248,7 @@ const title = '記事の編集 | Wild Media CMS';
             try {
               const result = await saveArticle(supabaseBrowser, id, input, publish, currentUpdatedAt);
               currentUpdatedAt = result.updatedAt;
+              await triggerChunking(supabaseBrowser, id);
               clearDraftBackup(id);
               messageEl.textContent = publish ? '公開しました。' : '保存しました。';
               const fresh = await fetchArticleForEdit(supabaseBrowser, id);

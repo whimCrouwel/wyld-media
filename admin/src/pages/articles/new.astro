@@ -98,6 +98,7 @@ const title = '新しい記事 | Wild Media CMS';
       import { renderTocPanel } from '../../lib/toc-panel';
       import { renderPreviewHtml } from '../../lib/editor-preview';
       import { initCharCount } from '../../lib/char-count';
+      import { triggerChunking } from '../../lib/search-index';
       import CharacterCount from '@tiptap/extension-character-count';
 
       const { data: { session } } = await supabaseBrowser.auth.getSession();
@@ -232,6 +233,7 @@ const title = '新しい記事 | Wild Media CMS';
           draftBtn.disabled = true;
           try {
             const id = await createDraft(supabaseBrowser, input);
+            await triggerChunking(supabaseBrowser, id);
             redirectTo(`/articles/edit?id=${id}`);
           } catch (err) {
             messageEl.textContent = translateSaveError(err);
