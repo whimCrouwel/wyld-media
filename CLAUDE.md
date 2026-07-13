@@ -48,5 +48,6 @@ supabase functions serve --env-file supabase/functions/.env  # 招待・画像UR
 - アーキテクチャ・信頼境界・主要ルールの変更 → [ARCHITECTURE.md](ARCHITECTURE.md)
 - セットアップ手順・コマンドの変更 → [README.md](README.md) とこのファイル
 - デプロイ手順の変更 → [docs/superpowers/DEPLOYMENT-CHECKLIST.md](docs/superpowers/DEPLOYMENT-CHECKLIST.md)
+- テーブル追加・カラム変更・外部キー変更などスキーマの変更 → [docs/DATABASE.md](docs/DATABASE.md)(ER図)
 
 `docs/superpowers/specs/`・`docs/superpowers/plans/` は過去の意思決定・作業の記録なので書き換えない(現状と食い違っていても歴史として残す)。
