@@ -35,7 +35,7 @@ Wild Media の「いまの姿」の地図。意思決定の経緯は [設計ス�
 | `admin/` | CMS(別 Astro アプリ)。ブラウザから Supabase JS クライアントで直結。anon key のみ保持し、service role key は絶対に持たない。本文編集は Tiptap(ProseMirror)ベースのブロックエディタ |
 | `packages/blocks-renderer/` | npm workspace パッケージ(ルート `package.json` の `workspaces: ["admin", "packages/*"]`)。ブロックスキーマ定義(`extensions.ts`)と `renderBlocksToHtml()`(`render.ts`)を admin と公開サイトの両方に提供する単一の情報源 |
 | `supabase/migrations/` | スキーマ・RLS・トリガー。権限とビジネスルールの実体はここ |
-| `supabase/functions/` | Edge Functionsは4つ: `invite-user`(管理者専用のユーザー招待)/ `r2-upload-url`(R2署名付きURL発行)/ `chunk-article`(記事保存時に本文をチャンク化しembedding生成)/ `search-articles`(ハイブリッド検索) |
+| `supabase/functions/` | Edge Functionsは5つ: `invite-user`(管理者専用のユーザー招待)/ `r2-upload-url`(R2署名付きURL発行)/ `r2-delete-object`(R2オブジェクト削除、呼び出し元uid配下のキー限定)/ `chunk-article`(記事保存時に本文をチャンク化しembedding生成)/ `search-articles`(ハイブリッド検索) |
 | `scripts/seed.mjs` | ローカル用シード(冪等) |
 
 ## 信頼境界(最重要)
