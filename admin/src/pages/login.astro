@@ -1,19 +1,25 @@
 ---
+import AdminLayout from '../layouts/AdminLayout.astro';
+import Card from '../components/atoms/Card.astro';
+import Button from '../components/atoms/Button.astro';
+import Field from '../components/molecules/Field.astro';
+
 const title = 'ログイン | Wild Media CMS';
 ---
-<!doctype html>
-<html lang="ja">
-  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>{title}</title></head>
-  <body>
-    <h1>ログイン</h1>
-    <form id="login-form">
-      <p><label>メールアドレス <input type="email" id="email" required /></label></p>
-      <p><label>パスワード <input type="password" id="password" required /></label></p>
-      <p><button type="submit">ログイン</button></p>
-    </form>
-    <p id="error" role="alert"></p>
+<AdminLayout title={title}>
+  <main class="flex min-h-screen items-center justify-center px-4">
+    <Card class="w-full max-w-sm p-6">
+      <h1 class="mb-6 text-2xl font-semibold tracking-tight">ログイン</h1>
+      <form id="login-form" class="space-y-4">
+        <Field id="email" label="メールアドレス" type="email" required />
+        <Field id="password" label="パスワード" type="password" required />
+        <Button type="submit" class="w-full">ログイン</Button>
+      </form>
+      <p id="error" role="alert" class="mt-4 text-sm text-destructive"></p>
+    </Card>
+  </main>
 
-    <script>
+  <script>
       import { supabaseBrowser } from '../lib/supabase-browser';
       import { validateLoginInput, redirectTo, translateAuthError } from '../lib/auth';
 
@@ -40,5 +46,4 @@ const title = 'ログイン | Wild Media CMS';
         });
       }
     </script>
-  </body>
-</html>
+</AdminLayout>
