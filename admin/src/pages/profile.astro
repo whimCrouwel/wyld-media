@@ -1,31 +1,36 @@
 ---
+import PageShell from '../components/templates/PageShell.astro';
+import Card from '../components/atoms/Card.astro';
+import Button from '../components/atoms/Button.astro';
+import Field from '../components/molecules/Field.astro';
+import ImageUploadField from '../components/molecules/ImageUploadField.astro';
+
 const title = 'プロフィール編集 | Wild Media CMS';
 ---
-<!doctype html>
-<html lang="ja">
-  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>{title}</title></head>
-  <body>
-    <header>
-      <nav><a href="/dashboard">← ダッシュボード</a></nav>
-    </header>
-    <main>
-      <h1>プロフィール編集</h1>
-      <form id="profile-form">
-        <p><label>名前 <input type="text" id="name" required /></label></p>
-        <p><label>自己紹介<br /><textarea id="bio" rows="4"></textarea></label></p>
-        <p><label>ホームページURL <input type="url" id="homepage" /></label></p>
-        <p><label>SNSリンク(1行に1つ)<br /><textarea id="sns" rows="3"></textarea></label></p>
-        <p><label>料金 <input type="text" id="price" /></label></p>
-        <p><label>相談窓口URL <input type="url" id="contact" /></label></p>
-        <p><button type="submit">保存</button></p>
-      </form>
-      <p id="message" role="alert"></p>
-    </main>
+<PageShell title={title} heading="プロフィール編集">
+  <Card class="p-6">
+    <form id="profile-form" class="space-y-4">
+      <Field id="name" label="名前" type="text" required />
+      <Field id="bio" label="自己紹介" as="textarea" rows={4} />
+      <ImageUploadField id="avatar" label="顔写真" hint="正方形にトリミングされます。" />
+      <ImageUploadField id="cover" label="カバー画像" hint="横長のバナーにトリミングされます。" />
+      <Field id="location" label="活動拠点" type="text" />
+      <Field id="homepage" label="ホームページURL" type="url" />
+      <Field id="sns" label="SNSリンク(1行に1つ)" as="textarea" rows={3} />
+      <Field id="price" label="料金" type="text" />
+      <Field id="contact" label="相談窓口URL" type="url" />
+      <div class="flex items-center gap-4 pt-2">
+        <Button type="submit">保存</Button>
+        <p id="message" role="alert" class="text-sm text-muted-foreground"></p>
+      </div>
+    </form>
+  </Card>
 
-    <script>
+  <script>
       import { supabaseBrowser } from '../lib/supabase-browser';
       import { redirectTo } from '../lib/auth';
       import { buildProfileUpdate } from '../lib/profile';
+      import { initImageUploadWidget } from '../lib/image-upload-widget';
 
       const { data: { session } } = await supabaseBrowser.auth.getSession();
       if (!session) {
@@ -34,10 +39,21 @@ const title = 'プロフィール編集 | Wild Media CMS';
         const messageEl = document.getElementById('message')!;
         const $ = (id: string) => document.getElementById(id) as HTMLInputElement & HTMLTextAreaElement;
 
+        // 顔写真は正方形、カバーは横長バナーにトリミング。プロフィール画像は
+        // メディアライブラリには登録しない(記事メディアと区別する)。
+        const avatarWidget = initImageUploadWidget(supabaseBrowser, {
+          idPrefix: 'avatar', aspectRatio: 1, recordToMediaLibrary: false,
+          emptyLabel: '顔写真は未設定です。',
+        });
+        const coverWidget = initImageUploadWidget(supabaseBrowser, {
+          idPrefix: 'cover', aspectRatio: 3, recordToMediaLibrary: false,
+          emptyLabel: 'カバー画像は未設定です。',
+        });
+
         // 現在のプロフィールをロード(RLS: 自分の行のみ取得可)
         const { data: profile, error: loadError } = await supabaseBrowser
           .from('profiles')
-          .select('name, bio, homepage_url, sns_links, price_info, contact_url')
+          .select('name, bio, avatar_url, cover_image_url, location, homepage_url, sns_links, price_info, contact_url')
           .eq('id', session!.user.id)
           .single();
         if (loadError) {
@@ -45,6 +61,9 @@ const title = 'プロフィール編集 | Wild Media CMS';
         } else if (profile) {
           $('name').value = profile.name ?? '';
           $('bio').value = profile.bio ?? '';
+          avatarWidget.setUrl(profile.avatar_url ?? null);
+          coverWidget.setUrl(profile.cover_image_url ?? null);
+          $('location').value = profile.location ?? '';
           $('homepage').value = profile.homepage_url ?? '';
           $('sns').value = Array.isArray(profile.sns_links) ? profile.sns_links.join('\n') : '';
           $('price').value = profile.price_info ?? '';
@@ -57,6 +76,9 @@ const title = 'プロフィール編集 | Wild Media CMS';
           const payload = buildProfileUpdate({
             name: $('name').value,
             bio: $('bio').value,
+            avatarUrl: $('avatar').value,
+            coverImageUrl: $('cover').value,
+            location: $('location').value,
             homepageUrl: $('homepage').value,
             snsRaw: $('sns').value,
             priceInfo: $('price').value,
@@ -78,5 +100,4 @@ const title = 'プロフィール編集 | Wild Media CMS';
         });
       }
     </script>
-  </body>
-</html>
+</PageShell>
