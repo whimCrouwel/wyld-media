@@ -169,6 +169,31 @@
     @apply text-primary underline;
   }
 
+  /* Editor: "/" slash-command popup (created in document.body by insert-menu.ts) */
+  .slash-menu-popup {
+    @apply z-50 min-w-52 max-w-64 overflow-hidden rounded-md border bg-card text-card-foreground shadow-md;
+  }
+  .slash-menu-popup ul {
+    @apply max-h-72 overflow-y-auto p-1;
+  }
+  .slash-menu-popup li {
+    @apply list-none;
+  }
+  .slash-menu-popup button {
+    @apply flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm text-foreground transition-colors;
+  }
+  .slash-menu-popup button:hover,
+  .slash-menu-popup button.is-selected {
+    @apply bg-accent text-accent-foreground;
+  }
+
+  /* Editor: "+" insert-block affordance shown on empty lines */
+  .insert-block-button {
+    @apply absolute -left-9 top-0 flex h-7 w-7 items-center justify-center rounded-md border
+      bg-background text-lg leading-none text-muted-foreground transition-colors
+      hover:bg-accent hover:text-foreground;
+  }
+
   /* Editor: table of contents panel */
   #toc-panel a {
     @apply block rounded px-2 py-1 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground;
