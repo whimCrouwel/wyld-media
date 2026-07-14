@@ -1,0 +1,31 @@
+---
+import Button from '../atoms/Button.astro';
+
+interface Props {
+  // ウィジェットの接頭辞。hidden 入力の id になり、
+  // image-upload-widget.ts が {id}-file/-crop/-apply/-clear/-status/-current を引く。
+  id: string;
+  label: string;
+  hint?: string;
+  accept?: string;
+}
+
+const { id, label, hint, accept = 'image/jpeg,image/png,image/webp' } = Astro.props;
+---
+<fieldset class="rounded-md border p-4">
+  <legend class="px-1 text-sm font-medium">{label}</legend>
+  {hint && <p class="mb-2 text-sm text-muted-foreground">{hint}</p>}
+  <input type="hidden" id={id} />
+  <p id={`${id}-current`} class="mb-2"></p>
+  <div class="flex items-center gap-3">
+    <input type="file" id={`${id}-file`} accept={accept} class="text-sm" />
+    <Button type="button" id={`${id}-clear`} variant="outline" size="sm">画像を外す</Button>
+  </div>
+  <div id={`${id}-crop`} class="mt-3 max-w-[480px]"></div>
+  <div class="mt-2 flex items-center gap-3">
+    <Button type="button" id={`${id}-apply`} variant="secondary" size="sm" hidden>
+      切り抜いてアップロード
+    </Button>
+    <span id={`${id}-status`} class="text-sm text-muted-foreground"></span>
+  </div>
+</fieldset>
