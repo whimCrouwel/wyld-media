@@ -44,6 +44,8 @@
 }
 
 @theme inline {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Hiragino Kaku Gothic ProN',
+    'Noto Sans JP', sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -69,5 +71,118 @@
 @layer base {
   * {
     border-color: var(--border);
+  }
+  body {
+    font-family: var(--font-sans);
+  }
+}
+
+/*
+ * Styles for regions whose DOM is generated at runtime by vanilla-TS modules
+ * (dashboard list, users table, tiptap editor surface, modals). Their elements
+ * are created in <script> without classes, so they cannot receive Tailwind
+ * utilities inline. We keep the design tokens by driving these rules with
+ * @apply. Static markup uses atoms/components instead of these classes.
+ */
+@layer components {
+  /* Dashboard: article list */
+  .article-list {
+    @apply divide-y divide-border overflow-hidden rounded-lg border bg-card;
+  }
+  .article-list li {
+    @apply flex items-center justify-between gap-4 px-4 py-3 text-sm;
+  }
+  .article-list a {
+    @apply shrink-0 font-medium text-primary hover:underline;
+  }
+
+  /* Users: profile table */
+  .admin-table {
+    @apply w-full overflow-hidden rounded-lg border text-sm;
+  }
+  .admin-table thead {
+    @apply bg-muted/50;
+  }
+  .admin-table th {
+    @apply px-4 py-2.5 text-left font-medium text-muted-foreground;
+  }
+  .admin-table td {
+    @apply border-t px-4 py-2.5 align-middle;
+  }
+  .admin-table select {
+    @apply mr-2 h-9 rounded-md border border-input bg-background px-2 text-sm
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+  .admin-table button {
+    @apply inline-flex h-9 items-center rounded-md border border-input bg-background px-3
+      text-sm font-medium hover:bg-accent hover:text-accent-foreground;
+  }
+
+  /* Editor: bubble toolbar (tiptap positions it; we only style appearance) */
+  #bubble-toolbar {
+    @apply flex flex-wrap gap-1 rounded-md border bg-card p-1.5 shadow-md;
+  }
+  #bubble-toolbar button {
+    @apply inline-flex h-8 items-center rounded px-2 text-xs font-medium text-foreground
+      transition-colors hover:bg-accent hover:text-accent-foreground;
+  }
+  #bubble-toolbar button[aria-pressed='true'] {
+    @apply bg-accent text-accent-foreground;
+  }
+
+  /* Editor: tiptap prose surface */
+  .ProseMirror {
+    @apply min-h-[320px] rounded-md border bg-background p-4 text-sm leading-7
+      focus:outline-none focus-visible:ring-2 focus-visible:ring-ring;
+  }
+  .ProseMirror:focus {
+    @apply outline-none;
+  }
+  .ProseMirror p {
+    @apply my-2;
+  }
+  .ProseMirror h2 {
+    @apply mb-2 mt-5 text-xl font-semibold tracking-tight;
+  }
+  .ProseMirror h3 {
+    @apply mb-2 mt-4 text-lg font-semibold tracking-tight;
+  }
+  .ProseMirror ul {
+    @apply my-2 list-disc pl-6;
+  }
+  .ProseMirror ol {
+    @apply my-2 list-decimal pl-6;
+  }
+  .ProseMirror blockquote {
+    @apply my-3 border-l-2 border-border pl-4 italic text-muted-foreground;
+  }
+  .ProseMirror pre {
+    @apply my-3 overflow-x-auto rounded-md bg-muted p-3 text-xs;
+  }
+  .ProseMirror img {
+    @apply my-2 max-w-full rounded-md;
+  }
+  .ProseMirror hr {
+    @apply my-4 border-t;
+  }
+  .ProseMirror a {
+    @apply text-primary underline;
+  }
+
+  /* Editor: table of contents panel */
+  #toc-panel a {
+    @apply block rounded px-2 py-1 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground;
+  }
+
+  /* Editor: media + preview modals */
+  #media-modal:not([hidden]),
+  #preview-modal:not([hidden]) {
+    @apply fixed inset-0 z-50 flex flex-col gap-3 overflow-auto bg-background/95 p-6 backdrop-blur-sm;
+  }
+  #media-grid {
+    @apply grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4;
+  }
+  #media-grid img {
+    @apply aspect-square w-full cursor-pointer rounded-md border object-cover transition hover:ring-2 hover:ring-ring;
   }
 }

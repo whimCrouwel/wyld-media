@@ -1,0 +1,20 @@
+---
+import { cn } from '../../lib/cn';
+
+interface Props {
+  id?: string;
+  name?: string;
+  required?: boolean;
+  class?: string;
+}
+
+const { class: className, ...rest } = Astro.props;
+---
+<select
+  class={cn(
+    'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+    className,
+  )}
+  {...rest}>
+  <slot />
+</select>

@@ -1,43 +1,46 @@
 ---
+import PageShell from '../components/templates/PageShell.astro';
+import Card from '../components/atoms/Card.astro';
+import Button from '../components/atoms/Button.astro';
+import Field from '../components/molecules/Field.astro';
+import Label from '../components/atoms/Label.astro';
+import Select from '../components/atoms/Select.astro';
+
 const title = 'ユーザー管理 | Wild Media CMS';
 ---
-<!doctype html>
-<html lang="ja">
-  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>{title}</title></head>
-  <body>
-    <header><nav><a href="/dashboard">← ダッシュボード</a></nav></header>
-    <main>
-      <h1>ユーザー管理</h1>
+<PageShell title={title} heading="ユーザー管理" wide>
+  <div class="space-y-6">
+    <Card class="p-6">
+      <h2 class="mb-4 text-lg font-semibold tracking-tight">新しいユーザーを招待</h2>
+      <form id="invite-form" class="space-y-4">
+        <Field id="inv-email" label="メールアドレス" type="email" required />
+        <Field id="inv-name" label="名前" type="text" required />
+        <Field id="inv-slug" label="スラッグ(小文字英数字とハイフン)" type="text" required />
+        <div class="space-y-2">
+          <Label for="inv-role">種別</Label>
+          <Select id="inv-role">
+            <option value="writer">ライター</option>
+            <option value="provider">サービスプロバイダー</option>
+          </Select>
+        </div>
+        <Button type="submit">招待メールを送信</Button>
+      </form>
+    </Card>
 
-      <section>
-        <h2>新しいユーザーを招待</h2>
-        <form id="invite-form">
-          <p><label>メールアドレス <input type="email" id="inv-email" required /></label></p>
-          <p><label>名前 <input type="text" id="inv-name" required /></label></p>
-          <p><label>スラッグ(小文字英数字とハイフン) <input type="text" id="inv-slug" required /></label></p>
-          <p><label>種別
-            <select id="inv-role">
-              <option value="writer">ライター</option>
-              <option value="provider">サービスプロバイダー</option>
-            </select></label></p>
-          <p><button type="submit">招待メールを送信</button></p>
-        </form>
-      </section>
+    <Card class="p-6">
+      <h2 class="mb-4 text-lg font-semibold tracking-tight">ユーザー一覧</h2>
+      <table class="admin-table">
+        <thead>
+          <tr><th>名前</th><th>スラッグ</th><th>種別</th><th>依頼者コード</th></tr>
+        </thead>
+        <tbody id="user-rows"><tr><td colspan="4">読み込み中…</td></tr></tbody>
+      </table>
+    </Card>
 
-      <section>
-        <h2>ユーザー一覧</h2>
-        <table>
-          <thead>
-            <tr><th>名前</th><th>スラッグ</th><th>種別</th><th>依頼者コード</th></tr>
-          </thead>
-          <tbody id="user-rows"><tr><td colspan="4">読み込み中…</td></tr></tbody>
-        </table>
-      </section>
+    <p id="message" role="alert" class="text-sm text-muted-foreground"></p>
+  </div>
 
-      <p id="message" role="alert"></p>
-    </main>
-
-    <script>
+  <script>
       import { supabaseBrowser } from '../lib/supabase-browser';
       import { redirectTo } from '../lib/auth';
       import {
@@ -176,5 +179,4 @@ const title = 'ユーザー管理 | Wild Media CMS';
         });
       }
     </script>
-  </body>
-</html>
+</PageShell>

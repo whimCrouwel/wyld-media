@@ -1,25 +1,32 @@
 ---
+import PageShell from '../components/templates/PageShell.astro';
+import Card from '../components/atoms/Card.astro';
+import Button from '../components/atoms/Button.astro';
+import Field from '../components/molecules/Field.astro';
+
 const title = 'サイト設定 | Wild Media CMS';
 ---
-<!doctype html>
-<html lang="ja">
-  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>{title}</title></head>
-  <body>
-    <header><nav><a href="/dashboard">← ダッシュボード</a></nav></header>
-    <main>
-      <h1>サイト設定</h1>
-      <form id="settings-form">
-        <p><label>通常記事の投稿間隔(日)
-          <input type="number" id="interval" min="0" step="1" required /></label></p>
-        <p><label>Featured 表示件数(最新の依頼記事)
-          <input type="number" id="featured" min="0" step="1" required /></label></p>
-        <p><button type="submit">保存</button></p>
-      </form>
-      <p>変更は次回の公開サイト再ビルドから反映されます。</p>
-      <p id="message" role="alert"></p>
-    </main>
+<PageShell title={title} heading="サイト設定">
+  <Card class="p-6">
+    <form id="settings-form" class="space-y-4">
+      <Field id="interval" label="通常記事の投稿間隔(日)" type="number" min="0" step="1" required />
+      <Field
+        id="featured"
+        label="Featured 表示件数(最新の依頼記事)"
+        type="number"
+        min="0"
+        step="1"
+        required
+      />
+      <div class="flex items-center gap-4 pt-2">
+        <Button type="submit">保存</Button>
+        <p id="message" role="alert" class="text-sm text-muted-foreground"></p>
+      </div>
+    </form>
+  </Card>
+  <p class="mt-4 text-sm text-muted-foreground">変更は次回の公開サイト再ビルドから反映されます。</p>
 
-    <script>
+  <script>
       import { supabaseBrowser } from '../lib/supabase-browser';
       import { redirectTo } from '../lib/auth';
       import { fetchMyRole, fetchSettings, updateSettings } from '../lib/admin';
@@ -96,5 +103,4 @@ const title = 'サイト設定 | Wild Media CMS';
         });
       }
     </script>
-  </body>
-</html>
+</PageShell>

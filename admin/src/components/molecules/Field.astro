@@ -1,18 +1,28 @@
 ---
 import Label from '../atoms/Label.astro';
 import Input from '../atoms/Input.astro';
+import Textarea from '../atoms/Textarea.astro';
 
 interface Props {
   id: string;
   label: string;
+  as?: 'input' | 'textarea';
   type?: string;
   required?: boolean;
   name?: string;
+  rows?: number;
+  [key: string]: unknown;
 }
 
-const { id, label, type = 'text', required, name } = Astro.props;
+const { id, label, as = 'input', type = 'text', ...rest } = Astro.props;
 ---
 <div class="space-y-2">
   <Label for={id}>{label}</Label>
-  <Input id={id} type={type} name={name} required={required} />
+  {
+    as === 'textarea' ? (
+      <Textarea id={id} {...rest} />
+    ) : (
+      <Input id={id} type={type} {...rest} />
+    )
+  }
 </div>

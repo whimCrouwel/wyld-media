@@ -1,0 +1,27 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import BackLink from '../atoms/BackLink.astro';
+
+interface Props {
+  title: string;
+  heading: string;
+  backHref?: string;
+  backLabel?: string;
+  /** Wide layout for the article editor; narrow (default) for forms. */
+  wide?: boolean;
+}
+
+const { title, heading, backHref = '/dashboard', backLabel = 'ダッシュボード', wide = false } =
+  Astro.props;
+---
+<AdminLayout title={title}>
+  <div class="border-b bg-card">
+    <header class:list={['mx-auto flex h-14 items-center px-4', wide ? 'max-w-5xl' : 'max-w-2xl']}>
+      <BackLink href={backHref}>← {backLabel}</BackLink>
+    </header>
+  </div>
+  <main class:list={['mx-auto px-4 py-8', wide ? 'max-w-5xl' : 'max-w-2xl']}>
+    <h1 class="mb-6 text-2xl font-semibold tracking-tight">{heading}</h1>
+    <slot />
+  </main>
+</AdminLayout>
