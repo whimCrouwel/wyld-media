@@ -65,3 +65,9 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
 }
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+}
