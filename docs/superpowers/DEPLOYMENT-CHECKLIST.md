@@ -14,7 +14,9 @@ supabase link --project-ref <project-id>
 supabase db push                                 # migrations/ を全適用
 supabase secrets set CMS_URL=https://admin.example.com \
   R2_ENDPOINT=... R2_REGION=auto R2_BUCKET=... \
-  R2_ACCESS_KEY_ID=... R2_SECRET_ACCESS_KEY=... R2_PUBLIC_BASE_URL=...
+  R2_ACCESS_KEY_ID=... R2_SECRET_ACCESS_KEY=...
+  # 画像の公開URLベースは DB の settings.image_base_url が唯一の権威
+  # (r2-upload-url / r2-delete-object が読む)。R2_PUBLIC_BASE_URL シークレットは廃止。
 supabase functions deploy invite-user r2-upload-url
 ```
 
@@ -29,14 +31,16 @@ supabase functions deploy invite-user r2-upload-url
 ## Edge Functions
 - [ ] `CMS_URL` シークレットを admin サブドメインに設定(未設定だと招待リンクが localhost:4322 にフォールバックする)
 - [ ] `invite-user` / `r2-upload-url` を deploy
-- [ ] R2 実バケット作成 + APIトークン → `r2-upload-url` の env 設定(`R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com`・`R2_REGION=auto`・`R2_BUCKET`・`R2_ACCESS_KEY_ID`・`R2_SECRET_ACCESS_KEY`・`R2_PUBLIC_BASE_URL`。旧 `R2_ACCOUNT_ID` は廃止)
+- [ ] R2 実バケット作成 + APIトークン → `r2-upload-url` の env 設定(`R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com`・`R2_REGION=auto`・`R2_BUCKET`・`R2_ACCESS_KEY_ID`・`R2_SECRET_ACCESS_KEY`。旧 `R2_ACCOUNT_ID`・`R2_PUBLIC_BASE_URL` は廃止)
 - [ ] R2 バケットに CORS ポリシーを設定(admin サブドメインのオリジンから PUT / Content-Type ヘッダを許可。これが無いとブラウザからのアップロードが CORS で失敗する)
-- [ ] `R2_PUBLIC_BASE_URL` は R2 のカスタムドメイン or 公開バケット URL(公開サイト・CMS の両方から画像が見えること)
 - [ ] R2 がサイズ/タイプ不一致の PUT を 403 で拒否することを実バケットで確認
-- [ ] DB の `settings.image_base_url` を `R2_PUBLIC_BASE_URL` と同じ値に設定する
+- [ ] DB の `settings.image_base_url` に R2 の公開URLベース(カスタムドメイン or 公開バケット URL)を設定する
       (`update settings set image_base_url = 'https://...' where id = 1;`)。
-      未設定だと本文に画像を入れられず、値がずれると記事の保存が
-      `IMAGE_HOST_NOT_ALLOWED` で落ちる。
+      **これが画像公開ホストの唯一の権威**:`r2-upload-url` はこの値で publicUrl を組み立て、
+      `r2-delete-object` と保存トリガーはこの値で検証する。だから「アップロードは成功するのに
+      保存が `IMAGE_HOST_NOT_ALLOWED` で落ちる」ズレは起きない。未設定(空)だと fail closed で
+      画像アップロード自体が 500、本文にも画像を入れられない。公開サイト・CMS の両方からこの
+      URL 配下の画像が見えることを確認。
 - [ ] Edge Function `r2-delete-object` をデプロイする(`supabase functions deploy r2-delete-object`)
 - [ ] 画像ホストを後から変える場合は、この値と既存のURLを同時に書き換える:
       `update articles set cover_image_url = replace(cover_image_url, '<旧>', '<新>'), body = replace(body, '<旧>', '<新>');`

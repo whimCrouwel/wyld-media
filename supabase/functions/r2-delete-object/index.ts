@@ -36,10 +36,18 @@ Deno.serve(async (req) => {
     return json({ error: 'url must be a string' }, 400);
   }
 
-  const publicBase = (Deno.env.get('R2_PUBLIC_BASE_URL') ?? '').replace(/\/$/, '');
+  // 公開URLのベースは DB の settings.image_base_url を唯一の権威とする
+  // (r2-upload-url が publicUrl を組み立てるのと同じ値。env に別途
+  // R2_PUBLIC_BASE_URL を持たせるとズレる余地が生まれるので持たない)。
+  const { data: settingsRow } = await admin
+    .from('settings')
+    .select('image_base_url')
+    .eq('id', 1)
+    .single();
+  const publicBase = (settingsRow?.image_base_url ?? '').replace(/\/$/, '');
   const url = payload.url;
   if (!publicBase || !url.startsWith(`${publicBase}/`)) {
-    return json({ error: 'url must live under R2_PUBLIC_BASE_URL' }, 400);
+    return json({ error: 'url must live under settings.image_base_url' }, 400);
   }
 
   const key = url.slice(publicBase.length + 1);

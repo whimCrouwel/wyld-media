@@ -38,6 +38,21 @@ Deno.serve(async (req) => {
   const { data: userData } = await admin.auth.getUser(jwt);
   if (!userData?.user) return json({ error: 'unauthorized' }, 401);
 
+  // 公開URLのベースは DB の settings.image_base_url を唯一の権威とする。
+  // 保存時の enforce_body_image_rules トリガーも同じ値で検証するので、
+  // ここで組み立てる publicUrl は必ずそのトリガーを通る(両者がズレて
+  // 「アップロードは成功するのに保存が IMAGE_HOST_NOT_ALLOWED で落ちる」
+  // ことが構造的に起きない)。空なら fail closed。
+  const { data: settingsRow } = await admin
+    .from('settings')
+    .select('image_base_url')
+    .eq('id', 1)
+    .single();
+  const publicBase = (settingsRow?.image_base_url ?? '').replace(/\/$/, '');
+  if (!publicBase) {
+    return json({ error: 'image hosting not configured (settings.image_base_url is empty)' }, 500);
+  }
+
   let payload: { contentType?: string; contentLength?: number; kind?: 'image' | 'file' };
   try {
     payload = await req.json();
@@ -71,7 +86,7 @@ Deno.serve(async (req) => {
   //   ローカル: http://127.0.0.1:54321/storage/v1/s3(Supabase Storage の S3 互換 API を R2 の代わりに使う)
   // 署名 URL に PUT するのはブラウザなので、ブラウザから到達できるホストであること。
   // 末尾スラッシュを落とす: 付いたままだと //bucket/key に保存され、
-  // R2_PUBLIC_BASE_URL 由来の publicUrl(/bucket/key)と食い違って公開URLが404になる。
+  // settings.image_base_url 由来の publicUrl(/bucket/key)と食い違って公開URLが404になる。
   const endpoint = (Deno.env.get('R2_ENDPOINT') ?? '').replace(/\/$/, '');
   const objectUrl = new URL(`${endpoint}/${Deno.env.get('R2_BUCKET')}/${key}`);
   objectUrl.searchParams.set('X-Amz-Expires', '300');
@@ -98,7 +113,7 @@ Deno.serve(async (req) => {
 
   return json({
     uploadUrl: signed.url,
-    publicUrl: `${Deno.env.get('R2_PUBLIC_BASE_URL')}/${key}`,
+    publicUrl: `${publicBase}/${key}`,
     headers: { 'Content-Type': contentType },
   });
 });
