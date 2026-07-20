@@ -13,3 +13,27 @@ export function usedRegions(values: (string | null)[]): string[] {
   const present = new Set(values.filter((v): v is string => !!v));
   return REGIONS.filter((r) => present.has(r));
 }
+
+// URL用のローマ字slug。日本語のままだと %E9%96%A2%E6%9D%B1 になって共有しづらいため。
+export const REGION_SLUGS: Record<Region, string> = {
+  北海道: 'hokkaido',
+  東北: 'tohoku',
+  関東: 'kanto',
+  甲信越: 'koshinetsu',
+  北陸: 'hokuriku',
+  東海: 'tokai',
+  近畿: 'kinki',
+  中国: 'chugoku',
+  四国: 'shikoku',
+  九州: 'kyushu',
+  沖縄: 'okinawa',
+  海外: 'overseas',
+};
+
+export function regionSlug(region: Region): string {
+  return REGION_SLUGS[region];
+}
+
+export function regionFromSlug(slug: string): Region | null {
+  return REGIONS.find((r) => REGION_SLUGS[r] === slug) ?? null;
+}
