@@ -2,6 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import MetaLabel from '../../components/atoms/MetaLabel.astro';
 import WriterAvatar from '../../components/atoms/WriterAvatar.astro';
+import Chip from '../../components/atoms/Chip.astro';
 import { supabaseServer } from '../../lib/supabase-server';
 import { fetchWriters } from '../../lib/content';
 import { usedRegions } from '../../lib/regions';
@@ -22,13 +23,9 @@ const regions = usedRegions(writers.map((w) => w.region));
     {
       regions.length > 1 && (
         <nav id="region-filter" class="-mt-8 flex flex-wrap gap-x-6 gap-y-2 pb-10">
-          <button type="button" class="region-chip is-active" data-region="" aria-pressed="true">
-            すべて
-          </button>
+          <Chip class="region-chip" active data-region="" aria-pressed="true">すべて</Chip>
           {regions.map((r) => (
-            <button type="button" class="region-chip" data-region={r} aria-pressed="false">
-              {r}
-            </button>
+            <Chip class="region-chip" data-region={r} aria-pressed="false">{r}</Chip>
           ))}
         </nav>
       )
@@ -68,25 +65,3 @@ const regions = usedRegions(writers.map((w) => w.region));
 <script>
   import '../../scripts/writer-filter';
 </script>
-
-<style>
-  /* 絞り込みボタンは .meta と同じ小さな欧文メタ。選択中だけ本文色 + 下線 */
-  .region-chip {
-    font-family: var(--font-accent);
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    color: var(--color-meta);
-    cursor: pointer;
-    transition: color 0.2s ease;
-  }
-
-  .region-chip:hover {
-    color: var(--color-ink);
-  }
-
-  .region-chip.is-active {
-    color: var(--color-ink);
-    text-decoration: underline;
-    text-underline-offset: 5px;
-  }
-</style>

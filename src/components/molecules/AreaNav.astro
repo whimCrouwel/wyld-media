@@ -1,0 +1,52 @@
+---
+import Chip from '../atoms/Chip.astro';
+import type { AreaLink } from '../../lib/sidebar';
+
+interface Props {
+  areas: AreaLink[];
+  activeSlug?: string;
+}
+const { areas, activeSlug } = Astro.props;
+---
+<nav aria-label="地域から探す" class="area-nav">
+  {
+    areas.map((a) => (
+      <Chip href={a.href} active={a.slug === activeSlug} class="area-item">
+        <span>{a.region}</span>
+        <span class="tabular-nums">{String(a.count).padStart(2, '0')}</span>
+      </Chip>
+    ))
+  }
+</nav>
+
+<style>
+  /* デスクトップは縦積み、スマホは横スクロールの1列。JSなしで両立させる */
+  .area-nav {
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .area-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .area-nav :global(.area-item) {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  @media (min-width: 1024px) {
+    .area-nav {
+      flex-direction: column;
+      gap: 0.6rem;
+      overflow-x: visible;
+    }
+
+    /* 縦のときだけ地域名と件数を両端に寄せる */
+    .area-nav :global(.area-item) {
+      justify-content: space-between;
+    }
+  }
+</style>

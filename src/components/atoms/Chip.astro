@@ -1,0 +1,40 @@
+---
+interface Props {
+  href?: string;
+  active?: boolean;
+  class?: string;
+  [key: string]: unknown;
+}
+const { href, active = false, class: className = '', ...rest } = Astro.props;
+const cls = ['chip', active ? 'is-active' : '', className].filter(Boolean).join(' ');
+---
+{
+  href ? (
+    <a href={href} class={cls} {...rest}><slot /></a>
+  ) : (
+    <button type="button" class={cls} {...rest}><slot /></button>
+  )
+}
+
+<style>
+  /* .meta と同じ小さな欧文メタ組み。選択中だけ本文色 + 下線 */
+  .chip {
+    font-family: var(--font-accent);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--color-meta);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color 0.2s ease;
+  }
+
+  .chip:hover {
+    color: var(--color-ink);
+  }
+
+  .chip.is-active {
+    color: var(--color-ink);
+    text-decoration: underline;
+    text-underline-offset: 5px;
+  }
+</style>

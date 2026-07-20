@@ -1,0 +1,29 @@
+---
+import type { Page } from 'astro';
+import MetaLabel from '../atoms/MetaLabel.astro';
+
+interface Props {
+  page: Page;
+}
+const { page } = Astro.props;
+const pad = (n: number) => String(n).padStart(2, '0');
+---
+{
+  page.lastPage > 1 && (
+    <nav aria-label="ページ送り" class="flex items-center justify-center gap-8 py-16">
+      {page.url.prev ? (
+        <a href={page.url.prev} aria-label="前のページ"><MetaLabel>←</MetaLabel></a>
+      ) : (
+        <span aria-hidden="true" class="opacity-25"><MetaLabel>←</MetaLabel></span>
+      )}
+
+      <MetaLabel class="tabular-nums">{pad(page.currentPage)} / {pad(page.lastPage)}</MetaLabel>
+
+      {page.url.next ? (
+        <a href={page.url.next} aria-label="次のページ"><MetaLabel>→</MetaLabel></a>
+      ) : (
+        <span aria-hidden="true" class="opacity-25"><MetaLabel>→</MetaLabel></span>
+      )}
+    </nav>
+  )
+}
