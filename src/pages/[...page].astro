@@ -55,38 +55,31 @@ const featuredWorks = isFirstPage
 const offset = featured.length + (page.currentPage - 1) * page.size;
 const gridWorks = await Promise.all(page.data.map((a, i) => toWork(a, offset + i)));
 ---
-{
-  isFirstPage ? (
-    <Base title="Wild Media">
-      <Fragment slot="full">
-        <BgContours />
-        <SplashIntro />
-        <Hero />
-        <FeaturedStrip works={featuredWorks} />
-      </Fragment>
-      <section>
-        <div class="border-card mx-6 flex items-baseline justify-between border-t pt-3 pb-6">
-          <MetaLabel class="text-ink">Works</MetaLabel>
-          <MetaLabel class="tabular-nums">{String(page.total).padStart(2, '0')}</MetaLabel>
-        </div>
-        <MasonryGrid works={gridWorks} />
-        <Pagination page={page} />
-      </section>
-    </Base>
-  ) : (
-    // full スロットを持たないページ。Astro.slots.has('full') はテンプレート内に
-    // slot="full" の記述があるだけで真になってしまう(条件分岐の実行結果を見ない)ため、
-    // full スロットを一切書かない Base 呼び出しをページ2以降専用に分けている。
-    // こうしないと Base 側でサイドバーに自動で足すはずの pt-32 が効かない。
-    <Base title={`Wild Media — ${page.currentPage}ページ目`}>
-      <section class="pt-32">
-        <div class="border-card mx-6 flex items-baseline justify-between border-t pt-3 pb-6">
-          <MetaLabel class="text-ink">Works</MetaLabel>
-          <MetaLabel class="tabular-nums">{String(page.total).padStart(2, '0')}</MetaLabel>
-        </div>
-        <MasonryGrid works={gridWorks} />
-        <Pagination page={page} />
-      </section>
-    </Base>
-  )
-}
+{/*
+  full スロットは1ページ目でだけ条件付きで出す。Astro.slots.has('full') は
+  テンプレートのソースに slot="full" の記述があるかどうかしか見ない(実行時に
+  この分岐が通ったかは見ない)ため、Base 側にその判定を任せず padSidebar を
+  明示的に渡している。
+*/}
+<Base
+  title={isFirstPage ? 'Wild Media' : `Wild Media — ${page.currentPage}ページ目`}
+  padSidebar={!isFirstPage}
+>
+  {isFirstPage && (
+    <Fragment slot="full">
+      <BgContours />
+      <SplashIntro />
+      <Hero />
+      <FeaturedStrip works={featuredWorks} />
+    </Fragment>
+  )}
+  <section class={isFirstPage ? '' : 'pt-32'}>
+    <div class="border-card mx-6 flex items-baseline justify-between border-t pt-3 pb-6">
+      <MetaLabel class="text-ink">Works</MetaLabel>
+      <MetaLabel class="tabular-nums">{String(page.total).padStart(2, '0')}</MetaLabel>
+    </div>
+    <MasonryGrid works={gridWorks} />
+    <Pagination page={page} />
+  </section>
+</Base>
+

@@ -7,13 +7,20 @@ import MetaLabel from '../components/atoms/MetaLabel.astro';
 interface Props {
   title: string;
   activeAreaSlug?: string;
+  padSidebar?: boolean;
 }
-const { title, activeAreaSlug } = Astro.props;
-
 // SiteHeader は fixed なので、直後に来る要素は自前で頭上の余白を持たないと
 // 隠れる。full スロットを持つページ(トップ)は Hero 側で既にその余白を
 // 確保しているので、full スロットが無いページでだけサイドバーに足す。
-const hasFullSlot = Astro.slots.has('full');
+//
+// デフォルト値は Astro.slots.has('full') から推測しているが、これは
+// テンプレートのソースに slot="full" という記述があるかどうかを見ている
+// だけで、実行時にその分岐が real に通ったかどうかは見ていない
+// (テンプレート内条件分岐)。呼び出し側が `{cond && <Fragment slot="full">...}`
+// のように full スロットを条件付きで出し分けていると、cond が false でも
+// true 判定になってしまう。そのため呼び出し側で slot="full" を条件分岐する
+// ページは、必ず padSidebar を明示的に渡すこと。
+const { title, activeAreaSlug, padSidebar = !Astro.slots.has('full') } = Astro.props;
 ---
 <!doctype html>
 <html lang="ja">
@@ -27,7 +34,7 @@ const hasFullSlot = Astro.slots.has('full');
     <!-- サイドバーの外側に出したいもの(トップの Hero など)。無いページでは何も出ない -->
     <slot name="full" />
     <div class="lg:grid lg:grid-cols-[16rem_1fr] lg:items-start">
-      <div class={hasFullSlot ? '' : 'pt-32'}>
+      <div class={padSidebar ? 'pt-32' : ''}>
         <Sidebar activeAreaSlug={activeAreaSlug} />
       </div>
       <main class="min-w-0"><slot /></main>
