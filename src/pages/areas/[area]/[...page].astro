@@ -1,0 +1,72 @@
+---
+import type { GetStaticPaths, Page } from 'astro';
+import Base from '../../../layouts/Base.astro';
+import MasonryGrid from '../../../components/organisms/MasonryGrid.astro';
+import Pagination from '../../../components/molecules/Pagination.astro';
+import MetaLabel from '../../../components/atoms/MetaLabel.astro';
+import { supabaseServer } from '../../../lib/supabase-server';
+import { fetchPublishedArticles, fetchPageSize, formatDate } from '../../../lib/content';
+import { probeAspect, placeholderImage } from '../../../lib/images';
+import { regionSlug, type Region } from '../../../lib/regions';
+import type { ArticleSummary } from '../../../lib/content';
+import type { GalleryWork } from '../../../lib/images';
+
+// 全記事を1回だけ取り、メモリ上で地域ごとに分けてから paginate に渡す。
+// 地域ごとにクエリを投げると地域数 × ページ数のクエリになる。
+export const getStaticPaths = (async ({ paginate }) => {
+  const { featured, normal } = await fetchPublishedArticles(supabaseServer);
+  const pageSize = await fetchPageSize(supabaseServer);
+  const all = [...featured, ...normal];
+
+  const byRegion = new Map<string, ArticleSummary[]>();
+  for (const article of all) {
+    if (!article.region) continue;
+    const list = byRegion.get(article.region) ?? [];
+    list.push(article);
+    byRegion.set(article.region, list);
+  }
+
+  return [...byRegion.entries()].flatMap(([region, articles]) =>
+    paginate(articles, {
+      pageSize,
+      params: { area: regionSlug(region as Region) },
+      props: { region },
+    }),
+  );
+}) satisfies GetStaticPaths;
+
+interface Props {
+  page: Page<ArticleSummary>;
+  region: string;
+}
+const { page, region } = Astro.props;
+const area = Astro.params.area as string;
+
+async function toWork(article: ArticleSummary, i: number): Promise<GalleryWork> {
+  const image = article.coverImageUrl
+    ? { url: article.coverImageUrl, ratio: await probeAspect(article.coverImageUrl) }
+    : placeholderImage(article.slug, i);
+  return {
+    href: `/articles/${article.slug}`,
+    title: article.title,
+    date: formatDate(article.publishedAt),
+    imageUrl: image.url,
+    ratio: image.ratio,
+    number: page.total - ((page.currentPage - 1) * page.size + i),
+    authorName: article.authorName,
+    authorHref: `/writers/${article.authorSlug}`,
+  };
+}
+
+const works = await Promise.all(page.data.map((a, i) => toWork(a, i)));
+---
+<Base title={`${region}の記事 | Wild Media`} activeAreaSlug={area}>
+  <section class="pt-32">
+    <div class="border-card mx-6 flex items-baseline justify-between border-t pt-3 pb-6">
+      <MetaLabel class="text-ink">{region}</MetaLabel>
+      <MetaLabel class="tabular-nums">{String(page.total).padStart(2, '0')}</MetaLabel>
+    </div>
+    <MasonryGrid works={works} />
+    <Pagination page={page} />
+  </section>
+</Base>
