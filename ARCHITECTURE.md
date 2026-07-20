@@ -73,6 +73,30 @@ Wild Media の「いまの姿」の地図。意思決定の経緯は [設計ス�
   `articles.status = 'published'` をDB層で強制し、下書きは結果に混ざらない。
   記事削除時は `post_chunks.article_id` の `on delete cascade` で自動的に
   チャンクも削除される。
+- `articles.region`(取材地)と `profiles.region`(ライターの活動拠点)は別物。
+  どちらも同じ12区分(北海道〜沖縄・海外)の check 制約だが、意味が違う記事とライターの
+  属性なので混同しないこと。`articles.region` は公開時のみ必須(下書きは null 可、
+  `published_requires_region` 制約)。CMS の記事編集画面では、新規記事の取材地の初期値に
+  執筆者の `profiles.region` を入れているだけで、値そのものは連動しない(後から
+  ライターの拠点を変えても既存記事の取材地は変わらない)。
+- 地域ページは `/areas/<slug>`(1ページ目)・`/areas/<slug>/2` 以降(2ページ目以降)。
+  `<slug>` は `src/lib/regions.ts` の `regionSlug()` / `regionFromSlug()` が持つ
+  日本語⇔ローマ字の対応表による(`関東` → `kanto` など)。日本語のまま URL に出すと
+  `%E9%96%A2%E6%9D%B1` のようになり共有しづらいための変換。
+- サイドバーの地域リンク(`Area` ナビ)は `src/lib/sidebar.ts` の `getAreaLinks(db)` が
+  ビルド中に1回だけ取得し、モジュールスコープの Promise でメモ化したものを全ページが
+  参照する。サイドバーは `Base.astro` 経由で**全ページ**に出るコンポーネントなので、
+  素直に書くと1ページ1クエリ(記事数百枚なら数百クエリ)になる。ページ側(`props`)から
+  データを渡すのではなく、`Sidebar.astro` が自分で `getAreaLinks()` を呼ぶ構成にして、
+  どのページを増やしてもクエリ数が増えないようにしている。**新しいページを追加すると
+  きも、地域リンクは props で引き回さずこの関数を呼ぶこと。**
+- `getStaticPaths` の中でページ(地域・ページ番号)ごとに DB クエリを投げない。
+  `src/pages/[...page].astro` と `src/pages/areas/[area]/[...page].astro` はどちらも
+  `getStaticPaths` の先頭で `fetchPublishedArticles()` を1回呼んで全公開記事を取り切り、
+  そのあとメモリ上で地域ごとにグループ化してから `paginate()` に渡している。地域ごとに
+  クエリを分けると「地域数 × ページ数」のクエリになり、記事や地域が増えるほどビルドが
+  重くなる。**`getStaticPaths` 内で `.eq('region', ...)` のような絞り込みクエリを地域
+  ごとに投げる書き方はしないこと。**
 
 ## テスト3層
 
