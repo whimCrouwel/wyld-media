@@ -18,6 +18,7 @@ const title = 'サイト設定 | Wild Media CMS';
         step="1"
         required
       />
+      <Field id="page-size" label="一覧1ページあたりの記事数" type="number" min="1" step="1" required />
       <div class="flex items-center gap-4 pt-2">
         <Button type="submit">保存</Button>
         <p id="message" role="alert" class="text-sm text-muted-foreground"></p>
@@ -59,11 +60,13 @@ const title = 'サイト設定 | Wild Media CMS';
         const messageEl = document.getElementById('message')!;
         const intervalEl = document.getElementById('interval') as HTMLInputElement;
         const featuredEl = document.getElementById('featured') as HTMLInputElement;
+        const pageSizeEl = document.getElementById('page-size') as HTMLInputElement;
 
         try {
           const s = await fetchSettings(supabaseBrowser);
           intervalEl.value = String(s.postIntervalDays);
           featuredEl.value = String(s.featuredCount);
+          pageSizeEl.value = String(s.pageSize);
         } catch (err) {
           messageEl.textContent = '設定の読み込みに失敗しました。';
           console.error(err);
@@ -78,7 +81,11 @@ const title = 'サイト設定 | Wild Media CMS';
           if (saveInFlight) return;
           messageEl.textContent = '';
           // Number('') は 0 になってしまうため、空欄は明示的に弾く(投稿間隔0は間隔制限の無効化を意味する)。
-          if (intervalEl.value.trim() === '' || featuredEl.value.trim() === '') {
+          if (
+            intervalEl.value.trim() === '' ||
+            featuredEl.value.trim() === '' ||
+            pageSizeEl.value.trim() === ''
+          ) {
             messageEl.textContent = '値を入力してください。';
             return;
           }
@@ -89,6 +96,7 @@ const title = 'サイト設定 | Wild Media CMS';
               await updateSettings(supabaseBrowser, {
                 postIntervalDays: Number(intervalEl.value),
                 featuredCount: Number(featuredEl.value),
+                pageSize: Number(pageSizeEl.value),
               });
             } catch (err) {
               messageEl.textContent = '保存に失敗しました。入力値を確認してください。';

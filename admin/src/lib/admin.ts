@@ -88,21 +88,31 @@ export function translateInviteError(err: unknown): string {
 export interface SiteSettings {
   postIntervalDays: number;
   featuredCount: number;
+  pageSize: number;
 }
 
 export async function fetchSettings(supabase: SupabaseClient): Promise<SiteSettings> {
   const { data, error } = await supabase
-    .from('settings').select('post_interval_days, featured_count').eq('id', 1).single();
+    .from('settings').select('post_interval_days, featured_count, page_size').eq('id', 1).single();
   if (error) throw error;
-  return { postIntervalDays: data.post_interval_days, featuredCount: data.featured_count };
+  return {
+    postIntervalDays: data.post_interval_days,
+    featuredCount: data.featured_count,
+    pageSize: data.page_size,
+  };
 }
 
 export async function updateSettings(supabase: SupabaseClient, s: SiteSettings): Promise<void> {
   if (!Number.isInteger(s.postIntervalDays) || s.postIntervalDays < 0) throw new Error('INVALID_SETTINGS');
   if (!Number.isInteger(s.featuredCount) || s.featuredCount < 0) throw new Error('INVALID_SETTINGS');
+  if (!Number.isInteger(s.pageSize) || s.pageSize < 1) throw new Error('INVALID_SETTINGS');
   const { data, error } = await supabase
     .from('settings')
-    .update({ post_interval_days: s.postIntervalDays, featured_count: s.featuredCount })
+    .update({
+      post_interval_days: s.postIntervalDays,
+      featured_count: s.featuredCount,
+      page_size: s.pageSize,
+    })
     .eq('id', 1)
     .select('id');
   if (error) throw error;

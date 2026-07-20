@@ -160,6 +160,7 @@ describe('settings', () => {
     const s = await fetchSettings(hanaClient);
     expect(s.postIntervalDays).toBeGreaterThanOrEqual(0);
     expect(s.featuredCount).toBeGreaterThanOrEqual(0);
+    expect(s.pageSize).toBeGreaterThanOrEqual(1);
   });
 
   it('非 admin の更新は RLS で 0 行 → SETTINGS_UPDATE_DENIED', async () => {
@@ -167,7 +168,7 @@ describe('settings', () => {
     await expect(updateSettings(hanaClient, current)).rejects.toThrow('SETTINGS_UPDATE_DENIED');
   });
 
-  it('admin は featured_count を更新できる(post_interval_days は現値のまま)', async () => {
+  it('admin は featured_count を更新できる(post_interval_days・page_size は現値のまま)', async () => {
     // ⚠️ post_interval_days は並列実行中の articles.test.ts(頻度制限)が読むため変更しない。
     // featured_count はどのトリガーからも読まれないので安全に動かせる。
     const before = await fetchSettings(adminClient);
@@ -176,15 +177,30 @@ describe('settings', () => {
       const after = await fetchSettings(adminClient);
       expect(after.featuredCount).toBe(before.featuredCount + 1);
       expect(after.postIntervalDays).toBe(before.postIntervalDays);
+      expect(after.pageSize).toBe(before.pageSize);
     } finally {
       await updateSettings(adminClient, before);
     }
   });
 
   it('不正な値は送信前に弾く', async () => {
-    await expect(updateSettings(adminClient, { postIntervalDays: -1, featuredCount: 3 }))
+    await expect(updateSettings(adminClient, { postIntervalDays: -1, featuredCount: 3, pageSize: 2 }))
       .rejects.toThrow('INVALID_SETTINGS');
-    await expect(updateSettings(adminClient, { postIntervalDays: 10, featuredCount: 1.5 }))
+    await expect(updateSettings(adminClient, { postIntervalDays: 10, featuredCount: 1.5, pageSize: 2 }))
       .rejects.toThrow('INVALID_SETTINGS');
+  });
+
+  it('pageSize が 1 未満なら INVALID_SETTINGS', async () => {
+    const current = await fetchSettings(adminClient);
+    await expect(
+      updateSettings(adminClient, { ...current, pageSize: 0 }),
+    ).rejects.toThrow('INVALID_SETTINGS');
+  });
+
+  it('pageSize が整数でなければ INVALID_SETTINGS', async () => {
+    const current = await fetchSettings(adminClient);
+    await expect(
+      updateSettings(adminClient, { ...current, pageSize: 1.5 }),
+    ).rejects.toThrow('INVALID_SETTINGS');
   });
 });
