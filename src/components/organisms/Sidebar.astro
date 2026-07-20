@@ -1,0 +1,22 @@
+---
+import AreaNav from '../molecules/AreaNav.astro';
+import MetaLabel from '../atoms/MetaLabel.astro';
+import { supabaseServer } from '../../lib/supabase-server';
+import { getAreaLinks } from '../../lib/sidebar';
+
+interface Props {
+  activeAreaSlug?: string;
+}
+const { activeAreaSlug } = Astro.props;
+
+// ページ側から props で渡さない。ビルド中1回だけ実行されてメモ化される。
+const areas = await getAreaLinks(supabaseServer);
+---
+<aside class="px-6 pb-10 lg:pb-24">
+  <div class="border-card border-t pt-3">
+    <MetaLabel class="text-ink">Area</MetaLabel>
+  </div>
+  <div class="mt-4">
+    <AreaNav areas={areas} activeSlug={activeAreaSlug} />
+  </div>
+</aside>

@@ -38,10 +38,12 @@ const featuredWorks = works.slice(0, featured.length);
 const gridWorks = works.slice(featured.length);
 ---
 <Base title="Wild Media">
-  <BgContours />
-  <SplashIntro />
-  <Hero />
-  <FeaturedStrip works={featuredWorks} />
+  <Fragment slot="full">
+    <BgContours />
+    <SplashIntro />
+    <Hero />
+    <FeaturedStrip works={featuredWorks} />
+  </Fragment>
   <section>
     <div class="border-card mx-6 flex items-baseline justify-between border-t pt-3 pb-6">
       <MetaLabel class="text-ink">Works</MetaLabel>
