@@ -13,7 +13,7 @@ const { activeAreaSlug } = Astro.props;
 // ページ側から props で渡さない。ビルド中1回だけ実行されてメモ化される。
 const areas = await getAreaLinks(supabaseServer);
 ---
-<aside class="px-6 pb-10 lg:pb-24">
+<aside class="px-6 pb-10 lg:pb-24" aria-label="サイドバー">
   <div class="pb-10">
     <SearchTrigger />
   </div>

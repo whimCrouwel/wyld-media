@@ -8,6 +8,11 @@ alter table public.articles
       '近畿', '中国', '四国', '九州', '沖縄', '海外'
     ));
 
+-- 既存の公開記事には取材地がない。制約を足す前に既定値で埋める
+-- (運営があとから CMS で正しい地域に直す)。
+update public.articles set region = '関東'
+  where status = 'published' and region is null;
+
 -- 下書きは取材地なしで保存できるが、公開するときだけ必須。
 -- 既存の published_requires_slug と同じ形。
 alter table public.articles
@@ -17,7 +22,7 @@ alter table public.articles
 -- 一覧ページ1枚あたりの記事数。公開サイトは静的ビルドなので、変更の反映には再ビルドが要る
 -- (featured_count と同じ条件)。
 alter table public.settings
-  add column page_size int not null default 2 check (page_size >= 1);
+  add column page_size int not null default 12 check (page_size >= 1);
 
 comment on column public.articles.region is '取材地(12区分)。公開時は必須。';
 comment on column public.settings.page_size is '一覧ページ1枚あたりの記事数。';

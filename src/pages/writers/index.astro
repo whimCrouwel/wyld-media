@@ -12,7 +12,7 @@ const writers = await fetchWriters(supabaseServer);
 const regions = usedRegions(writers.map((w) => w.region));
 ---
 <Base title="ライター一覧 | Wild Media">
-  <div class="px-6 pt-32 pb-24">
+  <div class="px-6 pb-24">
     <div class="border-card flex items-baseline justify-between border-t pt-3 pb-14">
       <MetaLabel class="text-ink">Writers</MetaLabel>
       <MetaLabel id="writer-count" class="tabular-nums">
@@ -23,9 +23,9 @@ const regions = usedRegions(writers.map((w) => w.region));
     {
       regions.length > 1 && (
         <nav id="region-filter" class="-mt-8 flex flex-wrap gap-x-6 gap-y-2 pb-10">
-          <Chip class="region-chip" active data-region="" aria-pressed="true">すべて</Chip>
+          <Chip active data-region="" aria-pressed="true">すべて</Chip>
           {regions.map((r) => (
-            <Chip class="region-chip" data-region={r} aria-pressed="false">{r}</Chip>
+            <Chip data-region={r} aria-pressed="false">{r}</Chip>
           ))}
         </nav>
       )

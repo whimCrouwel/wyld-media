@@ -5,11 +5,18 @@ import MasonryGrid from '../../../components/organisms/MasonryGrid.astro';
 import Pagination from '../../../components/molecules/Pagination.astro';
 import MetaLabel from '../../../components/atoms/MetaLabel.astro';
 import { supabaseServer } from '../../../lib/supabase-server';
-import { fetchPublishedArticles, fetchPageSize, formatDate } from '../../../lib/content';
-import { probeAspect, placeholderImage } from '../../../lib/images';
+import { fetchPublishedArticles, fetchPageSize } from '../../../lib/content';
+import { buildGalleryWork } from '../../../lib/images';
 import { regionSlug, type Region } from '../../../lib/regions';
 import type { ArticleSummary } from '../../../lib/content';
-import type { GalleryWork } from '../../../lib/images';
+
+// カタログ番号を持ち回るための最小単位。region 内の順番ではなく、
+// 公開順の全体インデックス(globalIndex)を保持しておき、home と同じ式で
+// 番号を出す(buildGalleryWork 参照)。
+interface RegionItem {
+  article: ArticleSummary;
+  globalIndex: number;
+}
 
 // 全記事を1回だけ取り、メモリ上で地域ごとに分けてから paginate に渡す。
 // 地域ごとにクエリを投げると地域数 × ページ数のクエリになる。
@@ -17,51 +24,44 @@ export const getStaticPaths = (async ({ paginate }) => {
   const { featured, normal } = await fetchPublishedArticles(supabaseServer);
   const pageSize = await fetchPageSize(supabaseServer);
   const all = [...featured, ...normal];
+  const total = all.length;
 
-  const byRegion = new Map<string, ArticleSummary[]>();
-  for (const article of all) {
-    if (!article.region) continue;
+  // 地域ごとに分けつつ、番号は「全作品通し番号」(/ と同じ基準)のまま持ち回る。
+  // 地域内の順番で振り直すと同じ記事が / と /areas/xxx で違う番号になる
+  // (このバグの実体だった)。
+  const byRegion = new Map<string, RegionItem[]>();
+  all.forEach((article, globalIndex) => {
+    if (!article.region) return;
     const list = byRegion.get(article.region) ?? [];
-    list.push(article);
+    list.push({ article, globalIndex });
     byRegion.set(article.region, list);
-  }
+  });
 
-  return [...byRegion.entries()].flatMap(([region, articles]) =>
-    paginate(articles, {
+  return [...byRegion.entries()].flatMap(([region, items]) =>
+    paginate(items, {
       pageSize,
       params: { area: regionSlug(region as Region) },
-      props: { region },
+      props: { region, total },
     }),
   );
 }) satisfies GetStaticPaths;
 
 interface Props {
-  page: Page<ArticleSummary>;
+  page: Page<RegionItem>;
   region: string;
+  total: number;
 }
-const { page, region } = Astro.props;
+const { page, region, total } = Astro.props;
 const area = Astro.params.area as string;
 
-async function toWork(article: ArticleSummary, i: number): Promise<GalleryWork> {
-  const image = article.coverImageUrl
-    ? { url: article.coverImageUrl, ratio: await probeAspect(article.coverImageUrl) }
-    : placeholderImage(article.slug, i);
-  return {
-    href: `/articles/${article.slug}`,
-    title: article.title,
-    date: formatDate(article.publishedAt),
-    imageUrl: image.url,
-    ratio: image.ratio,
-    number: page.total - ((page.currentPage - 1) * page.size + i),
-    authorName: article.authorName,
-    authorHref: `/writers/${article.authorSlug}`,
-  };
-}
-
-const works = await Promise.all(page.data.map((a, i) => toWork(a, i)));
+const works = await Promise.all(
+  page.data.map(({ article, globalIndex }) =>
+    buildGalleryWork(article, globalIndex, total - globalIndex),
+  ),
+);
 ---
 <Base title={`${region}の記事 | Wild Media`} activeAreaSlug={area}>
-  <section class="pt-32">
+  <section>
     <div class="border-card mx-6 flex items-baseline justify-between border-t pt-3 pb-6">
       <MetaLabel class="text-ink">{region}</MetaLabel>
       <MetaLabel class="tabular-nums">{String(page.total).padStart(2, '0')}</MetaLabel>

@@ -21,7 +21,7 @@ interface Props {
 const { writer } = Astro.props;
 const hasCover = Boolean(writer.coverImageUrl);
 ---
-<Base title={`${writer.name} | Wild Media`}>
+<Base title={`${writer.name} | Wild Media`} padMain={!hasCover}>
   {/* カバーバナー(未設定なら省略)。上部は古紙色のスクリムで固定ヘッダーの可読性を保つ */}
   {
     hasCover && (
@@ -41,7 +41,7 @@ const hasCover = Boolean(writer.coverImageUrl);
     )
   }
 
-  <div class={`mx-auto max-w-4xl px-6 pb-24 ${hasCover ? '' : 'pt-32'}`}>
+  <div class="mx-auto max-w-4xl px-6 pb-24">
     {/* アバター(角丸スクエア)。カバーがある時は少し重ねる */}
     <div class={hasCover ? 'relative z-10 -mt-14' : ''}>
       <span

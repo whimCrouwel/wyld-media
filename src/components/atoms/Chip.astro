@@ -6,13 +6,12 @@ interface Props {
   [key: string]: unknown;
 }
 const { href, active = false, class: className = '', ...rest } = Astro.props;
-const cls = ['chip', active ? 'is-active' : '', className].filter(Boolean).join(' ');
 ---
 {
   href ? (
-    <a href={href} class={cls} {...rest}><slot /></a>
+    <a href={href} class:list={['chip', { 'is-active': active }, className]} {...rest}><slot /></a>
   ) : (
-    <button type="button" class={cls} {...rest}><slot /></button>
+    <button type="button" class:list={['chip', { 'is-active': active }, className]} {...rest}><slot /></button>
   )
 }
 

@@ -1,4 +1,5 @@
 import probe from 'probe-image-size';
+import { formatDate, type ArticleSummary } from './content';
 
 // ギャラリーカード1枚ぶんの表示データ(index.astro → MasonryGrid / FeaturedStrip)
 export interface GalleryWork {
@@ -46,4 +47,30 @@ export function probeAspect(url: string): Promise<number> {
     cache.set(url, cached);
   }
   return cached;
+}
+
+// 記事 → GalleryWork への変換を一箇所に集約する。/ と /areas/xxx が別々に
+// この変換を持っていたせいで、number の出し方だけがずれて同じ記事が違う
+// カタログ番号を名乗る不具合が起きた。number は呼び出し側が「全作品通し
+// 番号」(公開順の全体インデックスから計算した値)を渡す前提で、ここでは
+// 採番ロジックを一切持たない。placeholderIndex はカバー画像未設定時の
+// 仮画像の見た目を決めるだけの値で、number とは無関係。
+export async function buildGalleryWork(
+  article: ArticleSummary,
+  placeholderIndex: number,
+  number: number,
+): Promise<GalleryWork> {
+  const image = article.coverImageUrl
+    ? { url: article.coverImageUrl, ratio: await probeAspect(article.coverImageUrl) }
+    : placeholderImage(article.slug, placeholderIndex);
+  return {
+    href: `/articles/${article.slug}`,
+    title: article.title,
+    date: formatDate(article.publishedAt),
+    imageUrl: image.url,
+    ratio: image.ratio,
+    number,
+    authorName: article.authorName,
+    authorHref: `/writers/${article.authorSlug}`,
+  };
 }

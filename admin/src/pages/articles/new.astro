@@ -124,11 +124,12 @@ const title = '新しい記事 | Wild Media CMS';
         const cover = initCoverWidget(supabaseBrowser);
 
         // 取材地の初期値は執筆者の活動拠点。あくまで初期値で、記事ごとに変更できる。
-        const { data: me } = await supabaseBrowser
+        const { data: me, error: meError } = await supabaseBrowser
           .from('profiles')
           .select('region')
           .eq('id', session.user.id)
           .single();
+        if (meError) console.error(meError);
         const defaultRegion = me?.region ?? '';
         const imageBaseUrl = await fetchImageBaseUrl(supabaseBrowser);
 

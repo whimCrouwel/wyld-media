@@ -7,15 +7,17 @@ select has_column('public', 'profiles', 'avatar_url', 'profiles has avatar_url')
 select has_column('public', 'profiles', 'location', 'profiles has location');
 select has_column('public', 'profiles', 'region', 'profiles has region');
 select has_column('public', 'profiles', 'cover_image_url', 'profiles has cover_image_url');
+
+select has_table('public', 'articles', 'articles table exists');
 select has_column('public', 'articles', 'region', 'articles has region');
+
+select has_table('public', 'settings', 'settings table exists');
 select has_column('public', 'settings', 'page_size', 'settings has page_size');
 
 select throws_ok(
   $$update settings set page_size = 0 where id = 1$$,
   '23514', null, 'page_size must be at least 1'
 );
-select has_table('public', 'articles', 'articles table exists');
-select has_table('public', 'settings', 'settings table exists');
 
 select results_eq(
   'select post_interval_days, featured_count from settings where id = 1',

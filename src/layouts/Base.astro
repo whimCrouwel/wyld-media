@@ -9,6 +9,7 @@ interface Props {
   title: string;
   activeAreaSlug?: string;
   padSidebar?: boolean;
+  padMain?: boolean;
 }
 // SiteHeader は fixed なので、直後に来る要素は自前で頭上の余白を持たないと
 // 隠れる。full スロットを持つページ(トップ)は Hero 側で既にその余白を
@@ -21,7 +22,25 @@ interface Props {
 // のように full スロットを条件付きで出し分けていると、cond が false でも
 // true 判定になってしまう。そのため呼び出し側で slot="full" を条件分岐する
 // ページは、必ず padSidebar を明示的に渡すこと。
-const { title, activeAreaSlug, padSidebar = !Astro.slots.has('full') } = Astro.props;
+//
+// ヘッダークリアランスの所有者はここ(Base)だけにする。ページ側が自前で
+// pt-32 を足すと、lg 未満ではサイドバーと本文がグリッドから縦積みに変わり、
+// 両方に付いた pt-32 が別々の隙間として重なって見えてしまう(lg 以上では
+// グリッド上の兄弟同士がずれるだけで隙間の重複には見えないので気づきにくい)。
+// padMain は既定で padSidebar と同じ値を使うが、writer 詳細ページのカバー
+// バナーのように本文側だけクリアランス不要なページは明示的に渡す。
+//
+// 本文側は lg: だけに pt-32 を付ける。lg 未満では grid が外れてサイドバー →
+// 本文の順に縦積みになり、本文はヘッダーの直下ではなくサイドバーの直下に来る
+// ので、クリアランスはサイドバー側の pt-32 だけで足りる(本文にも pt-32 を
+// 付けると縦積み時に2つ目の隙間になる)。lg 以上ではサイドバーと本文が横に
+// 並ぶので、揃えるために本文側にも同じ pt-32 が要る。
+const {
+  title,
+  activeAreaSlug,
+  padSidebar = !Astro.slots.has('full'),
+  padMain = padSidebar,
+} = Astro.props;
 ---
 <!doctype html>
 <html lang="ja">
@@ -38,7 +57,7 @@ const { title, activeAreaSlug, padSidebar = !Astro.slots.has('full') } = Astro.p
       <div class={padSidebar ? 'pt-32' : ''}>
         <Sidebar activeAreaSlug={activeAreaSlug} />
       </div>
-      <main class="min-w-0"><slot /></main>
+      <main class={`min-w-0 ${padMain ? 'lg:pt-32' : ''}`}><slot /></main>
     </div>
     <SearchModal />
     <footer class="px-6 pb-10">

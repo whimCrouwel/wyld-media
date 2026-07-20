@@ -136,9 +136,11 @@ async function main() {
       'PUBLIC_IMAGE_BASE_URL を .env に設定してください(R2 の公開URLベース。settings.image_base_url に入る)',
     );
   }
+  // page_size は本番既定値(12)だとシードの5記事ではページングが1枚に収まって見えない。
+  // ローカル確認用に2へ下げる。
   const { error: settingsError } = await db
     .from('settings')
-    .update({ image_base_url: imageBaseUrl })
+    .update({ image_base_url: imageBaseUrl, page_size: 2 })
     .eq('id', 1);
   if (settingsError) throw settingsError;
 

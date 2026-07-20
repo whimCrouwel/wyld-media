@@ -9,6 +9,9 @@ interface Props {
 const { areas, activeSlug } = Astro.props;
 ---
 <nav aria-label="地域から探す" class="area-nav">
+  <Chip href="/" active={activeSlug === undefined} class="area-item">
+    <span>すべて</span>
+  </Chip>
   {
     areas.map((a) => (
       <Chip href={a.href} active={a.slug === activeSlug} class="area-item">

@@ -27,6 +27,7 @@ supabase functions deploy invite-user r2-upload-url
 - [ ] `site_url` と `additional_redirect_urls` を本番の admin サブドメイン(例 `https://admin.example.com` と `.../set-password`)に設定
 - [ ] サーバー側のパスワード最小長を設定(現状クライアント側 8 文字のみ)
 - [ ] マイグレーション適用順の確認(harden migration のタイムスタンプ 043424 が 1228xx より前 — 新規 push は問題なし。部分適用済み環境のみ注意)
+- [ ] `20260720160000_article_region_and_page_size.sql` は既存の公開記事を全て取材地「関東」で埋めてから制約を追加する。`db push` 後、CMS で公開済み記事の取材地を実際の取材地に直すこと
 
 ## Edge Functions
 - [ ] `CMS_URL` シークレットを admin サブドメインに設定(未設定だと招待リンクが localhost:4322 にフォールバックする)
@@ -47,7 +48,8 @@ supabase functions deploy invite-user r2-upload-url
       `update media set url = replace(url, '<旧>', '<新>');`
 
 ## フロントエンド(Vercel プロジェクト ×2)
-- [ ] 公開サイト: Vercel プロジェクト作成(Root Directory = リポジトリ直下、Framework = Astro)。env に `PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`(ビルド時のみ使用)を設定し、ルートドメインを割り当て
+- [ ] 公開サイト: Vercel プロジェクト作成(Root Directory = リポジトリ直下、Framework = Astro)。env に `PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`(ビルド時のみ使用)/ `PUBLIC_SUPABASE_ANON_KEY` を設定し、ルートドメインを割り当て
+      (`PUBLIC_SUPABASE_ANON_KEY` は検索モーダルがブラウザから直接 Supabase を叩くために必要。Astro はビルド時に値を埋め込むため、未設定だと本番ビルドの全ページで検索が例外を起こす。service role キーは CMS プロジェクトには絶対に含めない)
 - [ ] CMS: 別の Vercel プロジェクト作成(Root Directory = `admin/`)。env は `PUBLIC_SUPABASE_URL` / `PUBLIC_SUPABASE_ANON_KEY` のみ(service role キーは絶対に含めない)。admin サブドメインを割り当て
 - [ ] 公開サイト側プロジェクトで Deploy Hook を作成(Settings → Git → Deploy Hooks)
 - [ ] Supabase Database Webhook(articles の INSERT/UPDATE/DELETE)→ 上記 Vercel Deploy Hook URL を POST で叩き自動再ビルド

@@ -9,10 +9,9 @@ import MasonryGrid from '../components/organisms/MasonryGrid.astro';
 import Pagination from '../components/molecules/Pagination.astro';
 import MetaLabel from '../components/atoms/MetaLabel.astro';
 import { supabaseServer } from '../lib/supabase-server';
-import { fetchPublishedArticles, fetchPageSize, formatDate } from '../lib/content';
-import { probeAspect, placeholderImage } from '../lib/images';
+import { fetchPublishedArticles, fetchPageSize } from '../lib/content';
+import { buildGalleryWork } from '../lib/images';
 import type { ArticleSummary } from '../lib/content';
-import type { GalleryWork } from '../lib/images';
 
 // getStaticPaths はビルド中1回だけ走る。ここで全記事を取り切り、
 // ページごとにDBへ問い合わせないようにする。
@@ -31,29 +30,16 @@ interface Props {
 const { page, featured, total } = Astro.props;
 const isFirstPage = page.currentPage === 1;
 
-// カタログ番号は新しいものほど大きい(全作品通し番号)
-async function toWork(article: ArticleSummary, indexInAll: number): Promise<GalleryWork> {
-  const image = article.coverImageUrl
-    ? { url: article.coverImageUrl, ratio: await probeAspect(article.coverImageUrl) }
-    : placeholderImage(article.slug, indexInAll); // 仮画像(本番画像が入り次第外す)
-  return {
-    href: `/articles/${article.slug}`,
-    title: article.title,
-    date: formatDate(article.publishedAt),
-    imageUrl: image.url,
-    ratio: image.ratio,
-    number: total - indexInAll,
-    authorName: article.authorName,
-    authorHref: `/writers/${article.authorSlug}`,
-  };
-}
-
+// カタログ番号は新しいものほど大きい(全作品通し番号)。番号を出す式そのものは
+// src/lib/images.ts の buildGalleryWork に集約している(/areas/xxx と共有)。
 const featuredWorks = isFirstPage
-  ? await Promise.all(featured.map((a, i) => toWork(a, i)))
+  ? await Promise.all(featured.map((a, i) => buildGalleryWork(a, i, total - i)))
   : [];
 // 通し番号が全ページで連続するよう、このページの先頭が全体の何番目かを足す
 const offset = featured.length + (page.currentPage - 1) * page.size;
-const gridWorks = await Promise.all(page.data.map((a, i) => toWork(a, offset + i)));
+const gridWorks = await Promise.all(
+  page.data.map((a, i) => buildGalleryWork(a, offset + i, total - (offset + i))),
+);
 ---
 {/*
   full スロットは1ページ目でだけ条件付きで出す。Astro.slots.has('full') は
@@ -73,7 +59,7 @@ const gridWorks = await Promise.all(page.data.map((a, i) => toWork(a, offset + i
       <FeaturedStrip works={featuredWorks} />
     </Fragment>
   )}
-  <section class={isFirstPage ? '' : 'pt-32'}>
+  <section>
     <div class="border-card mx-6 flex items-baseline justify-between border-t pt-3 pb-6">
       <MetaLabel class="text-ink">Works</MetaLabel>
       <MetaLabel class="tabular-nums">{String(page.total).padStart(2, '0')}</MetaLabel>
