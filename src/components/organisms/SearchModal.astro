@@ -1,7 +1,10 @@
 ---
 import MetaLabel from '../atoms/MetaLabel.astro';
 ---
-<dialog id="search-modal" class="search-modal" aria-label="記事を検索">
+<!-- data-lenis-prevent: Lenis は stop() 中もホイールを preventDefault し続けるため、
+     これが無いとモーダル内をホイールでスクロールできず、スクロールバーを
+     ドラッグするしかなくなる。この属性の内側は Lenis が手を出さない。 -->
+<dialog id="search-modal" class="search-modal" aria-label="記事を検索" data-lenis-prevent>
   <!-- 閉じるボタンは絶対配置。行として置くと縦を40px以上使い、
        画面の低いノートPCで結果の表示領域を圧迫するため -->
   <form method="dialog" class="close-row">
@@ -13,8 +16,11 @@ import MetaLabel from '../atoms/MetaLabel.astro';
        見えない)。input に form 所有者を与えることで Enter がこの form の
        submit として届く。 -->
   <form id="search-form">
+    <!-- type="search" にすると入力中だけブラウザ標準の × (内容クリア)が
+         右端に出る。すぐ上の Close × と縦に並んで、閉じるボタンが2つある
+         ように見えるので使わない。 -->
     <input
-      type="search"
+      type="text"
       id="search-input"
       placeholder="記事を検索"
       aria-label="記事を検索"

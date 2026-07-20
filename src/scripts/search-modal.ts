@@ -94,11 +94,9 @@ if (modal && openBtn && input && resultsEl && statusEl) {
     if (e.target === modal) modal.close();
   });
 
-  // input[type="search"] にはブラウザ標準の「Escape で検索欄をクリアする」
-  // 挙動があり、文字が入力されている状態だと最初の Escape はその clear に
-  // 消費されて dialog まで届かない(=閉じるのに2回押す必要が生じる)。
-  // ここで Escape を横取りして常に modal.close() を呼ぶことで、入力の
-  // 有無に関わらず1回目の Escape で閉じるようにする。
+  // Escape は常に「閉じる」に倒す。入力欄が type="search" だとブラウザ標準の
+  // 「Escape で内容をクリア」に1回目が消費され、閉じるのに2回押す必要が出る
+  // (今は type="text" なので起きないが、将来 search に戻したときの保険)。
   modal.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       e.preventDefault();
