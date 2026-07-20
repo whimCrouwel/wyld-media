@@ -53,7 +53,9 @@ const {
     <SiteHeader />
     <!-- サイドバーの外側に出したいもの(トップの Hero など)。無いページでは何も出ない -->
     <slot name="full" />
-    <div class="lg:grid lg:grid-cols-[16rem_1fr] lg:items-start">
+    <!-- 19rem はサイドバーの地図(5列)がガターを保ったまま
+         タイル44pxを割らない幅。変えるときは Sidebar.astro のコメント参照 -->
+    <div class="lg:grid lg:grid-cols-[19rem_1fr] lg:items-start">
       <div class={padSidebar ? 'pt-32' : ''}>
         <Sidebar activeAreaSlug={activeAreaSlug} />
       </div>

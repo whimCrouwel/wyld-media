@@ -14,10 +14,9 @@ const { activeAreaSlug } = Astro.props;
 const areas = await getAreaLinks(supabaseServer);
 ---
 <aside class="px-6 pb-10 lg:pb-24" aria-label="サイドバー">
-  <div class="pb-10">
+  <div class="sidebar-panel">
     <SearchTrigger />
-  </div>
-  <div class="area-card">
+    <hr class="panel-rule" />
     <MetaLabel class="text-ink">Area</MetaLabel>
     <div class="mt-3">
       <AreaNav areas={areas} activeSlug={activeAreaSlug} />
@@ -26,12 +25,23 @@ const areas = await getAreaLinks(supabaseServer);
 </aside>
 
 <style>
-  /* 地域ナビのカード。サイドバーの px-6 を打ち消して縁まで広げたうえで
-     内側に padding を戻す。こうしないと5列に割ったとき1タイルが44pxを割る。
-     カードの地色はそのまま「海」として働き、タイル(陸)と対比になる。 */
-  .area-card {
-    margin-inline: -1.5rem;
+  /* 「記事を探す」ための道具(キーワード検索と地図)を1枚の器にまとめる。
+     別々のカードに分けると、同じ用途のものが2つの面に散る。
+     地色はそのまま地図の「海」として働き、タイル(陸)と対比になる。
+
+     幅について: 地図は5列 1fr なので、器が痩せるとタイルが44pxを割って
+     「甲信越」などのラベルが窮屈になる。サイドバー列(Base.astro)を
+     19rem にしてあるのは、px-6 のガターを保ったまま地図の実寸を
+     確保するため。列幅を変えるときは地図のタイル幅も確認すること。 */
+  .sidebar-panel {
     padding: 0.875rem 0.75rem 1rem;
+    border-radius: 20px;
     background-color: color-mix(in srgb, var(--color-ink) 7%, var(--color-bg));
+  }
+
+  .panel-rule {
+    margin: 0.875rem 0;
+    border: 0;
+    border-top: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
   }
 </style>
