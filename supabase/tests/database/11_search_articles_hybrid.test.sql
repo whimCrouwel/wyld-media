@@ -32,10 +32,10 @@ insert into profiles (id, role, slug, name) values
   ('00000000-0000-0000-0000-0000000000e3', 'writer', 'search-writer-c', 'SWC');
 
 -- A: ベクトルもキーワードも一致(両方で強くヒット)。2チャンク(dedup検証も兼ねる)
-insert into articles (id, author_id, title, slug, body, status, published_at) values
+insert into articles (id, author_id, title, slug, body, status, published_at, region) values
   ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000e1',
    'カワウソ記事A', 'kawauso-a',
-   '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb, 'published', now());
+   '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb, 'published', now(), '関東');
 insert into post_chunks (article_id, chunk_index, heading_path, content, token_count, embedding) values
   ('00000000-0000-0000-0000-0000000000a1', 0, '', 'カワウソの生態について解説する記事です', 20,
    pg_temp.blend(1, 1, 2, 0)),
@@ -43,19 +43,19 @@ insert into post_chunks (article_id, chunk_index, heading_path, content, token_c
    pg_temp.blend(1, 1, 2, 0));
 
 -- B: キーワードのみ一致、ベクトルは最も無関係(直交)
-insert into articles (id, author_id, title, slug, body, status, published_at) values
+insert into articles (id, author_id, title, slug, body, status, published_at, region) values
   ('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000e2',
    'カワウソ記事B', 'kawauso-b',
-   '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb, 'published', now());
+   '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb, 'published', now(), '関東');
 insert into post_chunks (article_id, chunk_index, heading_path, content, token_count, embedding) values
   ('00000000-0000-0000-0000-0000000000a2', 0, '', 'カワウソに関する重要な情報です', 15,
    pg_temp.blend(1, 0, 2, 1));
 
 -- C: ベクトルのみ中程度に一致、キーワードは無関係
-insert into articles (id, author_id, title, slug, body, status, published_at) values
+insert into articles (id, author_id, title, slug, body, status, published_at, region) values
   ('00000000-0000-0000-0000-0000000000a3', '00000000-0000-0000-0000-0000000000e3',
    '無関係記事C', 'unrelated-c',
-   '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb, 'published', now());
+   '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb, 'published', now(), '関東');
 insert into post_chunks (article_id, chunk_index, heading_path, content, token_count, embedding) values
   ('00000000-0000-0000-0000-0000000000a3', 0, '', '全く関係ない話題の記事です', 15,
    pg_temp.blend(1, 0.5, 2, 0.5));

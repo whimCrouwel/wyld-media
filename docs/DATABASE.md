@@ -40,6 +40,7 @@ erDiagram
         text title
         jsonb body "Tiptapブロック配列"
         text cover_image_url
+        text region "取材地(12区分、公開時必須)"
         article_status status "draft / published"
         timestamptz published_at "公開時のみ必須"
         text commission_code_input "入力値、トリガーがcommissioned_byへ解決"
@@ -52,6 +53,7 @@ erDiagram
         int id PK "常に1行のみ(id=1)"
         int post_interval_days "通常記事の投稿間隔(日)"
         int featured_count "Featured枠の件数"
+        int page_size "一覧1ページあたりの記事数"
         text image_base_url "本文画像の許可ホスト(fail closed)"
     }
 

@@ -29,7 +29,7 @@ const USERS = [
 // kawabe-kansatsu の本文にはサニタイズ検証用の <script> を意図的に含めている。
 const ARTICLES = [
   { author: 'tanaka-hana', slug: 'kawabe-kansatsu', title: '川辺の観察日記', publishedAt: daysAgo(30),
-    body: [
+    region: '甲信越', body: [
       { type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: '川辺にて' }] },
       { type: 'paragraph', content: [{ type: 'text', text: '朝の川辺を歩いた。' }] },
       { type: 'bulletList', content: [
@@ -40,22 +40,22 @@ const ARTICLES = [
       { type: 'paragraph', content: [{ type: 'text', text: '静かな時間だった。', marks: [{ type: 'bold' }] }] },
     ] },
   { author: 'tanaka-hana', slug: 'koke-no-mori', title: '苔の森を歩く', publishedAt: daysAgo(15),
-    body: [
+    region: '甲信越', body: [
       { type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: '苔の森' }] },
       { type: 'paragraph', content: [{ type: 'text', text: '雨上がりの森は苔が輝く。' }] },
     ] },
   { author: 'sato-kenta', slug: 'toshi-no-yachou', title: '都市の野鳥観察', publishedAt: daysAgo(5),
-    cover: 'https://placehold.co/1600x900', body: [
+    region: '関東', cover: 'https://placehold.co/1600x900', body: [
       { type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: '街の鳥たち' }] },
       { type: 'paragraph', content: [{ type: 'text', text: '公園のカラスを観察した。' }] },
     ] },
   { author: 'tanaka-hana', slug: 'kigyou-no-mori', title: '企業の森づくり最前線', publishedAt: daysAgo(3),
-    commissioned: true, body: [
+    region: '関東', commissioned: true, body: [
       { type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: '企業の森' }] },
       { type: 'paragraph', content: [{ type: 'text', text: 'フォレスト再生機構の活動を取材した。' }] },
     ] },
   { author: 'tanaka-hana', slug: 'kaigan-seisou', title: '海岸清掃の一日', publishedAt: daysAgo(1),
-    commissioned: true, body: [
+    region: '九州', commissioned: true, body: [
       { type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: '海岸にて' }] },
       { type: 'paragraph', content: [{ type: 'text', text: '清掃活動に参加した。' }] },
     ] },
@@ -113,6 +113,7 @@ async function main() {
       status: 'published',
       published_at: a.publishedAt,
       commission_code_input: a.commissioned ? code : null,
+      region: a.region ?? null,
     });
     if (error) throw new Error(`article ${a.slug}: ${error.message}`);
   }

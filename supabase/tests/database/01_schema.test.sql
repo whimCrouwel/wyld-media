@@ -1,12 +1,19 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(15);
+select plan(20);
 
 select has_table('public', 'profiles', 'profiles table exists');
 select has_column('public', 'profiles', 'avatar_url', 'profiles has avatar_url');
 select has_column('public', 'profiles', 'location', 'profiles has location');
 select has_column('public', 'profiles', 'region', 'profiles has region');
 select has_column('public', 'profiles', 'cover_image_url', 'profiles has cover_image_url');
+select has_column('public', 'articles', 'region', 'articles has region');
+select has_column('public', 'settings', 'page_size', 'settings has page_size');
+
+select throws_ok(
+  $$update settings set page_size = 0 where id = 1$$,
+  '23514', null, 'page_size must be at least 1'
+);
 select has_table('public', 'articles', 'articles table exists');
 select has_table('public', 'settings', 'settings table exists');
 
@@ -57,6 +64,20 @@ select lives_ok(
   $$insert into articles (author_id, title)
     values ('00000000-0000-0000-0000-00000000000a', 'draft without slug')$$,
   'draft without slug is allowed'
+);
+
+select throws_ok(
+  $$insert into articles (author_id, slug, title, region)
+    values ('00000000-0000-0000-0000-00000000000a', 'bad-region', 't', '中部')$$,
+  '23514', null, 'article region must be one of the 12 areas'
+);
+
+-- 下書きは取材地なしで保存できる。公開だけが必須。
+select throws_ok(
+  $$insert into articles (author_id, status, published_at, slug, title, body)
+    values ('00000000-0000-0000-0000-00000000000a', 'published', now(), 'no-region', 't',
+      '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb)$$,
+  '23514', null, 'published article requires region'
 );
 
 select is(

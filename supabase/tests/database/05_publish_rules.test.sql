@@ -16,11 +16,11 @@ select set_config('request.jwt.claims',
 set local role authenticated;
 
 select lives_ok(
-  $$insert into articles (id, author_id, slug, title, status, body)
+  $$insert into articles (id, author_id, slug, title, status, body, region)
     values ('30000000-0000-0000-0000-000000000001',
             '00000000-0000-0000-0000-000000000009',
             'pub-a', 'first post', 'published',
-            '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb)$$,
+            '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb, '関東')$$,
   'first normal publish succeeds');
 select ok(
   (select published_at from articles
@@ -28,10 +28,10 @@ select ok(
   'published_at is set automatically');
 
 select throws_like(
-  $$insert into articles (author_id, slug, title, status, body)
+  $$insert into articles (author_id, slug, title, status, body, region)
     values ('00000000-0000-0000-0000-000000000009',
             'pub-too-soon', 'too soon', 'published',
-            '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb)$$,
+            '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb, '関東')$$,
   '%POST_INTERVAL_NOT_ELAPSED%',
   'second normal publish within the interval is rejected');
 
@@ -46,24 +46,24 @@ select set_config('request.jwt.claims',
 set local role authenticated;
 
 select lives_ok(
-  $$insert into articles (id, author_id, slug, title, status, body)
+  $$insert into articles (id, author_id, slug, title, status, body, region)
     values ('30000000-0000-0000-0000-000000000002',
             '00000000-0000-0000-0000-000000000009',
             'pub-b', 'second post', 'published',
-            '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb)$$,
+            '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb, '関東')$$,
   'normal publish succeeds after the interval elapsed');
 
 select lives_ok(
-  $$insert into articles (author_id, slug, title, status, commission_code_input, body)
+  $$insert into articles (author_id, slug, title, status, commission_code_input, body, region)
     values ('00000000-0000-0000-0000-000000000009',
             'pub-c', 'commissioned 1', 'published', 'WM-33CC44DD',
-            '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb)$$,
+            '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb, '関東')$$,
   'commissioned article publishes immediately (exempt)');
 select lives_ok(
-  $$insert into articles (author_id, slug, title, status, commission_code_input, body)
+  $$insert into articles (author_id, slug, title, status, commission_code_input, body, region)
     values ('00000000-0000-0000-0000-000000000009',
             'pub-d', 'commissioned 2', 'published', 'WM-33CC44DD',
-            '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb)$$,
+            '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb, '関東')$$,
   'multiple commissioned articles are all exempt');
 
 select lives_ok(
@@ -73,7 +73,7 @@ select lives_ok(
             '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb)$$,
   'drafts are never rate-limited');
 select throws_like(
-  $$update articles set status = 'published', slug = 'pub-e'
+  $$update articles set status = 'published', slug = 'pub-e', region = '関東'
     where id = '30000000-0000-0000-0000-000000000003'$$,
   '%POST_INTERVAL_NOT_ELAPSED%',
   'draft-to-published transition is also rate-limited');
@@ -89,7 +89,7 @@ select set_config('request.jwt.claims',
 set local role authenticated;
 
 select lives_ok(
-  $$update articles set status = 'published', slug = 'pub-e'
+  $$update articles set status = 'published', slug = 'pub-e', region = '関東'
     where id = '30000000-0000-0000-0000-000000000003'$$,
   'draft publishes via update after interval elapsed');
 select ok(
