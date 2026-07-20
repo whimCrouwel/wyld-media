@@ -1,0 +1,92 @@
+---
+import type { GetStaticPaths, Page } from 'astro';
+import Base from '../layouts/Base.astro';
+import BgContours from '../components/organisms/BgContours.astro';
+import SplashIntro from '../components/organisms/SplashIntro.astro';
+import Hero from '../components/organisms/Hero.astro';
+import FeaturedStrip from '../components/organisms/FeaturedStrip.astro';
+import MasonryGrid from '../components/organisms/MasonryGrid.astro';
+import Pagination from '../components/molecules/Pagination.astro';
+import MetaLabel from '../components/atoms/MetaLabel.astro';
+import { supabaseServer } from '../lib/supabase-server';
+import { fetchPublishedArticles, fetchPageSize, formatDate } from '../lib/content';
+import { probeAspect, placeholderImage } from '../lib/images';
+import type { ArticleSummary } from '../lib/content';
+import type { GalleryWork } from '../lib/images';
+
+// getStaticPaths はビルド中1回だけ走る。ここで全記事を取り切り、
+// ページごとにDBへ問い合わせないようにする。
+export const getStaticPaths = (async ({ paginate }) => {
+  const { featured, normal } = await fetchPublishedArticles(supabaseServer);
+  const pageSize = await fetchPageSize(supabaseServer);
+  // Featured は1ページ目のヒーロー帯にだけ出すので、グリッドは normal だけを分割する
+  return paginate(normal, { pageSize, props: { featured, total: featured.length + normal.length } });
+}) satisfies GetStaticPaths;
+
+interface Props {
+  page: Page<ArticleSummary>;
+  featured: ArticleSummary[];
+  total: number;
+}
+const { page, featured, total } = Astro.props;
+const isFirstPage = page.currentPage === 1;
+
+// カタログ番号は新しいものほど大きい(全作品通し番号)
+async function toWork(article: ArticleSummary, indexInAll: number): Promise<GalleryWork> {
+  const image = article.coverImageUrl
+    ? { url: article.coverImageUrl, ratio: await probeAspect(article.coverImageUrl) }
+    : placeholderImage(article.slug, indexInAll); // 仮画像(本番画像が入り次第外す)
+  return {
+    href: `/articles/${article.slug}`,
+    title: article.title,
+    date: formatDate(article.publishedAt),
+    imageUrl: image.url,
+    ratio: image.ratio,
+    number: total - indexInAll,
+    authorName: article.authorName,
+    authorHref: `/writers/${article.authorSlug}`,
+  };
+}
+
+const featuredWorks = isFirstPage
+  ? await Promise.all(featured.map((a, i) => toWork(a, i)))
+  : [];
+// 通し番号が全ページで連続するよう、このページの先頭が全体の何番目かを足す
+const offset = featured.length + (page.currentPage - 1) * page.size;
+const gridWorks = await Promise.all(page.data.map((a, i) => toWork(a, offset + i)));
+---
+{
+  isFirstPage ? (
+    <Base title="Wild Media">
+      <Fragment slot="full">
+        <BgContours />
+        <SplashIntro />
+        <Hero />
+        <FeaturedStrip works={featuredWorks} />
+      </Fragment>
+      <section>
+        <div class="border-card mx-6 flex items-baseline justify-between border-t pt-3 pb-6">
+          <MetaLabel class="text-ink">Works</MetaLabel>
+          <MetaLabel class="tabular-nums">{String(page.total).padStart(2, '0')}</MetaLabel>
+        </div>
+        <MasonryGrid works={gridWorks} />
+        <Pagination page={page} />
+      </section>
+    </Base>
+  ) : (
+    // full スロットを持たないページ。Astro.slots.has('full') はテンプレート内に
+    // slot="full" の記述があるだけで真になってしまう(条件分岐の実行結果を見ない)ため、
+    // full スロットを一切書かない Base 呼び出しをページ2以降専用に分けている。
+    // こうしないと Base 側でサイドバーに自動で足すはずの pt-32 が効かない。
+    <Base title={`Wild Media — ${page.currentPage}ページ目`}>
+      <section class="pt-32">
+        <div class="border-card mx-6 flex items-baseline justify-between border-t pt-3 pb-6">
+          <MetaLabel class="text-ink">Works</MetaLabel>
+          <MetaLabel class="tabular-nums">{String(page.total).padStart(2, '0')}</MetaLabel>
+        </div>
+        <MasonryGrid works={gridWorks} />
+        <Pagination page={page} />
+      </section>
+    </Base>
+  )
+}
