@@ -10,6 +10,7 @@ export interface ArticleSummary {
   authorName: string;
   authorSlug: string;
   commissionedByName: string | null;
+  region: string | null;
 }
 
 export interface ArticleDetail extends ArticleSummary {
@@ -52,7 +53,7 @@ export function formatDate(iso: string): string {
 
 // articles は profiles への FK を2本持つため、埋め込みは FK 名で曖昧性解消する
 const ARTICLE_SELECT =
-  'id, slug, title, cover_image_url, published_at, commissioned_by, ' +
+  'id, slug, title, cover_image_url, published_at, commissioned_by, region, ' +
   'author:profiles!articles_author_id_fkey(name, slug), ' +
   'commissioned:profiles!articles_commissioned_by_fkey(name)';
 
@@ -74,6 +75,7 @@ function toSummary(row: any): ArticleSummary {
     authorName: author?.name ?? '',
     authorSlug: author?.slug ?? '',
     commissionedByName: commissioned?.name ?? null,
+    region: row.region ?? null,
   };
 }
 
@@ -85,6 +87,17 @@ export async function fetchImageBaseUrl(db: SupabaseClient): Promise<string> {
     .single();
   if (error) throw error;
   return (data as { image_base_url: string }).image_base_url;
+}
+
+// 一覧1ページあたりの記事数。運営が CMS から変えられる(反映は再ビルド時)。
+export async function fetchPageSize(db: SupabaseClient): Promise<number> {
+  const { data, error } = await db
+    .from('settings')
+    .select('page_size')
+    .eq('id', 1)
+    .single();
+  if (error) throw error;
+  return (data as { page_size: number }).page_size;
 }
 
 export async function fetchPublishedArticles(

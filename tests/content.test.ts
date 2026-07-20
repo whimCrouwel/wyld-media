@@ -6,6 +6,7 @@ import {
   fetchArticleBySlug,
   fetchWriters,
   fetchWriterBySlug,
+  fetchPageSize,
   safeUrl,
 } from '../src/lib/content';
 
@@ -105,5 +106,21 @@ describe('content data layer (requires seeded local Supabase)', () => {
       'kawabe-kansatsu',
     ]);
     expect(await fetchWriterBySlug(db, 'seed-admin')).toBeNull();
+  });
+
+  it('公開記事は取材地を持つ', async () => {
+    const { featured, normal } = await fetchPublishedArticles(db);
+    const all = [...featured, ...normal];
+    expect(all.length).toBeGreaterThan(0);
+    for (const a of all) {
+      expect(typeof a.region).toBe('string');
+      expect(a.region).not.toBe('');
+    }
+  });
+
+  it('fetchPageSize は 1 以上の整数を返す', async () => {
+    const size = await fetchPageSize(db);
+    expect(Number.isInteger(size)).toBe(true);
+    expect(size).toBeGreaterThanOrEqual(1);
   });
 });
