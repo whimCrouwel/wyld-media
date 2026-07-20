@@ -124,9 +124,10 @@ if (modal && openBtn && input && resultsEl && statusEl) {
     }
   }
 
-  input.addEventListener('keydown', (e) => {
-    if (e.key !== 'Enter') return;
-    e.preventDefault(); // dialog 内なので既定の submit(=閉じる)を止める
+  // Enter は input を包む form の submit として届く(SearchModal.astro のコメント参照)。
+  // preventDefault しないとページ遷移するので必須。
+  document.getElementById('search-form')?.addEventListener('submit', (e) => {
+    e.preventDefault();
     runSearch();
   });
 

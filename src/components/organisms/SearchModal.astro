@@ -5,13 +5,20 @@ import MetaLabel from '../atoms/MetaLabel.astro';
   <form method="dialog" class="mb-6 flex justify-end">
     <button type="submit" aria-label="閉じる"><MetaLabel>Close ×</MetaLabel></button>
   </form>
-  <input
-    type="search"
-    id="search-input"
-    placeholder="記事を検索"
-    aria-label="記事を検索"
-    class="search-input"
-  />
+  <!-- 入力を自前の form に入れる。dialog 内に method="dialog" の form が
+       あると、form の外にある input で Enter を押したとき そちらが既定の
+       送信先として働いてダイアログが閉じてしまう(検索は走るのに結果が
+       見えない)。input に form 所有者を与えることで Enter がこの form の
+       submit として届く。 -->
+  <form id="search-form">
+    <input
+      type="search"
+      id="search-input"
+      placeholder="記事を検索"
+      aria-label="記事を検索"
+      class="search-input"
+    />
+  </form>
   <p role="status" class="mt-4"><MetaLabel id="search-status" /></p>
   <ul id="search-results" class="mt-6" hidden></ul>
 </dialog>
@@ -45,7 +52,6 @@ import MetaLabel from '../atoms/MetaLabel.astro';
 
   /* 検索欄・状態表示は結果が伸びても縮ませない */
   .search-modal > form,
-  .search-modal > .search-input,
   .search-modal > p {
     flex-shrink: 0;
   }
