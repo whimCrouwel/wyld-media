@@ -4,7 +4,7 @@
 
 **Goal:** 記事に取材地を持たせ、地域別の記事一覧ページ・全ページ共通の左サイドバー・トップと地域ページのページネーションを追加する。
 
-**Architecture:** `articles.region`(取材地)を新設し、Astro の `getStaticPaths` + `paginate()` で静的にページを生成する。サイドバーは `Base.astro` に組み込み、データはビルド中1回だけ取得してメモ化する(`getSidebarData()`)。UIは既存の atoms/molecules/organisms の粒度に合わせて分解する。
+**Architecture:** `articles.region`(取材地)を新設し、Astro の `getStaticPaths` + `paginate()` で静的にページを生成する。サイドバーは `Base.astro` に組み込み、データはビルド中1回だけ取得してメモ化する(`getAreaLinks()`)。UIは既存の atoms/molecules/organisms の粒度に合わせて分解する。
 
 **Tech Stack:** Astro 5(静的ビルド)、Supabase(Postgres + RLS + pgTAP)、Tailwind CSS v4、Vitest、TypeScript
 
@@ -17,10 +17,11 @@
 - 地域は12区分固定: `北海道 東北 関東 甲信越 北陸 東海 近畿 中国 四国 九州 沖縄 海外`
 - 地域slugはローマ字: `hokkaido tohoku kanto koshinetsu hokuriku tokai kinki chugoku shikoku kyushu okinawa overseas`
 - **`getStaticPaths` の中でページごとにDBクエリを投げない。** 全記事を1回取得してからメモリ上でグループ化し `paginate()` に渡す
-- **サイドバー用データを props で各ページに引き回さない。** `Sidebar.astro` が `getSidebarData()` を自分で呼ぶ
+- **サイドバー用データを props で各ページに引き回さない。** `Sidebar.astro` が `getAreaLinks()` を自分で呼ぶ
 - 1ページあたりの件数は `settings.page_size`。コードにハードコードしない
 - 既存の日本語コメントの density と語り口に合わせる。コメントは「なぜ」を書く
 - テストコマンド: `supabase test db`(pgTAP、**`supabase db reset` 直後のクリーンなDBで実行**)、`npm test`(公開サイト、シード済みDBが必要)、`npm test -w admin`(CMS)
+- **この作業ツリーは他のセッションと共有している可能性がある。`git add -A` / `git add .` / `git commit -a` を使わず、自分が触ったファイルだけを名指しでコミットする**(`git commit -m "..." -- path1 path2`)
 
 ---
 
@@ -280,8 +281,7 @@ git commit -m "feat(site): 地域のローマ字slug対応表"
   - `ArticleSummary.region: string | null`
   - `fetchPageSize(db: SupabaseClient): Promise<number>`
   - `src/lib/sidebar.ts`: `interface AreaLink { region: string; slug: string; href: string; count: number }`
-  - `src/lib/sidebar.ts`: `interface SidebarData { areas: AreaLink[] }`
-  - `src/lib/sidebar.ts`: `getSidebarData(db: SupabaseClient): Promise<SidebarData>`
+  - `src/lib/sidebar.ts`: `getAreaLinks(db: SupabaseClient): Promise<AreaLink[]>`
   - `src/lib/sidebar.ts`: `buildAreaLinks(regions: (string | null)[]): AreaLink[]`(純粋関数、テスト用)
 
 - [ ] **Step 1: 失敗するテストを書く**
@@ -385,10 +385,6 @@ export interface AreaLink {
   count: number;
 }
 
-export interface SidebarData {
-  areas: AreaLink[];
-}
-
 // 記事の取材地の配列から、記事のある地域だけを北→南の順で組み立てる
 export function buildAreaLinks(regions: (string | null)[]): AreaLink[] {
   const counts = new Map<string, number>();
@@ -403,23 +399,25 @@ export function buildAreaLinks(regions: (string | null)[]): AreaLink[] {
   }));
 }
 
-// サイドバーは全ページに出るので、素直に書くと1ページ1クエリ(数百回)になる。
-// ビルド中は1回だけ実行して使い回す(src/lib/images.ts の probeAspect と同じ手口)。
-let cached: Promise<SidebarData> | null = null;
+async function loadAreaLinks(db: SupabaseClient): Promise<AreaLink[]> {
+  const { data, error } = await db
+    .from('articles')
+    .select('region')
+    .eq('status', 'published');
+  // 地域ナビは全ページの骨格なので、取れないならビルドを落とす。
+  // probeAspect と違ってフォールバックしないのは、地域ナビのないページを
+  // 黙って何百枚も出力するほうが悪いから。
+  if (error) throw error;
+  return buildAreaLinks((data ?? []).map((r: { region: string | null }) => r.region));
+}
 
-export function getSidebarData(db: SupabaseClient): Promise<SidebarData> {
-  if (!cached) {
-    cached = (async () => {
-      const { data, error } = await db
-        .from('articles')
-        .select('region')
-        .eq('status', 'published');
-      if (error) throw error;
-      const regions = (data ?? []).map((r: { region: string | null }) => r.region);
-      return { areas: buildAreaLinks(regions) };
-    })();
-  }
-  return cached;
+// サイドバーは全ページに出るので、素直に書くと1ページ1クエリ(数百回)になる。
+// モジュールは1ビルドにつき1回しか評価されないので、最初の Promise を使い回せば
+// 全ページ合わせて1クエリで済む。
+let areaLinks: Promise<AreaLink[]> | undefined;
+
+export function getAreaLinks(db: SupabaseClient): Promise<AreaLink[]> {
+  return (areaLinks ??= loadAreaLinks(db));
 }
 ```
 
@@ -642,7 +640,7 @@ git commit -m "feat(site): Chip / AreaNav / Pagination コンポーネント"
 - Modify: `src/pages/index.astro`(Hero を全幅スロットへ移す)
 
 **Interfaces:**
-- Consumes: `getSidebarData()`(Task 3)、`AreaNav`(Task 4)
+- Consumes: `getAreaLinks()`(Task 3)、`AreaNav`(Task 4)
 - Produces:
   - `Sidebar.astro` props: `{ activeAreaSlug?: string }`
   - `Base.astro` に名前付きスロット `full`(サイドバーの外側・全幅で描画される)
@@ -658,7 +656,7 @@ git commit -m "feat(site): Chip / AreaNav / Pagination コンポーネント"
 import AreaNav from '../molecules/AreaNav.astro';
 import MetaLabel from '../atoms/MetaLabel.astro';
 import { supabaseServer } from '../../lib/supabase-server';
-import { getSidebarData } from '../../lib/sidebar';
+import { getAreaLinks } from '../../lib/sidebar';
 
 interface Props {
   activeAreaSlug?: string;
@@ -666,7 +664,7 @@ interface Props {
 const { activeAreaSlug } = Astro.props;
 
 // ページ側から props で渡さない。ビルド中1回だけ実行されてメモ化される。
-const { areas } = await getSidebarData(supabaseServer);
+const areas = await getAreaLinks(supabaseServer);
 ---
 <aside class="px-6 pb-10 lg:pb-24">
   <div class="border-card border-t pt-3">
@@ -886,9 +884,11 @@ Expected: 1ページ目に Hero と Featured があり、下に `01 / 0N` のペ
 
 - [ ] **Step 5: コミット**
 
+この作業ツリーは他のセッションと共有している可能性がある。**`git add -A` や `git commit -a` を使わず、必ず触ったファイルだけを名指しでコミットする。**
+
 ```bash
-git add -A src/pages
-git commit -m "feat(site): トップのページネーション"
+git add 'src/pages/[...page].astro' src/pages/index.astro
+git commit -m "feat(site): トップのページネーション" -- 'src/pages/[...page].astro' src/pages/index.astro
 ```
 
 ---
@@ -1533,7 +1533,7 @@ git commit -m "feat(admin): 一覧1ページあたりの記事数を設定でき
 以下を追記する:
 - `articles.region`(取材地)と `profiles.region`(活動拠点)が別物であること
 - 地域ページのルーティング(`/areas/<slug>`、2ページ目以降は `/areas/<slug>/2`)
-- サイドバーのデータは `getSidebarData()` がビルド中1回だけ取得してメモ化すること、各ページから props で渡さないこと
+- サイドバーのデータは `getAreaLinks()` がビルド中1回だけ取得してメモ化すること、各ページから props で渡さないこと
 - `getStaticPaths` の中でページごとにクエリを投げないこと
 
 - [ ] **Step 2: クリーンな状態で全テストを流す**
