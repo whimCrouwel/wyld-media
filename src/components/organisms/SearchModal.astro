@@ -21,8 +21,11 @@ import MetaLabel from '../atoms/MetaLabel.astro';
 </script>
 
 <style>
+  /* 高さを画面内に収め、スクロールするのは結果リストだけにする。
+     検索欄と状態表示は常に見えている必要があるため。 */
   .search-modal {
     width: min(40rem, calc(100vw - 3rem));
+    max-height: calc(100dvh - 4rem);
     margin: auto;
     padding: 1.5rem;
     border: none;
@@ -31,8 +34,20 @@ import MetaLabel from '../atoms/MetaLabel.astro';
     color: var(--color-ink);
   }
 
+  .search-modal[open] {
+    display: flex;
+    flex-direction: column;
+  }
+
   .search-modal::backdrop {
     background-color: rgba(53, 48, 31, 0.4);
+  }
+
+  /* 検索欄・状態表示は結果が伸びても縮ませない */
+  .search-modal > form,
+  .search-modal > .search-input,
+  .search-modal > p {
+    flex-shrink: 0;
   }
 
   .search-input {
@@ -52,9 +67,15 @@ import MetaLabel from '../atoms/MetaLabel.astro';
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    max-height: min(60vh, 32rem);
+    flex: 1;
+    min-height: 0; /* flex 子要素は既定で縮まないので、これがないと溢れる */
     overflow-y: auto;
+    overscroll-behavior: contain; /* 端まで来ても背後のページを巻き込まない */
     padding-bottom: 1.25rem;
+  }
+
+  /* まだ下に続きがある時だけフェードさせる(JS が data-more を付け外しする) */
+  #search-results[data-more] {
     mask-image: linear-gradient(to bottom, #000 calc(100% - 1.75rem), transparent);
   }
 

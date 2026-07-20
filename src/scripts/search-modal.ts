@@ -36,6 +36,7 @@ function escapeHtml(s: string): string {
 if (modal && openBtn && input && resultsEl && statusEl) {
   openBtn.addEventListener('click', () => {
     modal.showModal();
+    statusEl.textContent = HINT;
     input.focus();
   });
 
@@ -56,7 +57,7 @@ if (modal && openBtn && input && resultsEl && statusEl) {
     }
   });
 
-  let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+  const HINT = 'Enter で検索';
   let abortController: AbortController | undefined;
 
   function render(results: SearchResult[]) {
@@ -85,34 +86,56 @@ if (modal && openBtn && input && resultsEl && statusEl) {
       .join('');
     resultsEl!.hidden = false;
     statusEl!.textContent = '';
+    updateFade();
   }
 
-  input.addEventListener('input', () => {
-    const q = input.value.trim();
-    clearTimeout(debounceTimer);
+  // 下端のフェードは「まだ続きがある」ことの合図なので、スクロールできる時だけ、
+  // かつ最下部に着いていない時だけ出す(全部収まっているのに最後のカードが
+  // 薄暗くなるのを避ける)。macOS はスクロールバーが出ないのでこの合図が要る。
+  function updateFade() {
+    const el = resultsEl!;
+    const more = el.scrollHeight - el.clientHeight - el.scrollTop > 2;
+    el.toggleAttribute('data-more', more);
+  }
+
+  resultsEl.addEventListener('scroll', updateFade);
+  window.addEventListener('resize', updateFade);
+
+  // 検索は Enter でだけ走らせる。1回の検索につき OpenAI の embeddings を
+  // 1回叩くので、入力のたびに走らせると打鍵の途中で何度も課金が発生する。
+  async function runSearch() {
+    const q = input!.value.trim();
+    if (!q) return;
+
     abortController?.abort();
-
-    if (!q) {
-      resultsEl.hidden = true;
-      statusEl.textContent = '';
-      return;
+    abortController = new AbortController();
+    statusEl!.textContent = '検索中…';
+    try {
+      const { data, error } = await supabaseBrowser.functions.invoke('search-articles', {
+        body: { query: q },
+        signal: abortController.signal,
+      });
+      if (error) throw error;
+      render((data?.results ?? []) as SearchResult[]);
+    } catch (err) {
+      if ((err as Error)?.name === 'AbortError') return;
+      statusEl!.textContent = '検索に失敗しました。';
+      console.error(err);
     }
+  }
 
-    debounceTimer = setTimeout(async () => {
-      abortController = new AbortController();
-      statusEl.textContent = '検索中…';
-      try {
-        const { data, error } = await supabaseBrowser.functions.invoke('search-articles', {
-          body: { query: q },
-          signal: abortController.signal,
-        });
-        if (error) throw error;
-        render((data?.results ?? []) as SearchResult[]);
-      } catch (err) {
-        if ((err as Error)?.name === 'AbortError') return;
-        statusEl.textContent = '検索に失敗しました。';
-        console.error(err);
-      }
-    }, 250);
+  input.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault(); // dialog 内なので既定の submit(=閉じる)を止める
+    runSearch();
+  });
+
+  // 入力を空にしたら前回の結果を片付けて、操作方法を出し直す
+  input.addEventListener('input', () => {
+    if (input.value.trim()) return;
+    abortController?.abort();
+    resultsEl.hidden = true;
+    resultsEl.innerHTML = '';
+    statusEl.textContent = HINT;
   });
 }
