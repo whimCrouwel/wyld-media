@@ -21,6 +21,9 @@ interface SearchResult {
   slug: string;
   title: string;
   excerptHtml: string;
+  authorName: string;
+  authorSlug: string;
+  region: string | null;
   score: number;
 }
 
@@ -62,12 +65,21 @@ if (modal && openBtn && input && resultsEl && statusEl) {
       statusEl!.textContent = '見つかりませんでした。';
       return;
     }
+    // カード全体が記事へのリンク。「誰が・どこの話か」を1行のメタ行にまとめ、
+    // ライター名を左・取材地を右に置いてサイドバーの AREA(地域名 左・件数 右)と
+    // 同じリズムに揃える。
     resultsEl!.innerHTML = results
       .map(
         (r) => `
       <li>
-        <a href="/articles/${encodeURIComponent(r.slug)}">${escapeHtml(r.title)}</a>
-        <p>${r.excerptHtml}</p>
+        <a class="result-card" href="/articles/${encodeURIComponent(r.slug)}">
+          <span class="result-title">${escapeHtml(r.title)}</span>
+          <span class="result-byline">
+            <span class="meta">${escapeHtml(r.authorName)}</span>
+            ${r.region ? `<span class="meta">${escapeHtml(r.region)}</span>` : ''}
+          </span>
+          <span class="result-excerpt">${r.excerptHtml}</span>
+        </a>
       </li>`,
       )
       .join('');

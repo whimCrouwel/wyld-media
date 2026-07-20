@@ -46,8 +46,60 @@ import MetaLabel from '../atoms/MetaLabel.astro';
     outline: none;
   }
 
-  .search-modal :global(li) {
-    border-top: 1px solid var(--color-card);
-    padding: 1rem 0;
+  /* 件数が多いとリスト内でスクロールする。macOS はスクロールバーが出ないので、
+     下端をフェードさせて「まだ続きがある」ことを見せる(切れて壊れて見えないように) */
+  #search-results {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: min(60vh, 32rem);
+    overflow-y: auto;
+    padding-bottom: 1.25rem;
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 1.75rem), transparent);
+  }
+
+  /* 記事カード。ライター詳細ページの記事カードと同じ角丸+枠線の語彙に揃える */
+  .search-modal :global(.result-card) {
+    display: block;
+    border: 1px solid var(--color-card);
+    border-radius: 16px;
+    padding: 0.9rem 1rem;
+    transition: border-color 0.2s ease;
+  }
+
+  .search-modal :global(.result-card:hover),
+  .search-modal :global(.result-card:focus-visible) {
+    border-color: var(--color-ink);
+  }
+
+  .search-modal :global(.result-title) {
+    display: block;
+    font-family: var(--font-heading);
+    font-size: 16px;
+    line-height: 1.4;
+  }
+
+  /* ライター名 左・取材地 右。サイドバーの AREA と同じリズム */
+  .search-modal :global(.result-byline) {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 0.4rem;
+  }
+
+  .search-modal :global(.result-excerpt) {
+    display: block;
+    margin-top: 0.6rem;
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--color-meta);
+  }
+
+  /* 一致語。PGroonga が <span class="keyword"> で返してくる。
+     古紙の上に引いた色鉛筆の線に見えるよう、下半分だけを温かいオークルで塗る */
+  .search-modal :global(.keyword) {
+    color: var(--color-ink);
+    box-shadow: inset 0 -0.42em 0 rgba(176, 137, 74, 0.35);
   }
 </style>

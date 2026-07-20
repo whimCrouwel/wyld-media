@@ -58,13 +58,23 @@ Deno.serve(async (req) => {
   });
   if (error) return json({ error: error.message }, 500);
 
-  const rows = (data ?? []) as
-    { slug: string; title: string; excerpt_html: string; score: number }[];
+  const rows = (data ?? []) as {
+    slug: string;
+    title: string;
+    excerpt_html: string;
+    author_name: string;
+    author_slug: string;
+    region: string | null;
+    score: number;
+  }[];
   return json({
     results: rows.map((row) => ({
       slug: row.slug,
       title: row.title,
       excerptHtml: row.excerpt_html,
+      authorName: row.author_name,
+      authorSlug: row.author_slug,
+      region: row.region,
       score: row.score,
     })),
   });
