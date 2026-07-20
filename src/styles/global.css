@@ -1,0 +1,188 @@
+@import 'tailwindcss';
+@import '@fontsource/shippori-mincho-b1/400.css';
+@import '@fontsource/shippori-mincho-b1/600.css';
+@import '@fontsource-variable/space-grotesk';
+@import '@fontsource/zen-kaku-gothic-new';
+
+/*
+ * 古紙(old paper)の配色。日に焼けた藁半紙のような温かい紙地に、
+ * セピアがかった墨色。彩度の主役はあくまで記事のサムネイル。
+ */
+@theme {
+  --color-bg: #ece4d2;
+  --color-ink: #35301f;
+  --color-card: #e0d6bf;
+  --color-meta: #8d8168;
+  /* 本文: 日本語はゼンカクゴシック、欧文もそのまま同書体で統一 */
+  --font-sans: 'Zen Kaku Gothic New', -apple-system, BlinkMacSystemFont, sans-serif;
+  /* 見出し・ヒーロー: 文芸的なしっぽり明朝(和欧とも) */
+  --font-heading: 'Shippori Mincho B1', serif;
+  --font-display: 'Shippori Mincho B1', serif;
+  /* 欧文メタ: 幾何学的グロテスク。日本語はゴシックへフォールバック */
+  --font-accent: 'Space Grotesk Variable', 'Zen Kaku Gothic New', sans-serif;
+}
+
+html {
+  background-color: var(--color-bg);
+}
+
+body {
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* 古紙の質感: 繊維状のノイズ(インラインSVG)+四隅がわずかに焼けたビネット。
+   固定オーバーレイなのでスクロールしても紙は動かない */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.30 0 0 0 0 0.18 0 0 0 0.5 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3C/svg%3E");
+  background-size: 240px 240px;
+  opacity: 0.14;
+  mix-blend-mode: multiply;
+}
+
+/* 焼けた縁: 四辺を大きくぼかした焦げ茶の内側シャドウでうっすら暗くする */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  box-shadow: inset 0 0 110px 20px rgba(88, 61, 28, 0.28);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Tiny uppercase meta text — the only text style outside hero/article prose */
+.meta {
+  font-family: var(--font-accent);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-meta);
+}
+
+/* Entrance / scroll-reveal animation. JS adds .is-revealed; motion in the
+   transition so reduced-motion can collapse it to a plain fade. */
+.reveal {
+  opacity: 0;
+  transform: translateY(40px) scale(0.96);
+}
+
+.reveal.is-revealed {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 初回の登場スプラッシュ。画面内のカードだけ、下から大きくせり上がって
+   定位置へ滑り込む(shopify.design 系の演出)。JS が .card-enter を付けて
+   1フレーム後に .card-in をトグルすることでアニメーションを起動する。
+   段差(--enter-delay)は JS がカードごとに設定する。 */
+.card-enter {
+  opacity: 0;
+  transform: translateY(420px) scale(1.06);
+}
+
+.card-enter.card-in {
+  animation: card-slide-in 1.3s cubic-bezier(0.16, 1, 0.3, 1) var(--enter-delay, 0s) both;
+  will-change: transform, opacity;
+}
+
+@keyframes card-slide-in {
+  0% {
+    opacity: 0;
+    transform: translateY(420px) scale(1.06);
+  }
+  6% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    transform: none;
+  }
+  .reveal.is-revealed {
+    transition: opacity 0.4s ease;
+  }
+  .card-enter {
+    opacity: 0;
+    transform: none;
+  }
+  .card-enter.card-in {
+    animation: none;
+    opacity: 1;
+    transition: opacity 0.4s ease var(--enter-delay, 0s);
+  }
+}
+
+/* Long-form article body (rendered from CMS HTML via set:html) */
+.article-body {
+  max-width: 42rem;
+  font-size: 15px;
+  line-height: 2;
+}
+
+.article-body p {
+  margin: 1.5em 0;
+}
+
+.article-body h2,
+.article-body h3 {
+  margin: 2.5em 0 1em;
+  font-family: var(--font-heading);
+  font-size: 1.2em;
+  font-weight: 400;
+}
+
+.article-body a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--color-meta);
+}
+
+.article-body img {
+  display: block;
+  margin: 2.5em 0;
+  max-width: 100%;
+  border-radius: 20px;
+  background-color: var(--color-card);
+}
+
+.article-body ul,
+.article-body ol {
+  margin: 1.5em 0;
+  padding-left: 1.5em;
+}
+
+.article-body ul {
+  list-style: disc;
+}
+
+.article-body ol {
+  list-style: decimal;
+}
+
+.article-body blockquote {
+  margin: 2em 0;
+  border-left: 2px solid var(--color-card);
+  padding-left: 1.5em;
+  color: var(--color-meta);
+}

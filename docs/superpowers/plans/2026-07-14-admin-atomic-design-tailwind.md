@@ -15,7 +15,7 @@
 - **All paths are under `admin/`.** Do NOT touch `src/` (public site), DB, or migrations — a separate agent owns the frontend.
 - **Never run `npm install`.** `admin/` is an npm workspace sharing the root `package-lock.json` with the frontend agent. `tailwindcss` + `@tailwindcss/vite` (`^4.3.2`) are already hoisted at root and resolve without install. Adding them to `admin/package.json` is documentation only.
 - **Zero new dependencies.** No clsx / tailwind-merge / class-variance-authority. Use the local `cn()` and variant-map objects defined in this plan.
-- **Commit with explicit pathspecs** (`git add <path> ...`), never bare `git add -A` / `git commit -a` — the shared working tree has the frontend agent's staged changes that must not be swept in.
+- **Commit with an explicit pathspec on BOTH `add` AND `commit`:** `git add <paths>` then `git commit -m "…" -- <the same paths>`. This is mandatory: a bare `git commit` (no pathspec) commits the ENTIRE index, and in this shared working tree the index holds the frontend agent's pre-staged deletions (`src/components/SearchBox.astro`, `src/lib/supabase-browser.ts`) — a bare commit silently sweeps them in. The `-- <paths>` on `git commit` prevents that. Never `git add -A` / `git commit -a`. After committing, run `git show --stat HEAD` and confirm ONLY your task's files appear.
 - **Login script is untouched.** In Task 6, the existing `<script>` block and `src/lib/auth` / `src/lib/supabase-browser` logic stay byte-for-byte identical; DOM contract preserved: inputs keep `id="email"` / `id="password"`, and a single `<p id="error">` remains.
 - **Deviations from spec (intentional):** `Field` lives in `molecules/` (it composes atoms); Button uses typed variant-map objects instead of `cva`; `cn()` is a local zero-dep helper.
 - **UI language:** Japanese labels already in the codebase are kept verbatim (e.g. `ログイン`, `メールアドレス`, `パスワード`). Do not invent new copy.
@@ -235,7 +235,7 @@ Expected: PASS (3 passed).
 git add admin/src/lib/cn.ts admin/tests/cn.test.ts
 git commit -m "feat(admin): add local cn() class helper
 
-Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>" -- admin/src/lib/cn.ts admin/tests/cn.test.ts
 ```
 
 ---
@@ -287,7 +287,7 @@ Expected: build completes with no errors.
 git add admin/src/layouts/AdminLayout.astro
 git commit -m "feat(admin): add AdminLayout template
 
-Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>" -- admin/src/layouts/AdminLayout.astro
 ```
 
 ---
@@ -356,7 +356,7 @@ Expected: build completes with no errors.
 git add admin/src/components/atoms/Button.astro
 git commit -m "feat(admin): add Button atom
 
-Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>" -- admin/src/components/atoms/Button.astro
 ```
 
 ---
@@ -480,7 +480,7 @@ Expected: build completes with no errors.
 git add admin/src/components/atoms/Input.astro admin/src/components/atoms/Label.astro admin/src/components/atoms/Card.astro admin/src/components/molecules/Field.astro
 git commit -m "feat(admin): add Input/Label/Card atoms + Field molecule
 
-Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>" -- admin/src/components/atoms/Input.astro admin/src/components/atoms/Label.astro admin/src/components/atoms/Card.astro admin/src/components/molecules/Field.astro
 ```
 
 ---
@@ -550,7 +550,7 @@ Open `http://localhost:4322/login`. Expected: a centered neutral card with headi
 git add admin/src/pages/login.astro
 git commit -m "feat(admin): restyle login with atomic components
 
-Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>"
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>" -- admin/src/pages/login.astro
 ```
 
 ---

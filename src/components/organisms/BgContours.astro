@@ -1,0 +1,24 @@
+---
+/*
+ * トップページ背景の「等高線 / 地形図」ホスト。全面固定・コンテンツ背後・操作を透過。
+ * 実処理は src/scripts/contours.ts。reduced-motion / JS無効時は何も描かない。
+ */
+---
+
+<div id="bg-contours" aria-hidden="true"></div>
+
+<style>
+  #bg-contours {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+  }
+  #bg-contours canvas {
+    display: block;
+  }
+</style>
+
+<script>
+  import '../../scripts/contours';
+</script>

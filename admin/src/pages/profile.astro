@@ -4,6 +4,7 @@ import Card from '../components/atoms/Card.astro';
 import Button from '../components/atoms/Button.astro';
 import Field from '../components/molecules/Field.astro';
 import ImageUploadField from '../components/molecules/ImageUploadField.astro';
+import { REGIONS } from '../lib/regions';
 
 const title = 'プロフィール編集 | Wild Media CMS';
 ---
@@ -14,7 +15,11 @@ const title = 'プロフィール編集 | Wild Media CMS';
       <Field id="bio" label="自己紹介" as="textarea" rows={4} />
       <ImageUploadField id="avatar" label="顔写真" hint="正方形にトリミングされます。" />
       <ImageUploadField id="cover" label="カバー画像" hint="横長のバナーにトリミングされます。" />
-      <Field id="location" label="活動拠点" type="text" />
+      <Field id="region" label="活動拠点(エリア)" as="select">
+        <option value="">未設定</option>
+        {REGIONS.map((r) => <option value={r}>{r}</option>)}
+      </Field>
+      <Field id="location" label="活動拠点(詳細)" type="text" />
       <Field id="homepage" label="ホームページURL" type="url" />
       <Field id="sns" label="SNSリンク(1行に1つ)" as="textarea" rows={3} />
       <Field id="price" label="料金" type="text" />
@@ -37,7 +42,7 @@ const title = 'プロフィール編集 | Wild Media CMS';
         redirectTo('/login');
       } else {
         const messageEl = document.getElementById('message')!;
-        const $ = (id: string) => document.getElementById(id) as HTMLInputElement & HTMLTextAreaElement;
+        const $ = (id: string) => document.getElementById(id) as HTMLInputElement & HTMLTextAreaElement & HTMLSelectElement;
 
         // 顔写真は正方形、カバーは横長バナーにトリミング。プロフィール画像は
         // メディアライブラリには登録しない(記事メディアと区別する)。
@@ -53,7 +58,7 @@ const title = 'プロフィール編集 | Wild Media CMS';
         // 現在のプロフィールをロード(RLS: 自分の行のみ取得可)
         const { data: profile, error: loadError } = await supabaseBrowser
           .from('profiles')
-          .select('name, bio, avatar_url, cover_image_url, location, homepage_url, sns_links, price_info, contact_url')
+          .select('name, bio, avatar_url, cover_image_url, region, location, homepage_url, sns_links, price_info, contact_url')
           .eq('id', session!.user.id)
           .single();
         if (loadError) {
@@ -63,6 +68,7 @@ const title = 'プロフィール編集 | Wild Media CMS';
           $('bio').value = profile.bio ?? '';
           avatarWidget.setUrl(profile.avatar_url ?? null);
           coverWidget.setUrl(profile.cover_image_url ?? null);
+          $('region').value = profile.region ?? '';
           $('location').value = profile.location ?? '';
           $('homepage').value = profile.homepage_url ?? '';
           $('sns').value = Array.isArray(profile.sns_links) ? profile.sns_links.join('\n') : '';
@@ -78,6 +84,7 @@ const title = 'プロフィール編集 | Wild Media CMS';
             bio: $('bio').value,
             avatarUrl: $('avatar').value,
             coverImageUrl: $('cover').value,
+            region: $('region').value,
             location: $('location').value,
             homepageUrl: $('homepage').value,
             snsRaw: $('sns').value,

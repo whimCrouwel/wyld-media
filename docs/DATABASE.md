@@ -21,6 +21,10 @@ erDiagram
         text slug UK
         text name
         text bio
+        text avatar_url "顔写真(サムネイル)"
+        text cover_image_url "プロフィール上部のバナー"
+        text region "活動拠点エリア(12区分、check制約)"
+        text location "活動拠点の詳細(自由記述)"
         text homepage_url
         jsonb sns_links
         text price_info

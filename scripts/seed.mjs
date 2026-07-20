@@ -14,8 +14,13 @@ const daysAgo = (n) => new Date(Date.now() - n * DAY).toISOString();
 
 const USERS = [
   { email: 'admin@seed.local', role: 'admin', slug: 'seed-admin', name: '運営 太郎', bio: '' },
-  { email: 'hana@seed.local', role: 'writer', slug: 'tanaka-hana', name: '田中 花', bio: '川と森を歩いて書くネイチャーライター。' },
-  { email: 'kenta@seed.local', role: 'writer', slug: 'sato-kenta', name: '佐藤 健太', bio: '都市の生きものを追いかけています。' },
+  { email: 'hana@seed.local', role: 'writer', slug: 'tanaka-hana', name: '田中 花', bio: '川と森を歩いて書くネイチャーライター。',
+    avatar: 'https://picsum.photos/seed/tanaka-hana/400/400', cover: 'https://picsum.photos/seed/tanaka-hana-cover/1600/500', region: '甲信越', location: '長野県松本市',
+    homepage: 'https://tanaka-hana.example', sns: ['https://x.example/tanakahana', 'https://instagram.example/tanakahana'],
+    price: '記事1本 3万円〜', contact: 'https://forms.example/tanaka-hana' },
+  { email: 'kenta@seed.local', role: 'writer', slug: 'sato-kenta', name: '佐藤 健太', bio: '都市の生きものを追いかけています。',
+    avatar: 'https://picsum.photos/seed/sato-kenta/400/400', cover: 'https://picsum.photos/seed/sato-kenta-cover/1600/500', region: '関東', location: '東京都杉並区',
+    sns: ['https://x.example/satokenta'], price: '応相談' },
   { email: 'forest@seed.local', role: 'provider', slug: 'forest-org', name: 'フォレスト再生機構', bio: '企業と森をつなぐNPO。' },
 ];
 
@@ -76,7 +81,13 @@ async function main() {
     }
     const { error: upsertError } = await db
       .from('profiles')
-      .upsert({ id, role: u.role, slug: u.slug, name: u.name, bio: u.bio }, { onConflict: 'id' });
+      .upsert(
+        { id, role: u.role, slug: u.slug, name: u.name, bio: u.bio,
+          avatar_url: u.avatar ?? null, cover_image_url: u.cover ?? null, region: u.region ?? null, location: u.location ?? null,
+          homepage_url: u.homepage ?? null, sns_links: u.sns ?? [],
+          price_info: u.price ?? null, contact_url: u.contact ?? null },
+        { onConflict: 'id' },
+      );
     if (upsertError) throw new Error(`profile ${u.slug}: ${upsertError.message}`);
     ids[u.slug] = id;
   }
@@ -115,11 +126,13 @@ async function main() {
   });
   if (draftError) throw draftError;
 
-  // 5) settings.image_base_url を Edge Function の R2_PUBLIC_BASE_URL と揃える
+  // 5) settings.image_base_url を設定する。これが画像公開ホストの唯一の権威で、
+  //    Edge Function(r2-upload-url / r2-delete-object)と保存トリガーが揃ってこの
+  //    DB 値を読む。ローカルでは PUBLIC_IMAGE_BASE_URL から流し込む。
   const imageBaseUrl = process.env.PUBLIC_IMAGE_BASE_URL;
   if (!imageBaseUrl) {
     throw new Error(
-      'PUBLIC_IMAGE_BASE_URL を .env に設定してください(Edge Function の R2_PUBLIC_BASE_URL と同じ値)',
+      'PUBLIC_IMAGE_BASE_URL を .env に設定してください(R2 の公開URLベース。settings.image_base_url に入る)',
     );
   }
   const { error: settingsError } = await db

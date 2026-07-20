@@ -1,8 +1,12 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(9);
+select plan(15);
 
 select has_table('public', 'profiles', 'profiles table exists');
+select has_column('public', 'profiles', 'avatar_url', 'profiles has avatar_url');
+select has_column('public', 'profiles', 'location', 'profiles has location');
+select has_column('public', 'profiles', 'region', 'profiles has region');
+select has_column('public', 'profiles', 'cover_image_url', 'profiles has cover_image_url');
 select has_table('public', 'articles', 'articles table exists');
 select has_table('public', 'settings', 'settings table exists');
 
@@ -23,6 +27,18 @@ select throws_ok(
 
 insert into profiles (id, role, slug, name)
 values ('00000000-0000-0000-0000-00000000000a', 'writer', 'schema-writer', 'W');
+
+select throws_ok(
+  $$update profiles set region = '中部'
+    where id = '00000000-0000-0000-0000-00000000000a'$$,
+  '23514', null, 'profile region must be one of the 12 areas'
+);
+
+select lives_ok(
+  $$update profiles set region = '甲信越'
+    where id = '00000000-0000-0000-0000-00000000000a'$$,
+  'a valid region is accepted'
+);
 
 select throws_ok(
   $$insert into articles (author_id, slug, title)

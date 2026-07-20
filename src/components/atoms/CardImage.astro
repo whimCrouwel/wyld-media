@@ -1,0 +1,18 @@
+---
+interface Props {
+  src: string;
+  alt: string;
+  ratio: number;
+}
+const { src, alt, ratio } = Astro.props;
+---
+
+<div class="overflow-hidden" style={`aspect-ratio: ${ratio};`}>
+  <img
+    src={src}
+    alt={alt}
+    loading="lazy"
+    decoding="async"
+    class="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.02]"
+  />
+</div>

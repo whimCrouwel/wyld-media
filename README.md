@@ -16,13 +16,18 @@
 
 ```bash
 supabase start                  # ローカル Supabase を起動(既に起動していれば何もせず状態を表示するだけ)
-supabase functions serve --env-file supabase/functions/.env   # 別ターミナルで(CMSの画像アップロードに必須)
-
-npm run dev                     # 公開サイト  http://localhost:4321(ライブリロード)
-cd admin && npm run dev         # CMS         http://localhost:4322(別ターミナルで)
+npm run dev:all                 # 公開サイト(:4321)+ CMS(:4322)+ Edge Functions を1コマンドで起動
 ```
 
-`supabase functions serve` は `supabase start` / `supabase stop` では起動・停止されない独立プロセス。CMS で画像をアップロードする(カバー画像・本文画像)なら毎回別ターミナルで起動しておくこと。招待フロー確認以外は不要、という誤解をしないこと。
+`npm run dev:all` は `concurrently` で3つのプロセスをまとめて起動する:
+
+- `site`(青) 公開サイト  http://localhost:4321(ライブリロード)
+- `admin`(紫) CMS         http://localhost:4322
+- `fn`(緑) `supabase functions serve --env-file supabase/functions/.env`(**CMSの画像アップロードに必須**)
+
+`Ctrl+C` で3つとも停止する。個別に動かしたいときは `npm run dev`(公開サイト)/ `npm run dev -w admin`(CMS)/ `npm run dev:fn`(Edge Functions)。
+
+`fn`(`supabase functions serve`)は `supabase start` / `supabase stop` では起動・停止されない独立プロセス(`config.toml` の `[edge_runtime] enabled = false` はローカル起動を安定させるための意図的な設定)。CMS で画像をアップロードする(カバー画像・本文画像)なら `dev:all`(または `dev:fn`)を起動しておくこと。招待フロー確認以外は不要、という誤解をしないこと。
 
 記事保存時の検索インデックス更新(`chunk-article`)と検索(`search-articles`)にはOpenAI APIキーが必要。`supabase/functions/.env` に `OPENAI_API_KEY=` を設定すること(`supabase/functions/.env.example` 参照)。
 
@@ -42,7 +47,8 @@ supabase db reset       # マイグレーション適用
 supabase test db        # DB層テスト(pgTAP)
 
 cp .env.example .env    # supabase status のキーを転記
-                         # PUBLIC_IMAGE_BASE_URL は R2 の公開URL(Edge Function の R2_PUBLIC_BASE_URL と同じ値にする)
+                         # PUBLIC_IMAGE_BASE_URL は R2 の公開URLベース。seed が
+                         # settings.image_base_url に流し込む(それが画像公開ホストの唯一の権威)
 npm install
 npm run seed            # サンプルデータ投入(冪等)
 npm test                # データ層テスト(Vitest)

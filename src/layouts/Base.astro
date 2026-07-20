@@ -1,4 +1,8 @@
 ---
+import '../styles/global.css';
+import SiteHeader from '../components/organisms/SiteHeader.astro';
+import MetaLabel from '../components/atoms/MetaLabel.astro';
+
 interface Props {
   title: string;
 }
@@ -12,16 +16,12 @@ const { title } = Astro.props;
     <title>{title}</title>
   </head>
   <body>
-    <header>
-      <nav>
-        <a href="/">Wild Media</a> | <a href="/writers">ライター一覧</a>
-      </nav>
-    </header>
+    <SiteHeader />
     <main>
       <slot />
     </main>
-    <footer>
-      <p>Wild Media — ライターと環境のためのプラットフォーム</p>
+    <footer class="px-6 pb-10">
+      <MetaLabel>Wild Media — ライターと環境のためのプラットフォーム</MetaLabel>
     </footer>
   </body>
 </html>

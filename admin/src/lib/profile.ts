@@ -1,4 +1,5 @@
 import { safeUrl } from './url';
+import { isRegion } from './regions';
 
 export function parseSnsLinks(raw: string): string[] {
   return raw
@@ -12,6 +13,7 @@ export interface ProfileFormInput {
   bio: string;
   avatarUrl: string;
   coverImageUrl: string;
+  region: string;
   location: string;
   homepageUrl: string;
   snsRaw: string;
@@ -24,6 +26,7 @@ export interface ProfileUpdate {
   bio: string;
   avatar_url: string | null;
   cover_image_url: string | null;
+  region: string | null;
   location: string | null;
   homepage_url: string | null;
   sns_links: string[];
@@ -42,6 +45,8 @@ export function buildProfileUpdate(input: ProfileFormInput): ProfileUpdate {
     bio: input.bio,
     avatar_url: safeUrl(input.avatarUrl),
     cover_image_url: safeUrl(input.coverImageUrl),
+    // 想定外の値は送らず null にする(最終的な拒否は DB の check 制約)
+    region: isRegion(input.region.trim()) ? input.region.trim() : null,
     location: emptyToNull(input.location),
     homepage_url: safeUrl(input.homepageUrl),
     sns_links: parseSnsLinks(input.snsRaw),

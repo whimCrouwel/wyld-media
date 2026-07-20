@@ -1,0 +1,35 @@
+---
+interface Props {
+  src: string | null;
+  name: string;
+  size?: number;
+}
+const { src, name, size = 64 } = Astro.props;
+---
+
+{/* 素の丸サムネイル。顔写真がない場合は細い罫線の円に名前の頭文字 */}
+<span
+  class="block shrink-0 overflow-hidden rounded-full"
+  style={`width: ${size}px; height: ${size}px;`}
+>
+  {
+    src ? (
+      <img
+        src={src}
+        alt={name}
+        width={size}
+        height={size}
+        loading="lazy"
+        decoding="async"
+        class="h-full w-full object-cover"
+      />
+    ) : (
+      <span
+        class="border-card text-meta flex h-full w-full items-center justify-center rounded-full border"
+        style={`font-family: var(--font-heading); font-size: ${Math.round(size * 0.4)}px;`}
+      >
+        {name.trim().charAt(0)}
+      </span>
+    )
+  }
+</span>

@@ -1,0 +1,50 @@
+---
+/*
+ * 起動スプラッシュのオーバーレイ。古紙色でページ全体を覆い、その上で
+ * three.js の粒子が「Wild Media」を結像 → 弾けて散り、フェードアウトする。
+ * 実処理は src/scripts/splash.ts。reduced-motion / JS無効時は表示しない。
+ */
+---
+
+<div id="splash" aria-hidden="true">
+  <span class="splash-word">Wild Media</span>
+</div>
+<noscript><style>#splash { display: none !important; }</style></noscript>
+
+<style>
+  #splash {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: var(--color-bg, #ece4d2);
+    will-change: opacity;
+  }
+  #splash canvas {
+    display: block;
+  }
+  /* 地球の下に、結像したころ小さくフェードインするワードマーク。
+     爆散時はオーバーレイ(#splash)ごとフェードするので退場は自動。 */
+  .splash-word {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-family: var(--font-accent, sans-serif);
+    font-weight: 700;
+    font-size: clamp(32px, 6vw, 76px);
+    letter-spacing: 0.02em;
+    color: var(--color-ink, #35301f);
+    white-space: nowrap;
+    /* 最初から表示。退場は #splash オーバーレイのフェードに任せ、地球と同時に消す */
+    opacity: 0.92;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #splash {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  import '../../scripts/splash';
+</script>

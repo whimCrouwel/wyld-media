@@ -20,9 +20,13 @@ export interface WriterSummary {
   slug: string;
   name: string;
   bio: string;
+  avatarUrl: string | null;
+  region: string | null;
+  location: string | null;
 }
 
 export interface WriterDetail extends WriterSummary {
+  coverImageUrl: string | null;
   homepageUrl: string | null;
   snsLinks: string[];
   priceInfo: string | null;
@@ -135,11 +139,18 @@ export async function fetchArticleBySlug(
 export async function fetchWriters(db: SupabaseClient): Promise<WriterSummary[]> {
   const { data, error } = await db
     .from('profiles')
-    .select('slug, name, bio')
+    .select('slug, name, bio, avatar_url, region, location')
     .eq('role', 'writer')
     .order('name');
   if (error) throw error;
-  return (data ?? []).map((row) => ({ slug: row.slug, name: row.name, bio: row.bio }));
+  return (data ?? []).map((row) => ({
+    slug: row.slug,
+    name: row.name,
+    bio: row.bio,
+    avatarUrl: safeUrl(row.avatar_url),
+    region: row.region ?? null,
+    location: row.location ?? null,
+  }));
 }
 
 export async function fetchWriterBySlug(
@@ -148,7 +159,9 @@ export async function fetchWriterBySlug(
 ): Promise<WriterDetail | null> {
   const { data: profile, error } = await db
     .from('profiles')
-    .select('id, slug, name, bio, homepage_url, sns_links, price_info, contact_url')
+    .select(
+      'id, slug, name, bio, avatar_url, cover_image_url, region, location, homepage_url, sns_links, price_info, contact_url',
+    )
     .eq('role', 'writer')
     .eq('slug', slug)
     .maybeSingle();
@@ -167,6 +180,10 @@ export async function fetchWriterBySlug(
     slug: profile.slug,
     name: profile.name,
     bio: profile.bio,
+    avatarUrl: safeUrl(profile.avatar_url),
+    coverImageUrl: safeUrl(profile.cover_image_url),
+    region: profile.region ?? null,
+    location: profile.location ?? null,
     homepageUrl: safeUrl(profile.homepage_url),
     snsLinks: Array.isArray(profile.sns_links)
       ? profile.sns_links.map(safeUrl).filter((u): u is string => u !== null)

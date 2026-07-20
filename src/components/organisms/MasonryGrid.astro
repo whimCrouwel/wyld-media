@@ -1,0 +1,36 @@
+---
+import GalleryCard from '../molecules/GalleryCard.astro';
+import type { GalleryWork } from '../../lib/images';
+
+interface Props {
+  works: GalleryWork[];
+}
+const { works } = Astro.props;
+
+// 3カラムへ「いちばん低いカラムに積む」方式で振り分ける(高さは 1/ratio で近似)。
+// 2カラム/1カラムへの再配分はクライアント側 (gallery.ts) が行う。
+const COLUMNS = 3;
+const columns: GalleryWork[][] = Array.from({ length: COLUMNS }, () => []);
+const heights = new Array(COLUMNS).fill(0);
+for (const work of works) {
+  const shortest = heights.indexOf(Math.min(...heights));
+  columns[shortest].push(work);
+  heights[shortest] += 1 / work.ratio + 0.12; // 0.12 ≈ メタ行ぶんの高さ
+}
+---
+
+<div id="masonry" class="grid grid-cols-1 items-start gap-6 px-6 pb-24 sm:grid-cols-2 lg:grid-cols-3">
+  {
+    columns.map((column) => (
+      <div class="masonry-column flex flex-col gap-6 will-change-transform">
+        {column.map((work) => (
+          <GalleryCard {...work} index={works.indexOf(work)} />
+        ))}
+      </div>
+    ))
+  }
+</div>
+
+<script>
+  import '../../scripts/gallery';
+</script>

@@ -1,5 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro';
+import MetaLabel from '../../components/atoms/MetaLabel.astro';
 import { supabaseServer } from '../../lib/supabase-server';
 import { fetchPublishedArticles, fetchArticleBySlug, formatDate } from '../../lib/content';
 import type { ArticleDetail } from '../../lib/content';
@@ -20,14 +21,33 @@ interface Props {
 const { article } = Astro.props;
 ---
 <Base title={`${article.title} | Wild Media`}>
-  <article>
-    <h1>{article.title}</h1>
-    <p>
-      <a href={`/writers/${article.authorSlug}`}>{article.authorName}</a>
-      / {formatDate(article.publishedAt)}
-      {article.commissionedByName && <strong>(Featured — 提供: {article.commissionedByName})</strong>}
+  <article class="mx-auto max-w-4xl px-6 pt-32 pb-24">
+    <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+      <a href={`/writers/${article.authorSlug}`} class="transition-opacity hover:opacity-60">
+        <MetaLabel class="text-ink">{article.authorName}</MetaLabel>
+      </a>
+      <MetaLabel>{formatDate(article.publishedAt)}</MetaLabel>
+      {article.commissionedByName && <MetaLabel>提供: {article.commissionedByName}</MetaLabel>}
+    </div>
+    <h1
+      class="mt-4"
+      style="font-family: var(--font-heading); font-size: clamp(28px, 4vw, 40px); line-height: 1.3;"
+    >
+      {article.title}
+    </h1>
+
+    {
+      article.coverImageUrl && (
+        <div class="mt-10 overflow-hidden rounded-[12px]">
+          <img src={article.coverImageUrl} alt="" class="w-full" decoding="async" />
+        </div>
+      )
+    }
+
+    <div class="article-body mt-12" set:html={article.bodyHtml} />
+
+    <p class="mt-16">
+      <a href="/" class="transition-opacity hover:opacity-60"><MetaLabel>← Works</MetaLabel></a>
     </p>
-    {article.coverImageUrl && <img src={article.coverImageUrl} alt="" width="800" />}
-    <div set:html={article.bodyHtml} />
   </article>
 </Base>

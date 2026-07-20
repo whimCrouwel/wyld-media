@@ -1,5 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro';
+import MetaLabel from '../../components/atoms/MetaLabel.astro';
 import { supabaseServer } from '../../lib/supabase-server';
 import { fetchWriters, fetchWriterBySlug, formatDate } from '../../lib/content';
 import type { WriterDetail } from '../../lib/content';
@@ -18,24 +19,174 @@ interface Props {
   writer: WriterDetail;
 }
 const { writer } = Astro.props;
+const hasCover = Boolean(writer.coverImageUrl);
 ---
 <Base title={`${writer.name} | Wild Media`}>
-  <h1>{writer.name}</h1>
-  <p>{writer.bio}</p>
-  <ul>
-    {writer.homepageUrl && <li><a href={writer.homepageUrl}>ホームページ</a></li>}
-    {writer.snsLinks.map((url) => <li><a href={url}>{url}</a></li>)}
-    {writer.priceInfo && <li>料金: {writer.priceInfo}</li>}
-    {writer.contactUrl && <li><a href={writer.contactUrl}>相談窓口</a></li>}
-  </ul>
+  {/* カバーバナー(未設定なら省略)。上部は古紙色のスクリムで固定ヘッダーの可読性を保つ */}
+  {
+    hasCover && (
+      <div class="relative h-[clamp(180px,30vh,300px)] w-full overflow-hidden">
+        <img
+          src={writer.coverImageUrl}
+          alt=""
+          class="absolute inset-0 h-full w-full object-cover"
+          loading="eager"
+          decoding="async"
+        />
+        <div
+          class="absolute inset-x-0 top-0 h-36"
+          style="background: linear-gradient(to bottom, var(--color-bg) 0%, var(--color-bg) 42%, transparent 100%);"
+        />
+      </div>
+    )
+  }
 
-  <h2>記事</h2>
-  <ul>
-    {writer.articles.map((a) => (
-      <li>
-        <a href={`/articles/${a.slug}`}>{a.title}</a>
-        <small>({formatDate(a.publishedAt)}{a.commissionedByName ? ' / Featured' : ''})</small>
-      </li>
-    ))}
-  </ul>
+  <div class={`mx-auto max-w-4xl px-6 pb-24 ${hasCover ? '' : 'pt-32'}`}>
+    {/* アバター(角丸スクエア)。カバーがある時は少し重ねる */}
+    <div class={hasCover ? 'relative z-10 -mt-14' : ''}>
+      <span
+        class="block w-[120px] overflow-hidden rounded-[18px]"
+        style="box-shadow: 0 0 0 5px var(--color-bg); background: var(--color-bg);"
+      >
+        {
+          writer.avatarUrl ? (
+            <img
+              src={writer.avatarUrl}
+              alt={writer.name}
+              width={120}
+              height={120}
+              class="block aspect-square w-full object-cover"
+              loading="eager"
+              decoding="async"
+            />
+          ) : (
+            <span
+              class="border-card text-meta flex aspect-square w-full items-center justify-center border"
+              style="font-family: var(--font-heading); font-size: 44px;"
+            >
+              {writer.name.trim().charAt(0)}
+            </span>
+          )
+        }
+      </span>
+    </div>
+
+    {/* 名前 + 右上アクション */}
+    <div class="mt-6 flex flex-wrap items-start justify-between gap-x-6 gap-y-5">
+      <div class="min-w-0">
+        <h1
+          style="font-family: var(--font-heading); font-size: clamp(30px, 5vw, 46px); line-height: 1.2;"
+        >
+          {writer.name}
+        </h1>
+        <p class="mt-2">
+          <MetaLabel>
+            @{writer.slug}
+            {(writer.region || writer.location) && (
+              <span> ・ {[writer.region, writer.location].filter(Boolean).join(' ')}</span>
+            )}
+          </MetaLabel>
+        </p>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-3">
+        {
+          writer.homepageUrl && (
+            <a
+              href={writer.homepageUrl}
+              class="border-card hover:border-ink rounded-full border px-5 py-2.5 transition-colors"
+            >
+              <MetaLabel class="text-ink">ホームページ ↗</MetaLabel>
+            </a>
+          )
+        }
+        {
+          writer.contactUrl && (
+            <a
+              href={writer.contactUrl}
+              class="bg-ink rounded-full px-5 py-2.5 transition-opacity hover:opacity-80"
+            >
+              <MetaLabel style="color: var(--color-bg);">取材を依頼する</MetaLabel>
+            </a>
+          )
+        }
+      </div>
+    </div>
+
+    {writer.bio && <p class="text-meta mt-8 max-w-2xl" style="line-height: 1.9;">{writer.bio}</p>}
+
+    {
+      writer.snsLinks.length > 0 && (
+        <div class="mt-5 flex flex-wrap gap-x-5 gap-y-1">
+          {writer.snsLinks.map((url) => (
+            <a
+              href={url}
+              class="underline underline-offset-4 transition-opacity hover:opacity-60"
+              style="text-decoration-color: var(--color-meta);"
+            >
+              <MetaLabel>{new URL(url).hostname}</MetaLabel>
+            </a>
+          ))}
+        </div>
+      )
+    }
+
+    {/* 記事カード(2カラム)。サムネイル + 日付 + タイトル */}
+    {
+      writer.articles.length > 0 && (
+        <>
+          <div class="border-card mt-14 flex items-baseline justify-between border-t pt-3 pb-5">
+            <MetaLabel class="text-ink">Works</MetaLabel>
+            <MetaLabel class="tabular-nums">
+              {String(writer.articles.length).padStart(2, '0')}
+            </MetaLabel>
+          </div>
+          <div class="grid gap-4 sm:grid-cols-2">
+            {writer.articles.map((a) => (
+              <a
+                href={`/articles/${a.slug}`}
+                class="border-card hover:border-ink flex items-center gap-4 rounded-[16px] border p-3 transition-colors"
+              >
+                {a.coverImageUrl ? (
+                  <img
+                    src={a.coverImageUrl}
+                    alt=""
+                    class="bg-card h-[72px] w-[72px] shrink-0 rounded-[12px] object-cover"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                ) : (
+                  <span class="bg-card h-[72px] w-[72px] shrink-0 rounded-[12px]" />
+                )}
+                <span class="min-w-0">
+                  <MetaLabel class="block tabular-nums">{formatDate(a.publishedAt)}</MetaLabel>
+                  <span
+                    class="mt-1 block line-clamp-2"
+                    style="font-family: var(--font-heading); font-size: 16px; line-height: 1.4;"
+                  >
+                    {a.title}
+                  </span>
+                </span>
+              </a>
+            ))}
+          </div>
+        </>
+      )
+    }
+
+    {/* 取材・寄稿料バー */}
+    {
+      writer.priceInfo && (
+        <div class="border-card mt-6 flex flex-wrap items-baseline justify-between gap-3 rounded-[16px] border px-6 py-5">
+          <MetaLabel>取材・寄稿料</MetaLabel>
+          <p class="flex items-baseline gap-3">
+            <span style="font-family: var(--font-heading); font-size: 20px; font-weight: 600;">
+              {writer.priceInfo}
+            </span>
+            <MetaLabel>ライターが自由に設定</MetaLabel>
+          </p>
+        </div>
+      )
+    }
+  </div>
 </Base>

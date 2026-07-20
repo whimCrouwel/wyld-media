@@ -23,15 +23,23 @@ cd admin && npm test                  # CMS ロジックの単体テスト
 
 ```bash
 supabase start                        # 既に起動していれば状態表示のみ
-npm run dev                           # 公開サイト(:4321、ライブリロード)
-cd admin && npm run dev               # CMS(:4322、別ターミナル)
+npm run dev:all                       # 公開サイト(:4321)+ CMS(:4322)+ Edge Functions を1コマンドで
+```
+
+`dev:all` は公開サイト・CMS・`functions serve`(招待・画像URL発行・検索)を `concurrently` でまとめて起動する(`site`/`admin`/`fn` と色分け表示、`Ctrl+C` で全部停止)。Edge Function は `config.toml` で `[edge_runtime] enabled = false`(ローカル起動安定化のため意図的)なので `supabase start` では配信されない。**画像アップロード等が失敗するときは、まず `fn` が動いているか(=`dev:all` を使っているか)を疑う。**
+
+個別に起動したいとき:
+
+```bash
+npm run dev                           # 公開サイトのみ(:4321、ライブリロード)
+npm run dev -w admin                  # CMS のみ(:4322)
+npm run dev:fn                        # Edge Functions のみ(= supabase functions serve --env-file supabase/functions/.env)
 ```
 
 その他:
 
 ```bash
 npm run build && npm run preview      # 公開サイトの静的ビルドをそのまま確認(:4321)
-supabase functions serve --env-file supabase/functions/.env  # 招待・画像URL発行・検索インデックス更新・検索
 ```
 
 ## 環境変数(Edge Functions)
