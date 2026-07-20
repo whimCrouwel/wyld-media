@@ -2,7 +2,9 @@
 import MetaLabel from '../atoms/MetaLabel.astro';
 ---
 <dialog id="search-modal" class="search-modal" aria-label="記事を検索">
-  <form method="dialog" class="mb-6 flex justify-end">
+  <!-- 閉じるボタンは絶対配置。行として置くと縦を40px以上使い、
+       画面の低いノートPCで結果の表示領域を圧迫するため -->
+  <form method="dialog" class="close-row">
     <button type="submit" aria-label="閉じる"><MetaLabel>Close ×</MetaLabel></button>
   </form>
   <!-- 入力を自前の form に入れる。dialog 内に method="dialog" の form が
@@ -31,6 +33,7 @@ import MetaLabel from '../atoms/MetaLabel.astro';
   /* 高さを画面内に収め、スクロールするのは結果リストだけにする。
      検索欄と状態表示は常に見えている必要があるため。 */
   .search-modal {
+    position: relative;
     width: min(40rem, calc(100vw - 3rem));
     max-height: calc(100dvh - 4rem);
     margin: auto;
@@ -44,6 +47,12 @@ import MetaLabel from '../atoms/MetaLabel.astro';
   .search-modal[open] {
     display: flex;
     flex-direction: column;
+  }
+
+  .close-row {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
   }
 
   .search-modal::backdrop {
@@ -73,8 +82,12 @@ import MetaLabel from '../atoms/MetaLabel.astro';
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    flex: 1;
-    min-height: 0; /* flex 子要素は既定で縮まないので、これがないと溢れる */
+    /* basis は必ず auto にする。flex:1(=basis:0) だとリストの中身の高さが
+       dialog(height:fit-content)の高さ計算に入らず、器が見出しぶんまで潰れて
+       結果が1件も見えなくなる。auto なら中身ぶん伸び、max-height に当たった
+       ところで min-height:0 により縮んでスクロールに切り替わる。 */
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain; /* 端まで来ても背後のページを巻き込まない */
     padding-bottom: 1.25rem;
