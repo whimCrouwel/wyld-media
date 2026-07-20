@@ -8,8 +8,13 @@ const resultsEl = document.getElementById('search-results') as HTMLUListElement 
 const statusEl = document.getElementById('search-status');
 
 // supabase/functions/search-articles/index.ts のレスポンス形式に合わせる。
-// excerptHtml は DB 側の pgroonga_highlight_html() が記事本文(信頼できる
-// ライター入力)からエスケープ済みで生成しているので、そのまま innerHTML に
+// excerptHtml は search_articles_hybrid()(supabase/migrations/
+// 20260713100100_search_articles_hybrid.sql)内で
+// extensions.pgroonga_highlight_html(pc.content, pgroonga_query_extract_keywords(query_text))
+// により生成される。pgroonga_highlight_html は本文をHTMLエスケープした上で
+// マッチしたキーワードだけを <span class="keyword"> で囲む PGroonga 組込み関数
+// であり、ユーザーの生クエリ文字列はキーワード抽出(pgroonga_query_extract_keywords)
+// を経由するのみで、出力にそのまま現れることはない。そのためそのまま innerHTML に
 // 差し込んでよい。一方 title はユーザー入力を経由しないが、念のため常に
 // エスケープしてから差し込む。
 interface SearchResult {
@@ -34,6 +39,18 @@ if (modal && openBtn && input && resultsEl && statusEl) {
   // バックドロップのクリックで閉じる(dialog 自身の領域外を押したとき)
   modal.addEventListener('click', (e) => {
     if (e.target === modal) modal.close();
+  });
+
+  // input[type="search"] にはブラウザ標準の「Escape で検索欄をクリアする」
+  // 挙動があり、文字が入力されている状態だと最初の Escape はその clear に
+  // 消費されて dialog まで届かない(=閉じるのに2回押す必要が生じる)。
+  // ここで Escape を横取りして常に modal.close() を呼ぶことで、入力の
+  // 有無に関わらず1回目の Escape で閉じるようにする。
+  modal.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      modal.close();
+    }
   });
 
   let debounceTimer: ReturnType<typeof setTimeout> | undefined;
