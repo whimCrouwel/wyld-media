@@ -110,11 +110,15 @@ export async function fetchPublishedArticles(
     .single();
   if (settingsError) throw settingsError;
 
+  // 全作品通し番号(カタログ番号)はこの並び順から算出され、/ と /areas/xxx の
+  // 別々のクエリ間で突き合わされる。published_at が同値だと Postgres の順序は
+  // 不定なので、id を second sort key にして両クエリで同じ順序を保証する。
   const { data, error } = await db
     .from('articles')
     .select(ARTICLE_SELECT)
     .eq('status', 'published')
-    .order('published_at', { ascending: false });
+    .order('published_at', { ascending: false })
+    .order('id');
   if (error) throw error;
 
   const rows = (data ?? []).map(toSummary);
