@@ -3,6 +3,7 @@ import PageShell from '../../components/templates/PageShell.astro';
 import Card from '../../components/atoms/Card.astro';
 import Button from '../../components/atoms/Button.astro';
 import Field from '../../components/molecules/Field.astro';
+import { REGIONS } from '../../lib/regions';
 
 const title = '記事の編集 | Wild Media CMS';
 ---
@@ -19,6 +20,12 @@ const title = '記事の編集 | Wild Media CMS';
       <div class="space-y-2">
         <Field id="slug" label="スラッグ(公開時は必須)" type="text" />
         <span id="slug-status" class="text-sm text-muted-foreground"></span>
+      </div>
+      <div class="space-y-2">
+        <Field id="region" label="取材地(公開時は必須)" as="select">
+          <option value="">未選択</option>
+          {REGIONS.map((r) => <option value={r}>{r}</option>)}
+        </Field>
       </div>
       <fieldset class="rounded-md border p-4">
         <legend class="px-1 text-sm font-medium">カバー画像(任意)</legend>
@@ -125,7 +132,7 @@ const title = '記事の編集 | Wild Media CMS';
         redirectTo('/login');
       } else {
         const id = new URLSearchParams(window.location.search).get('id') ?? '';
-        const $ = (elId: string) => document.getElementById(elId) as HTMLInputElement & HTMLTextAreaElement;
+        const $ = (elId: string) => document.getElementById(elId) as HTMLInputElement & HTMLTextAreaElement & HTMLSelectElement;
         const messageEl = document.getElementById('message')!;
         const statusLabel = document.getElementById('status-label')!;
         const autosaveLabel = document.getElementById('autosave-label')!;
@@ -140,6 +147,7 @@ const title = '記事の編集 | Wild Media CMS';
         } else {
           $('title').value = article.title;
           $('slug').value = article.slug ?? '';
+          $('region').value = article.region ?? '';
           const cover = initCoverWidget(supabaseBrowser);
           cover.setUrl(article.coverImageUrl);
           $('commission').value = article.commissionCodeInput ?? '';
@@ -249,7 +257,7 @@ const title = '記事の編集 | Wild Media CMS';
 
           const collect = () => ({
             title: $('title').value, slug: $('slug').value, body: getBodyBlocks(editor),
-            coverUrl: cover.getUrl(), commissionCode: $('commission').value,
+            coverUrl: cover.getUrl(), commissionCode: $('commission').value, region: $('region').value,
           });
 
           const save = async (publish: boolean) => {
@@ -258,6 +266,9 @@ const title = '記事の編集 | Wild Media CMS';
             if (!input.title.trim()) { messageEl.textContent = 'タイトルを入力してください'; return; }
             if (publish && !isValidArticleSlug(input.slug.trim())) {
               messageEl.textContent = '公開にはスラッグが必要です(小文字英数字とハイフン)'; return;
+            }
+            if (publish && !input.region) {
+              messageEl.textContent = '公開には取材地が必要です'; return;
             }
             try {
               const result = await saveArticle(supabaseBrowser, id, input, publish, currentUpdatedAt);

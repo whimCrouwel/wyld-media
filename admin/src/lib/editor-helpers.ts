@@ -16,6 +16,9 @@ export function translateSaveError(err: unknown): string {
   if (msg.includes('COMMISSION_UNLINK_REQUIRES_UNPUBLISH')) {
     return '公開中の依頼記事から依頼リンクを外すには、一度下書きに戻してください。';
   }
+  if (msg.includes('published_requires_region')) {
+    return '公開するには取材地を選んでください。';
+  }
   if (e?.code === '23505') {
     return 'このスラッグは既に使われています。';
   }

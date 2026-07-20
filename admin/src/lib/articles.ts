@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { JSONContent } from '@tiptap/core';
 import { safeUrl } from './url';
+import { isRegion } from './regions';
 
 export interface ArticleInput {
   title: string;
@@ -8,6 +9,7 @@ export interface ArticleInput {
   body: JSONContent[];
   coverUrl: string;
   commissionCode: string;
+  region: string;
 }
 
 export interface ArticlePayload {
@@ -16,6 +18,7 @@ export interface ArticlePayload {
   body: JSONContent[];
   cover_image_url: string | null;
   commission_code_input: string | null;
+  region: string | null;
 }
 
 export interface EditableArticle {
@@ -25,6 +28,7 @@ export interface EditableArticle {
   body: JSONContent[];
   coverImageUrl: string | null;
   commissionCodeInput: string | null;
+  region: string | null;
   status: 'draft' | 'published';
   updatedAt: string;
 }
@@ -45,6 +49,8 @@ export function buildArticlePayload(input: ArticleInput): ArticlePayload {
     body: input.body,
     cover_image_url: safeUrl(input.coverUrl),
     commission_code_input: emptyToNull(input.commissionCode),
+    // 想定外の値は送らず null にする(最終的な拒否は DB の check 制約)
+    region: isRegion(input.region.trim()) ? input.region.trim() : null,
   };
 }
 
@@ -66,7 +72,7 @@ export async function fetchArticleForEdit(
 ): Promise<EditableArticle | null> {
   const { data, error } = await supabase
     .from('articles')
-    .select('id, title, slug, body, cover_image_url, commission_code_input, status, updated_at')
+    .select('id, title, slug, body, cover_image_url, commission_code_input, region, status, updated_at')
     .eq('id', id)
     .maybeSingle();
   if (error) throw error;
@@ -78,6 +84,7 @@ export async function fetchArticleForEdit(
     body: (data.body ?? []) as JSONContent[],
     coverImageUrl: data.cover_image_url,
     commissionCodeInput: data.commission_code_input,
+    region: data.region,
     status: data.status,
     updatedAt: data.updated_at,
   };

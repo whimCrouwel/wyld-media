@@ -122,6 +122,14 @@ const title = '新しい記事 | Wild Media CMS';
         const slugStatus = document.getElementById('slug-status')!;
         const commissionStatus = document.getElementById('commission-status')!;
         const cover = initCoverWidget(supabaseBrowser);
+
+        // 取材地の初期値は執筆者の活動拠点。あくまで初期値で、記事ごとに変更できる。
+        const { data: me } = await supabaseBrowser
+          .from('profiles')
+          .select('region')
+          .eq('id', session.user.id)
+          .single();
+        const defaultRegion = me?.region ?? '';
         const imageBaseUrl = await fetchImageBaseUrl(supabaseBrowser);
 
         const fileInput = document.getElementById('body-image-file') as HTMLInputElement;
@@ -220,7 +228,7 @@ const title = '新しい記事 | Wild Media CMS';
 
         const collect = () => ({
           title: $('title').value, slug: $('slug').value, body: getBodyBlocks(editor),
-          coverUrl: cover.getUrl(), commissionCode: $('commission').value,
+          coverUrl: cover.getUrl(), commissionCode: $('commission').value, region: defaultRegion,
         });
 
         const previewModal = document.getElementById('preview-modal') as HTMLElement;

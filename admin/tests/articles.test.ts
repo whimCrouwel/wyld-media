@@ -38,26 +38,50 @@ describe('buildArticlePayload', () => {
     const body = [{ type: 'paragraph', content: [{ type: 'text', text: '本文' }] }];
     expect(buildArticlePayload({
       title: 'テスト', slug: 'test-slug', body,
-      coverUrl: 'https://img.example/x.webp', commissionCode: 'WM-11AA22BB',
+      coverUrl: 'https://img.example/x.webp', commissionCode: 'WM-11AA22BB', region: '関東',
     })).toEqual({
       title: 'テスト', slug: 'test-slug', body,
       cover_image_url: 'https://img.example/x.webp',
       commission_code_input: 'WM-11AA22BB',
+      region: '関東',
     });
   });
   it('nulls empty slug/cover/commission and rejects unsafe cover', () => {
     const p = buildArticlePayload({
-      title: 'T', slug: '', body: [], coverUrl: 'javascript:x', commissionCode: '',
+      title: 'T', slug: '', body: [], coverUrl: 'javascript:x', commissionCode: '', region: '関東',
     });
     expect(p.slug).toBeNull();
     expect(p.cover_image_url).toBeNull();
     expect(p.commission_code_input).toBeNull();
   });
   it('never includes status/published_at/commissioned_by', () => {
-    const p = buildArticlePayload({ title: 'T', slug: '', body: [], coverUrl: '', commissionCode: '' });
+    const p = buildArticlePayload({
+      title: 'T', slug: '', body: [], coverUrl: '', commissionCode: '', region: '関東',
+    });
     expect(p).not.toHaveProperty('status');
     expect(p).not.toHaveProperty('published_at');
     expect(p).not.toHaveProperty('commissioned_by');
+  });
+
+  it('取材地を payload に入れる', () => {
+    const p = buildArticlePayload({
+      title: 't', slug: 's', body: [], coverUrl: '', commissionCode: '', region: '甲信越',
+    });
+    expect(p.region).toBe('甲信越');
+  });
+
+  it('リスト外の取材地は null にする(最終判断はDBのcheck制約)', () => {
+    const p = buildArticlePayload({
+      title: 't', slug: 's', body: [], coverUrl: '', commissionCode: '', region: '中部',
+    });
+    expect(p.region).toBeNull();
+  });
+
+  it('未選択は null', () => {
+    const p = buildArticlePayload({
+      title: 't', slug: 's', body: [], coverUrl: '', commissionCode: '', region: '',
+    });
+    expect(p.region).toBeNull();
   });
 });
 
@@ -76,7 +100,7 @@ describe('article CRUD (seeded, as hana)', () => {
     const id = await createDraft(supabase, {
       title: '新しい下書き', slug: '',
       body: [{ type: 'paragraph', content: [{ type: 'text', text: '見出しと本文' }] }],
-      coverUrl: '', commissionCode: '',
+      coverUrl: '', commissionCode: '', region: '関東',
     });
     created.push(id);
     expect(typeof id).toBe('string');
@@ -89,7 +113,7 @@ describe('article CRUD (seeded, as hana)', () => {
     await saveArticle(supabase, id, {
       title: '更新後タイトル', slug: '',
       body: [{ type: 'paragraph', content: [{ type: 'text', text: '本文2' }] }],
-      coverUrl: '', commissionCode: '',
+      coverUrl: '', commissionCode: '', region: '関東',
     }, false);
     const updated = await fetchArticleForEdit(supabase, id);
     expect(updated!.title).toBe('更新後タイトル');
@@ -110,7 +134,7 @@ describe('article CRUD (seeded, as hana)', () => {
     const id = await createDraft(supabase, {
       title: 'slug自己除外', slug: 'self-exclude-slug-test',
       body: [{ type: 'paragraph', content: [{ type: 'text', text: '本文' }] }],
-      coverUrl: '', commissionCode: '',
+      coverUrl: '', commissionCode: '', region: '関東',
     });
     created.push(id);
     // without excludeId: the row itself makes the slug appear taken
@@ -122,13 +146,13 @@ describe('article CRUD (seeded, as hana)', () => {
   it('publishing a commissioned draft with a bad code raises INVALID_COMMISSION_CODE', async () => {
     const body = [{ type: 'paragraph', content: [{ type: 'text', text: '本文' }] }];
     const id = await createDraft(supabase, {
-      title: '依頼下書き', slug: 'commissioned-draft-test', body, coverUrl: '', commissionCode: '',
+      title: '依頼下書き', slug: 'commissioned-draft-test', body, coverUrl: '', commissionCode: '', region: '関東',
     });
     created.push(id);
     await expect(
       saveArticle(supabase, id, {
         title: '依頼下書き', slug: 'commissioned-draft-test', body,
-        coverUrl: '', commissionCode: 'WM-BADCODE0',
+        coverUrl: '', commissionCode: 'WM-BADCODE0', region: '関東',
       }, true),
     ).rejects.toThrow(/INVALID_COMMISSION_CODE/);
   });
@@ -139,7 +163,7 @@ describe('optimistic concurrency (Task 18)', () => {
     const id = await createDraft(supabase, {
       title: '更新日時テスト', slug: '',
       body: [{ type: 'paragraph', content: [{ type: 'text', text: '本文' }] }],
-      coverUrl: '', commissionCode: '',
+      coverUrl: '', commissionCode: '', region: '関東',
     });
     created.push(id);
     const article = await fetchArticleForEdit(supabase, id);
@@ -150,25 +174,25 @@ describe('optimistic concurrency (Task 18)', () => {
 
   it('saveArticle succeeds when expectedUpdatedAt matches the current row', async () => {
     const id = await createDraft(supabase, {
-      title: '一致テスト', slug: '', body: [], coverUrl: '', commissionCode: '',
+      title: '一致テスト', slug: '', body: [], coverUrl: '', commissionCode: '', region: '関東',
     });
     created.push(id);
     const before = await fetchArticleForEdit(supabase, id);
     const result = await saveArticle(supabase, id, {
-      title: '一致テスト2', slug: '', body: [], coverUrl: '', commissionCode: '',
+      title: '一致テスト2', slug: '', body: [], coverUrl: '', commissionCode: '', region: '関東',
     }, false, before!.updatedAt);
     expect(typeof result.updatedAt).toBe('string');
   });
 
   it('saveArticle throws CONFLICT when expectedUpdatedAt is stale', async () => {
     const id = await createDraft(supabase, {
-      title: '競合テスト', slug: '', body: [], coverUrl: '', commissionCode: '',
+      title: '競合テスト', slug: '', body: [], coverUrl: '', commissionCode: '', region: '関東',
     });
     created.push(id);
     const staleTimestamp = new Date(0).toISOString();
     await expect(
       saveArticle(supabase, id, {
-        title: '競合テスト2', slug: '', body: [], coverUrl: '', commissionCode: '',
+        title: '競合テスト2', slug: '', body: [], coverUrl: '', commissionCode: '', region: '関東',
       }, false, staleTimestamp),
     ).rejects.toThrow('CONFLICT');
   });
@@ -176,7 +200,7 @@ describe('optimistic concurrency (Task 18)', () => {
   it('saveArticle throws NOT_FOUND when the article id does not exist and no expectedUpdatedAt is given', async () => {
     await expect(
       saveArticle(supabase, '00000000-0000-0000-0000-000000000000', {
-        title: '存在しない', slug: '', body: [], coverUrl: '', commissionCode: '',
+        title: '存在しない', slug: '', body: [], coverUrl: '', commissionCode: '', region: '関東',
       }, false),
     ).rejects.toThrow('NOT_FOUND');
   });

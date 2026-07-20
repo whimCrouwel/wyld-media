@@ -47,4 +47,9 @@ describe('translateSaveError', () => {
   it('BODY_EMPTY_ON_PUBLISH を訳す', () => {
     expect(translateSaveError(new Error('BODY_EMPTY_ON_PUBLISH'))).toContain('本文');
   });
+
+  it('取材地なしの公開を日本語で説明する', () => {
+    expect(translateSaveError({ code: '23514', message: 'published_requires_region' }))
+      .toBe('公開するには取材地を選んでください。');
+  });
 });
