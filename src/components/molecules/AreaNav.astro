@@ -7,49 +7,206 @@ interface Props {
   activeSlug?: string;
 }
 const { areas, activeSlug } = Astro.props;
+
+// モザイクの日本地図。5列グリッド上の配置で、col/row は CSS grid の
+// `開始 / 終了`(終了は含まない)。北東の北海道から南西の九州へ階段状に下る。
+// 沖縄は本州から離れすぎているので、日本の地図の慣習どおり左上の海へ
+// インセットとして逃がす(正しい位置に置くと本州が小さくなるため)。
+const PLACEMENT: Record<string, { col: string; row: string }> = {
+  hokkaido:   { col: '4 / 6', row: '1 / 3' },
+  tohoku:     { col: '4 / 6', row: '3 / 5' },
+  hokuriku:   { col: '2 / 3', row: '5 / 6' },
+  koshinetsu: { col: '3 / 4', row: '5 / 7' },
+  kanto:      { col: '4 / 6', row: '5 / 7' },
+  chugoku:    { col: '1 / 2', row: '6 / 7' },
+  kinki:      { col: '2 / 3', row: '6 / 7' },
+  tokai:      { col: '3 / 4', row: '7 / 8' },
+  shikoku:    { col: '2 / 3', row: '7 / 8' },
+  kyushu:     { col: '1 / 2', row: '7 / 9' },
+  okinawa:    { col: '1 / 2', row: '2 / 3' },
+};
+
+const tiles = areas
+  .filter((a) => PLACEMENT[a.slug])
+  .map((a) => ({ ...a, ...PLACEMENT[a.slug] }));
+
+// 海外は陸地ではないので地図に描かず、「すべて」と並べて地図の下に置く
+const overseas = areas.find((a) => a.slug === 'overseas');
 ---
-<nav aria-label="地域から探す" class="area-nav">
-  <Chip href="/" active={activeSlug === undefined} class="area-item">
-    <span>すべて</span>
-  </Chip>
-  {
-    areas.map((a) => (
-      <Chip href={a.href} active={a.slug === activeSlug} class="area-item">
-        <span>{a.region}</span>
-        <span class="tabular-nums">{String(a.count).padStart(2, '0')}</span>
-      </Chip>
-    ))
-  }
+
+<nav aria-label="地域から探す">
+  <div class="area-map">
+    {
+      tiles.map((t) =>
+        t.count === 0 ? (
+          <div
+            class="area-tile is-empty"
+            style={`grid-column:${t.col};grid-row:${t.row}`}
+            aria-disabled="true"
+          >
+            <span class="area-tile-name">{t.region}</span>
+            <span class="area-tile-count tabular-nums">{String(t.count).padStart(2, '0')}</span>
+          </div>
+        ) : (
+          <a
+            href={t.href}
+            class:list={['area-tile', { 'is-active': t.slug === activeSlug }]}
+            style={`grid-column:${t.col};grid-row:${t.row}`}
+            aria-current={t.slug === activeSlug ? 'page' : undefined}
+          >
+            <span class="area-tile-name">{t.region}</span>
+            <span class="area-tile-count tabular-nums">{String(t.count).padStart(2, '0')}</span>
+          </a>
+        )
+      )
+    }
+    {/* 沖縄インセットの折れ線。沖縄の真下から本州へ向けて引く。
+        地図記号なので読み上げからは外す */}
+    <div class="area-inset-rule" aria-hidden="true">
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+        <polyline points="5,62 45,62 95,8" vector-effect="non-scaling-stroke" />
+      </svg>
+    </div>
+  </div>
+
+  <div class="area-foot">
+    <Chip href="/" active={activeSlug === undefined}>すべて</Chip>
+    {
+      overseas &&
+        (overseas.count === 0 ? (
+          <span class="area-foot-muted" aria-disabled="true">
+            海外 <span class="tabular-nums">{String(overseas.count).padStart(2, '0')}</span>
+          </span>
+        ) : (
+          <Chip href={overseas.href} active={overseas.slug === activeSlug}>
+            海外 <span class="tabular-nums">{String(overseas.count).padStart(2, '0')}</span>
+          </Chip>
+        ))
+    }
+  </div>
 </nav>
 
 <style>
-  /* デスクトップは縦積み、スマホは横スクロールの1列。JSなしで両立させる */
-  .area-nav {
+  /* タイル同士は隙間なく接し、区切りはカードの地色が透ける2pxの筋だけ。
+     これがないと地図ではなく表に見える。幅の確保は親の .area-card 側で
+     やっているので、ここでは食い出さない。 */
+  .area-map {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-auto-rows: 48px;
+    gap: 2px;
+  }
+
+  .area-tile {
     display: flex;
-    gap: 0.75rem;
-    overflow-x: auto;
-    scrollbar-width: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    padding: 4px 2px;
+    text-align: center;
+    /* カードの地色より明るくして、陸が海から浮くようにする */
+    background-color: var(--color-bg);
+    color: var(--color-ink);
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
   }
 
-  .area-nav::-webkit-scrollbar {
-    display: none;
+  .area-tile-name {
+    font-size: 11px;
+    line-height: 1.25;
   }
 
-  .area-nav :global(.area-item) {
+  .area-tile-count {
+    font-family: var(--font-accent);
+    font-size: 10px;
+    color: var(--color-meta);
+    transition: color 0.2s ease;
+  }
+
+  a.area-tile:hover {
+    background-color: var(--color-meta);
+    color: var(--color-bg);
+  }
+
+  a.area-tile:hover .area-tile-count {
+    color: var(--color-bg);
+    opacity: 0.8;
+  }
+
+  a.area-tile:focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: -2px;
+  }
+
+  a.area-tile.is-active {
+    background-color: var(--color-ink);
+    color: var(--color-bg);
+  }
+
+  a.area-tile.is-active .area-tile-count {
+    color: var(--color-bg);
+    opacity: 0.75;
+  }
+
+  /* 記事0件の地域。地図の形を保つため消さずに、淡く・押せなくする。
+     枠線だけにすると陸地が途切れて日本の輪郭が読めなくなるので、
+     塗りは薄く残したまま文字を落とす。 */
+  .area-tile.is-empty {
+    background-color: color-mix(in srgb, var(--color-bg) 50%, transparent);
+    color: color-mix(in srgb, var(--color-meta) 70%, transparent);
+  }
+
+  .area-tile.is-empty .area-tile-count {
+    color: color-mix(in srgb, var(--color-meta) 55%, transparent);
+  }
+
+  /* 2列×2行に収めることで、参考図と同じ立った角度の折れ線になる。
+     1行に寝かせると角度が浅くなり、囲いではなく下線に見えてしまう。 */
+  .area-inset-rule {
+    grid-column: 1 / 3;
+    grid-row: 3 / 5;
+    position: relative;
+  }
+
+  .area-inset-rule svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .area-inset-rule polyline {
+    fill: none;
+    stroke: color-mix(in srgb, var(--color-ink) 30%, transparent);
+    stroke-width: 1.5;
+  }
+
+  .area-foot {
     display: flex;
-    gap: 0.75rem;
+    flex-wrap: wrap;
+    gap: 0.875rem;
+    align-items: baseline;
+    margin-top: 0.75rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid color-mix(in srgb, var(--color-ink) 13%, transparent);
   }
 
-  @media (min-width: 1024px) {
-    .area-nav {
-      flex-direction: column;
-      gap: 0.6rem;
-      overflow-x: visible;
-    }
+  /* 記事0件の海外。地図の0件タイルと同じく、出すが押せない */
+  .area-foot-muted {
+    font-family: var(--font-accent);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--color-meta);
+    opacity: 0.5;
+  }
 
-    /* 縦のときだけ地域名と件数を両端に寄せる */
-    .area-nav :global(.area-item) {
-      justify-content: space-between;
+  @media (prefers-reduced-motion: reduce) {
+    .area-tile,
+    .area-tile-count {
+      transition: none;
     }
   }
 </style>

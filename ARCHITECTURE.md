@@ -90,6 +90,11 @@ Wild Media の「いまの姿」の地図。意思決定の経緯は [設計ス�
   データを渡すのではなく、`Sidebar.astro` が自分で `getAreaLinks()` を呼ぶ構成にして、
   どのページを増やしてもクエリ数が増えないようにしている。**新しいページを追加すると
   きも、地域リンクは props で引き回さずこの関数を呼ぶこと。**
+- `buildAreaLinks()` は**記事0件の地域も件数0で返す**。`Area` ナビはモザイクの日本地図
+  (`AreaNav.astro`)で、1地域でも欠けると地図の形として成立しないため。0件を落とす
+  最適化をしないこと。押せてはいけないので、描画側が0件のタイルを淡色・リンクなしに
+  している。なお `海外` は陸地ではないので地図には描かず、「すべて」と並べて地図の下に
+  置く(値としては `articles.region` の check 制約に含まれ、CMS から選択できる)。
 - `getStaticPaths` の中でページ(地域・ページ番号)ごとに DB クエリを投げない。
   `src/pages/[...page].astro` と `src/pages/areas/[area]/[...page].astro` はどちらも
   `getStaticPaths` の先頭で `fetchPublishedArticles()` を1回呼んで全公開記事を取り切り、

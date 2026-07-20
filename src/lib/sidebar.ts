@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { usedRegions, regionSlug, type Region } from './regions';
+import { REGIONS, regionSlug } from './regions';
 
 export interface AreaLink {
   region: string;
@@ -8,16 +8,18 @@ export interface AreaLink {
   count: number;
 }
 
-// 記事の取材地の配列から、記事のある地域だけを北→南の順で組み立てる
+// 記事の取材地の配列から、全地域を北→南の順で組み立てる。
+// 記事のない地域も件数0で返すのは、サイドバーがモザイクの日本地図で、
+// 1地域でも欠けると地図の形として成立しないため(描画側が淡色・リンクなしにする)。
 export function buildAreaLinks(regions: (string | null)[]): AreaLink[] {
   const counts = new Map<string, number>();
   for (const r of regions) {
     if (r) counts.set(r, (counts.get(r) ?? 0) + 1);
   }
-  return usedRegions(regions).map((region) => ({
+  return REGIONS.map((region) => ({
     region,
-    slug: regionSlug(region as Region),
-    href: `/areas/${regionSlug(region as Region)}`,
+    slug: regionSlug(region),
+    href: `/areas/${regionSlug(region)}`,
     count: counts.get(region) ?? 0,
   }));
 }

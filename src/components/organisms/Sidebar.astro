@@ -17,10 +17,21 @@ const areas = await getAreaLinks(supabaseServer);
   <div class="pb-10">
     <SearchTrigger />
   </div>
-  <div class="border-card border-t pt-3">
+  <div class="area-card">
     <MetaLabel class="text-ink">Area</MetaLabel>
-  </div>
-  <div class="mt-4">
-    <AreaNav areas={areas} activeSlug={activeAreaSlug} />
+    <div class="mt-3">
+      <AreaNav areas={areas} activeSlug={activeAreaSlug} />
+    </div>
   </div>
 </aside>
+
+<style>
+  /* 地域ナビのカード。サイドバーの px-6 を打ち消して縁まで広げたうえで
+     内側に padding を戻す。こうしないと5列に割ったとき1タイルが44pxを割る。
+     カードの地色はそのまま「海」として働き、タイル(陸)と対比になる。 */
+  .area-card {
+    margin-inline: -1.5rem;
+    padding: 0.875rem 0.75rem 1rem;
+    background-color: color-mix(in srgb, var(--color-ink) 7%, var(--color-bg));
+  }
+</style>
