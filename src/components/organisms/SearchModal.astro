@@ -1,0 +1,53 @@
+---
+import MetaLabel from '../atoms/MetaLabel.astro';
+---
+<dialog id="search-modal" class="search-modal" aria-label="記事を検索">
+  <form method="dialog" class="mb-6 flex justify-end">
+    <button type="submit" aria-label="閉じる"><MetaLabel>Close ×</MetaLabel></button>
+  </form>
+  <input
+    type="search"
+    id="search-input"
+    placeholder="記事を検索"
+    aria-label="記事を検索"
+    class="search-input"
+  />
+  <p id="search-status" role="status" class="mt-4"><MetaLabel /></p>
+  <ul id="search-results" class="mt-6" hidden></ul>
+</dialog>
+
+<script>
+  import '../../scripts/search-modal';
+</script>
+
+<style>
+  .search-modal {
+    width: min(40rem, calc(100vw - 3rem));
+    margin: auto;
+    padding: 1.5rem;
+    border: none;
+    border-radius: 20px;
+    background-color: var(--color-bg);
+    color: var(--color-ink);
+  }
+
+  .search-modal::backdrop {
+    background-color: rgba(53, 48, 31, 0.4);
+  }
+
+  .search-input {
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid var(--color-card);
+    background: transparent;
+    padding: 0.5rem 0;
+    font-family: var(--font-heading);
+    font-size: 22px;
+    outline: none;
+  }
+
+  .search-modal :global(li) {
+    border-top: 1px solid var(--color-card);
+    padding: 1rem 0;
+  }
+</style>

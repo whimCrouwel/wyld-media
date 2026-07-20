@@ -1,5 +1,6 @@
 ---
 import AreaNav from '../molecules/AreaNav.astro';
+import SearchTrigger from '../molecules/SearchTrigger.astro';
 import MetaLabel from '../atoms/MetaLabel.astro';
 import { supabaseServer } from '../../lib/supabase-server';
 import { getAreaLinks } from '../../lib/sidebar';
@@ -13,6 +14,9 @@ const { activeAreaSlug } = Astro.props;
 const areas = await getAreaLinks(supabaseServer);
 ---
 <aside class="px-6 pb-10 lg:pb-24">
+  <div class="pb-10">
+    <SearchTrigger />
+  </div>
   <div class="border-card border-t pt-3">
     <MetaLabel class="text-ink">Area</MetaLabel>
   </div>

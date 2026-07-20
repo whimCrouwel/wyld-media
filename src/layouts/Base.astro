@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import SiteHeader from '../components/organisms/SiteHeader.astro';
 import Sidebar from '../components/organisms/Sidebar.astro';
+import SearchModal from '../components/organisms/SearchModal.astro';
 import MetaLabel from '../components/atoms/MetaLabel.astro';
 
 interface Props {
@@ -39,6 +40,7 @@ const { title, activeAreaSlug, padSidebar = !Astro.slots.has('full') } = Astro.p
       </div>
       <main class="min-w-0"><slot /></main>
     </div>
+    <SearchModal />
     <footer class="px-6 pb-10">
       <MetaLabel>Wild Media — ライターと環境のためのプラットフォーム</MetaLabel>
     </footer>
