@@ -1,5 +1,6 @@
 import Lenis from 'lenis';
 import EmblaCarousel from 'embla-carousel';
+import { setLenis } from './lenis-instance';
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -11,6 +12,8 @@ const columns = grid ? [...grid.querySelectorAll<HTMLElement>('.masonry-column')
 let lenis: Lenis | null = null;
 if (!reducedMotion) {
   lenis = new Lenis();
+  // 検索モーダルが開いている間 止められるよう、実体を共有しておく
+  setLenis(lenis);
   const raf = (time: number) => {
     lenis!.raf(time);
     requestAnimationFrame(raf);

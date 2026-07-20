@@ -76,8 +76,6 @@ import MetaLabel from '../atoms/MetaLabel.astro';
     outline: none;
   }
 
-  /* 件数が多いとリスト内でスクロールする。macOS はスクロールバーが出ないので、
-     下端をフェードさせて「まだ続きがある」ことを見せる(切れて壊れて見えないように) */
   #search-results {
     display: flex;
     flex-direction: column;
@@ -91,11 +89,26 @@ import MetaLabel from '../atoms/MetaLabel.astro';
     overflow-y: auto;
     overscroll-behavior: contain; /* 端まで来ても背後のページを巻き込まない */
     padding-bottom: 1.25rem;
+    padding-right: 0.5rem; /* スクロールバーとカードの縁が触れないように */
+
+    /* macOS の overlay scrollbar は普段隠れていて、スクロールできることが
+       分からない。::-webkit-scrollbar を指定すると常時表示の従来型に変わる。
+       標準プロパティの scrollbar-width / scrollbar-color は書かないこと。
+       どちらか一方でも指定すると Chrome は ::-webkit-scrollbar を無視して
+       overlay のままになり、幅も取らない。 */
   }
 
-  /* まだ下に続きがある時だけフェードさせる(JS が data-more を付け外しする) */
-  #search-results[data-more] {
-    mask-image: linear-gradient(to bottom, #000 calc(100% - 1.75rem), transparent);
+  #search-results::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  #search-results::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background-color: color-mix(in srgb, var(--color-ink) 25%, transparent);
+  }
+
+  #search-results::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in srgb, var(--color-ink) 45%, transparent);
   }
 
   /* 記事カード。ライター詳細ページの記事カードと同じ角丸+枠線の語彙に揃える */
