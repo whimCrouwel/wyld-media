@@ -1,6 +1,7 @@
 ---
 import AdminLayout from '../layouts/AdminLayout.astro';
 import Button from '../components/atoms/Button.astro';
+import Avatar from '../components/atoms/Avatar.astro';
 
 const title = 'ダッシュボード | Wild Media CMS';
 const navLink = 'text-muted-foreground transition-colors hover:text-foreground';
@@ -11,18 +12,26 @@ const navLink = 'text-muted-foreground transition-colors hover:text-foreground';
       <div class="flex items-center gap-4">
         <a href="/dashboard" class="font-semibold text-foreground">Wild Media CMS</a>
         <a href="/dashboard" class={navLink}>ダッシュボード</a>
-        <a href="/profile" class={navLink}>プロフィール編集</a>
         <span id="admin-nav" hidden>
           <a href="/users" class={`mr-4 ${navLink}`}>ユーザー管理</a>
           <a href="/settings" class={navLink}>サイト設定</a>
         </span>
       </div>
-      <Button id="logout" type="button" variant="outline" size="sm">ログアウト</Button>
+      <div class="flex items-center gap-3">
+        <a id="profile-nav" href="/profile" class={`flex items-center gap-2 ${navLink}`} hidden>
+          <Avatar id="profile-nav-avatar" size={28} />
+          <span id="profile-nav-name"></span>
+        </a>
+        <Button id="logout" type="button" variant="outline" size="sm">ログアウト</Button>
+      </div>
     </nav>
   </header>
   <main class="mx-auto max-w-3xl px-4 py-8">
     <div class="mb-6 flex items-center justify-between">
-      <h1 class="text-2xl font-semibold tracking-tight">自分の記事</h1>
+      <div class="flex items-center gap-3">
+        <Avatar id="articles-heading-avatar" size={32} hidden />
+        <h1 id="articles-heading" class="text-2xl font-semibold tracking-tight">自分の記事</h1>
+      </div>
       <a
         href="/articles/new"
         class="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
@@ -36,7 +45,8 @@ const navLink = 'text-muted-foreground transition-colors hover:text-foreground';
       import { supabaseBrowser } from '../lib/supabase-browser';
       import { redirectTo } from '../lib/auth';
       import { fetchMyArticles } from '../lib/dashboard';
-      import { fetchMyRole } from '../lib/admin';
+      import { fetchMyRole, fetchMyProfile } from '../lib/admin';
+      import { toAvatarViewModel, applyAvatar } from '../lib/avatar';
 
       // 認証ガード
       const { data: { session } } = await supabaseBrowser.auth.getSession();
@@ -53,6 +63,25 @@ const navLink = 'text-muted-foreground transition-colors hover:text-foreground';
         try {
           if ((await fetchMyRole(supabaseBrowser)) === 'admin') {
             document.getElementById('admin-nav')!.hidden = false;
+          }
+        } catch (err) {
+          console.error(err);
+        }
+
+        // ナビ・見出しのアバター/名前(失敗しても記事一覧の表示は妨げない)
+        try {
+          const profile = await fetchMyProfile(supabaseBrowser);
+          if (profile) {
+            const vm = toAvatarViewModel(profile.name, profile.avatarUrl);
+
+            applyAvatar(document.getElementById('profile-nav-avatar')!, vm);
+            document.getElementById('profile-nav-name')!.textContent = profile.name;
+            document.getElementById('profile-nav')!.hidden = false;
+
+            const headingAvatarEl = document.getElementById('articles-heading-avatar')!;
+            applyAvatar(headingAvatarEl, vm);
+            headingAvatarEl.hidden = false;
+            document.getElementById('articles-heading')!.textContent = `${profile.name}さんの記事`;
           }
         } catch (err) {
           console.error(err);

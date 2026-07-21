@@ -1,0 +1,40 @@
+---
+import { cn } from '../../lib/cn';
+
+interface Props {
+  id?: string;
+  src?: string | null;
+  name?: string;
+  size?: number;
+  hidden?: boolean;
+  class?: string;
+}
+
+const { id, src = null, name = '', size = 32, hidden = false, class: className } = Astro.props;
+const initial = name.trim().charAt(0);
+---
+<span
+  id={id}
+  hidden={hidden}
+  class={cn('inline-block shrink-0 overflow-hidden rounded-full', className)}
+  style={`width: ${size}px; height: ${size}px;`}
+>
+  <img
+    data-avatar-img
+    src={src ?? ''}
+    alt={name}
+    width={size}
+    height={size}
+    loading="lazy"
+    decoding="async"
+    class={cn('h-full w-full object-cover', !src && 'hidden')}
+  />
+  <span
+    data-avatar-fallback
+    class={cn(
+      'flex h-full w-full items-center justify-center rounded-full border text-muted-foreground',
+      src ? 'hidden' : undefined,
+    )}
+    style={`font-size: ${Math.round(size * 0.4)}px;`}
+  >{initial}</span>
+</span>

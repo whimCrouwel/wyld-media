@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
 import {
-  fetchMyRole, fetchAllProfiles, updateUserRole,
+  fetchMyRole, fetchMyProfile, fetchAllProfiles, updateUserRole,
   validateInviteInput, inviteUser, translateInviteError,
   fetchSettings, updateSettings,
 } from '../src/lib/admin';
@@ -37,6 +37,22 @@ describe('fetchMyRole', () => {
   it('admin は admin、writer は writer を返す', async () => {
     expect(await fetchMyRole(adminClient)).toBe('admin');
     expect(await fetchMyRole(hanaClient)).toBe('writer');
+  });
+});
+
+describe('fetchMyProfile', () => {
+  it('avatar_url が設定済みのユーザーは name と avatarUrl を返す', async () => {
+    expect(await fetchMyProfile(hanaClient)).toEqual({
+      name: '田中 花',
+      avatarUrl: 'https://picsum.photos/seed/tanaka-hana/400/400',
+    });
+  });
+
+  it('avatar_url が未設定のユーザーは avatarUrl: null を返す', async () => {
+    expect(await fetchMyProfile(adminClient)).toEqual({
+      name: '運営 太郎',
+      avatarUrl: null,
+    });
   });
 });
 

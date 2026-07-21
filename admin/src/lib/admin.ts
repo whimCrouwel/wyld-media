@@ -20,6 +20,22 @@ export async function fetchMyRole(supabase: SupabaseClient): Promise<Role | null
   return (data?.role as Role) ?? null;
 }
 
+export interface MyProfile {
+  name: string;
+  avatarUrl: string | null;
+}
+
+// ナビ・見出しのアバター/名前表示用。fetchMyRole と同じ形。
+export async function fetchMyProfile(supabase: SupabaseClient): Promise<MyProfile | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data, error } = await supabase
+    .from('profiles').select('name, avatar_url').eq('id', user.id).maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return { name: data.name, avatarUrl: data.avatar_url ?? null };
+}
+
 export async function fetchAllProfiles(supabase: SupabaseClient): Promise<AdminProfile[]> {
   const { data, error } = await supabase
     .from('profiles')
