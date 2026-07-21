@@ -1,6 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import { insertImageBlock, insertFileBlock, insertImageUrlBlock } from '../src/lib/block-uploads';
 
+vi.mock('../src/lib/body-image', () => ({
+  uploadAndRecord: vi.fn(async (_supabase: unknown, file: File) => `https://img.test/compressed-${file.name}`),
+}));
+
 vi.mock('../src/lib/r2-upload', () => ({
   uploadToR2: vi.fn(async (_supabase: unknown, file: File, kind: 'image' | 'file') => ({
     url: `https://img.test/${kind}-${file.name}`,
@@ -18,12 +22,12 @@ function fakeEditor() {
 }
 
 describe('insertImageBlock', () => {
-  it('uploads then inserts an image node with the uploaded url', async () => {
+  it('uploads (via compression pipeline) then inserts an image node with the uploaded url', async () => {
     const editor = fakeEditor();
     const file = new File(['x'], 'photo.webp', { type: 'image/webp' });
     await insertImageBlock({} as never, editor, file);
     expect(editor.insertContent).toHaveBeenCalledWith({
-      type: 'image', attrs: { url: 'https://img.test/image-photo.webp', caption: null, alt: '' },
+      type: 'image', attrs: { url: 'https://img.test/compressed-photo.webp', caption: null, alt: '' },
     });
     expect(editor.run).toHaveBeenCalled();
   });
