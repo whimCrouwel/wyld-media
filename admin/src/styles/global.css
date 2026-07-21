@@ -96,10 +96,10 @@
     @apply flex shrink-0 items-center gap-2;
   }
   .article-list a {
-    @apply inline-flex h-8 items-center justify-center rounded-md border border-input bg-background px-3 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground;
+    @apply inline-flex h-8 items-center justify-center rounded-md border border-green-600/40 bg-background px-3 text-xs font-medium text-green-700 transition-colors hover:bg-green-600 hover:text-white dark:border-green-500/40 dark:text-green-400 dark:hover:bg-green-600 dark:hover:text-white;
   }
   .article-list button {
-    @apply inline-flex h-8 items-center justify-center rounded-md border border-input bg-background px-3 text-xs font-medium text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground;
+    @apply inline-flex h-8 items-center justify-center rounded-md border border-destructive/40 bg-background px-3 text-xs font-medium text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground;
   }
 
   /* Users: profile table */
