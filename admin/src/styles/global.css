@@ -93,13 +93,13 @@
     @apply flex items-center justify-between gap-4 px-4 py-3 text-sm;
   }
   .article-list .article-actions {
-    @apply flex shrink-0 items-center gap-3;
+    @apply flex shrink-0 items-center gap-2;
   }
   .article-list a {
-    @apply font-medium text-primary hover:underline;
+    @apply inline-flex h-8 items-center justify-center rounded-md border border-input bg-background px-3 text-xs font-medium transition-colors hover:bg-accent hover:text-accent-foreground;
   }
   .article-list button {
-    @apply font-medium text-destructive hover:underline;
+    @apply inline-flex h-8 items-center justify-center rounded-md border border-input bg-background px-3 text-xs font-medium text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground;
   }
 
   /* Users: profile table */

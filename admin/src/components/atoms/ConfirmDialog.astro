@@ -12,7 +12,9 @@ const { id, class: className } = Astro.props;
 <dialog
   id={id}
   class={cn(
-    'w-full max-w-sm rounded-lg border bg-card p-6 text-card-foreground shadow-lg backdrop:bg-black/50',
+    // Tailwind preflight が margin をリセットするため、dialog 標準の
+    // `margin: auto` 中央寄せが効かない。fixed + translate で明示的に中央固定する。
+    'fixed top-1/2 left-1/2 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-lg border bg-card p-6 text-card-foreground shadow-lg backdrop:bg-black/50',
     className,
   )}
 >
