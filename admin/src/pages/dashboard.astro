@@ -68,6 +68,12 @@ const navLink = 'text-muted-foreground transition-colors hover:text-foreground';
       import { deleteArticle } from '../lib/articles';
       import { initConfirmDialog } from '../lib/confirm-dialog';
 
+      // 静的な SVG 定数のみ(ユーザーデータは含まない)。innerHTML で使って良い。
+      const EDIT_ICON_SVG =
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>';
+      const DELETE_ICON_SVG =
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></svg>';
+
       // 認証ガード
       const { data: { session } } = await supabaseBrowser.auth.getSession();
       if (!session) {
@@ -121,22 +127,55 @@ const navLink = 'text-muted-foreground transition-colors hover:text-foreground';
             listEl.innerHTML = '';
             for (const a of articles) {
               const li = document.createElement('li');
-              const status = a.status === 'draft' ? '下書き' : '公開';
-              const featured = a.isCommissioned ? ' / 依頼記事' : '';
-              const date = a.publishedAt
-                ? ` / ${new Date(a.publishedAt).toLocaleDateString('ja-JP')}`
-                : '';
+
+              const info = document.createElement('div');
+              info.className = 'article-info';
+
               // テキストは textContent で安全に入れる
-              const label = document.createElement('span');
-              label.textContent = `${a.title}(${status}${featured}${date})`;
+              const titleEl = document.createElement('span');
+              titleEl.className = 'article-title';
+              titleEl.textContent = a.title;
+
+              const meta = document.createElement('div');
+              meta.className = 'article-meta';
+
+              const statusBadge = document.createElement('span');
+              statusBadge.className = `article-badge ${
+                a.status === 'draft' ? 'article-badge--draft' : 'article-badge--published'
+              }`;
+              statusBadge.textContent = a.status === 'draft' ? '下書き' : '公開';
+              meta.appendChild(statusBadge);
+
+              if (a.isCommissioned) {
+                const commissionedBadge = document.createElement('span');
+                commissionedBadge.className = 'article-badge article-badge--commissioned';
+                commissionedBadge.textContent = '依頼記事';
+                meta.appendChild(commissionedBadge);
+              }
+
+              if (a.publishedAt) {
+                const dateEl = document.createElement('span');
+                dateEl.textContent = new Date(a.publishedAt).toLocaleDateString('ja-JP');
+                meta.appendChild(dateEl);
+              }
+
+              info.appendChild(titleEl);
+              info.appendChild(meta);
+
               const actions = document.createElement('div');
               actions.className = 'article-actions';
+
               const edit = document.createElement('a');
               edit.href = `/articles/edit?id=${a.id}`;
-              edit.textContent = '編集';
+              edit.className = 'article-action';
+              edit.innerHTML = EDIT_ICON_SVG;
+              edit.append('編集');
+
               const del = document.createElement('button');
               del.type = 'button';
-              del.textContent = '削除';
+              del.className = 'article-action article-action--delete';
+              del.innerHTML = DELETE_ICON_SVG;
+              del.append('削除');
               del.addEventListener('click', async () => {
                 listMessageEl.textContent = '';
                 const ok = await confirmDialog.confirm({
@@ -155,7 +194,7 @@ const navLink = 'text-muted-foreground transition-colors hover:text-foreground';
               });
               actions.appendChild(edit);
               actions.appendChild(del);
-              li.appendChild(label);
+              li.appendChild(info);
               li.appendChild(actions);
               listEl.appendChild(li);
             }
