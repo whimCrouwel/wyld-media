@@ -38,6 +38,7 @@ const navLink = 'text-muted-foreground transition-colors hover:text-foreground';
         >＋ 新しい記事を作成</a
       >
     </div>
+    <p id="article-list-message" role="alert" class="mb-3 text-sm text-destructive"></p>
     <ul id="article-list" class="article-list"><li>読み込み中…</li></ul>
   </main>
 
@@ -47,6 +48,8 @@ const navLink = 'text-muted-foreground transition-colors hover:text-foreground';
       import { fetchMyArticles } from '../lib/dashboard';
       import { fetchMyRole, fetchMyProfile } from '../lib/admin';
       import { toAvatarViewModel, applyAvatar } from '../lib/avatar';
+      import { deleteArticle } from '../lib/articles';
+      import { initConfirmDialog } from '../lib/confirm-dialog';
 
       // 認証ガード
       const { data: { session } } = await supabaseBrowser.auth.getSession();
@@ -87,7 +90,12 @@ const navLink = 'text-muted-foreground transition-colors hover:text-foreground';
           console.error(err);
         }
 
+        const confirmDialog = initConfirmDialog(
+          document.getElementById('confirm-dialog') as HTMLDialogElement,
+        );
+
         const listEl = document.getElementById('article-list')!;
+        const listMessageEl = document.getElementById('article-list-message')!;
         try {
           const articles = await fetchMyArticles(supabaseBrowser);
           if (articles.length === 0) {
@@ -101,11 +109,34 @@ const navLink = 'text-muted-foreground transition-colors hover:text-foreground';
               // テキストは textContent で安全に入れる
               const label = document.createElement('span');
               label.textContent = `${a.title}(${status}${featured})`;
+              const actions = document.createElement('div');
+              actions.className = 'article-actions';
               const edit = document.createElement('a');
               edit.href = `/articles/edit?id=${a.id}`;
-              edit.textContent = ' 編集';
+              edit.textContent = '編集';
+              const del = document.createElement('button');
+              del.type = 'button';
+              del.textContent = '削除';
+              del.addEventListener('click', async () => {
+                listMessageEl.textContent = '';
+                const ok = await confirmDialog.confirm({
+                  title: '記事を削除しますか?',
+                  body: `「${a.title}」を削除します。この操作は取り消せません。`,
+                  confirmLabel: '削除する',
+                });
+                if (!ok) return;
+                try {
+                  await deleteArticle(supabaseBrowser, a.id);
+                  li.remove();
+                } catch (err) {
+                  listMessageEl.textContent = '削除に失敗しました。時間をおいて再度お試しください。';
+                  console.error(err);
+                }
+              });
+              actions.appendChild(edit);
+              actions.appendChild(del);
               li.appendChild(label);
-              li.appendChild(edit);
+              li.appendChild(actions);
               listEl.appendChild(li);
             }
           }

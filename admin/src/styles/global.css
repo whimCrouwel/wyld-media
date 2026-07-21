@@ -92,8 +92,14 @@
   .article-list li {
     @apply flex items-center justify-between gap-4 px-4 py-3 text-sm;
   }
+  .article-list .article-actions {
+    @apply flex shrink-0 items-center gap-3;
+  }
   .article-list a {
-    @apply shrink-0 font-medium text-primary hover:underline;
+    @apply font-medium text-primary hover:underline;
+  }
+  .article-list button {
+    @apply font-medium text-destructive hover:underline;
   }
 
   /* Users: profile table */

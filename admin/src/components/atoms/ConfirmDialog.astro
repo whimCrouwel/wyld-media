@@ -1,0 +1,25 @@
+---
+import { cn } from '../../lib/cn';
+import Button from './Button.astro';
+
+interface Props {
+  id: string;
+  class?: string;
+}
+
+const { id, class: className } = Astro.props;
+---
+<dialog
+  id={id}
+  class={cn(
+    'w-full max-w-sm rounded-lg border bg-card p-6 text-card-foreground shadow-lg backdrop:bg-black/50',
+    className,
+  )}
+>
+  <h2 data-confirm-title class="text-lg font-semibold"></h2>
+  <p data-confirm-body class="mt-2 text-sm text-muted-foreground"></p>
+  <div class="mt-6 flex justify-end gap-2">
+    <Button type="button" variant="outline" size="sm" data-role="cancel" />
+    <Button type="button" variant="destructive" size="sm" data-role="confirm" />
+  </div>
+</dialog>

@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import ConfirmDialog from '../components/atoms/ConfirmDialog.astro';
 
 interface Props {
   title: string;
@@ -16,5 +17,6 @@ const { title } = Astro.props;
   </head>
   <body class="min-h-screen bg-background text-foreground antialiased">
     <slot />
+    <ConfirmDialog id="confirm-dialog" />
   </body>
 </html>
