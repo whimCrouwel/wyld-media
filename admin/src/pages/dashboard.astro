@@ -22,7 +22,24 @@ const navLink = 'text-muted-foreground transition-colors hover:text-foreground';
           <Avatar id="profile-nav-avatar" size={28} />
           <span id="profile-nav-name"></span>
         </a>
-        <Button id="logout" type="button" variant="outline" size="sm">ログアウト</Button>
+        <Button id="logout" type="button" variant="outline" size="sm">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="h-4 w-4"
+            aria-hidden="true"
+          >
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          ログアウト
+        </Button>
       </div>
     </nav>
   </header>
@@ -106,9 +123,12 @@ const navLink = 'text-muted-foreground transition-colors hover:text-foreground';
               const li = document.createElement('li');
               const status = a.status === 'draft' ? '下書き' : '公開';
               const featured = a.isCommissioned ? ' / 依頼記事' : '';
+              const date = a.publishedAt
+                ? ` / ${new Date(a.publishedAt).toLocaleDateString('ja-JP')}`
+                : '';
               // テキストは textContent で安全に入れる
               const label = document.createElement('span');
-              label.textContent = `${a.title}(${status}${featured})`;
+              label.textContent = `${a.title}(${status}${featured}${date})`;
               const actions = document.createElement('div');
               actions.className = 'article-actions';
               const edit = document.createElement('a');
