@@ -2,8 +2,8 @@
 import type { GetStaticPaths, Page } from 'astro';
 import Base from '../../../layouts/Base.astro';
 import MasonryGrid from '../../../components/organisms/MasonryGrid.astro';
-import Pagination from '../../../components/molecules/Pagination.astro';
-import MetaLabel from '../../../components/atoms/MetaLabel.astro';
+import LoadMore from '../../../components/molecules/LoadMore.astro';
+import SectionHeader from '../../../components/molecules/SectionHeader.astro';
 import { supabaseServer } from '../../../lib/supabase-server';
 import { fetchPublishedArticles, fetchPageSize } from '../../../lib/content';
 import { buildGalleryWork } from '../../../lib/images';
@@ -62,11 +62,8 @@ const works = await Promise.all(
 ---
 <Base title={`${region}の記事 | Wild Media`} activeAreaSlug={area}>
   <section>
-    <div class="border-card mx-6 flex items-baseline justify-between border-t pt-3 pb-6">
-      <MetaLabel class="text-ink">{region}</MetaLabel>
-      <MetaLabel class="tabular-nums">{String(page.total).padStart(2, '0')}</MetaLabel>
-    </div>
+    <SectionHeader label={region} count={page.total} class="mx-6 pb-6" />
     <MasonryGrid works={works} />
-    <Pagination page={page} />
+    <LoadMore page={page} />
   </section>
 </Base>

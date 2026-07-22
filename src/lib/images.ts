@@ -11,6 +11,7 @@ export interface GalleryWork {
   number: number; // カタログ番号(新しいほど大きい)
   authorName: string;
   authorHref: string;
+  authorAvatarUrl: string | null;
 }
 
 // カバー画像未設定の記事用プレースホルダー(仮運用)。slug をシードにした
@@ -72,5 +73,6 @@ export async function buildGalleryWork(
     number,
     authorName: article.authorName,
     authorHref: `/writers/${article.authorSlug}`,
+    authorAvatarUrl: article.authorAvatarUrl,
   };
 }

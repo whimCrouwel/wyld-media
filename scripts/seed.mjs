@@ -103,8 +103,9 @@ async function main() {
   const { error: delError } = await db.from('articles').delete().in('author_id', authorIds);
   if (delError) throw delError;
 
+  const insertedArticles = [];
   for (const a of ARTICLES) {
-    const { error } = await db.from('articles').insert({
+    const { data, error } = await db.from('articles').insert({
       author_id: ids[a.author],
       slug: a.slug,
       title: a.title,
@@ -114,8 +115,9 @@ async function main() {
       published_at: a.publishedAt,
       commission_code_input: a.commissioned ? code : null,
       region: a.region ?? null,
-    });
+    }).select('id').single();
     if (error) throw new Error(`article ${a.slug}: ${error.message}`);
+    insertedArticles.push({ slug: a.slug, id: data.id });
   }
 
   // 4) 公開ページに出てはいけない下書きを1本
@@ -144,7 +146,41 @@ async function main() {
     .eq('id', 1);
   if (settingsError) throw settingsError;
 
-  console.log('Seed complete: 4 users, 5 published articles (2 commissioned), 1 draft');
+  // 6) 検索インデックス構築(post_chunks)。CMSが記事保存時に叩くのと同じ
+  //    Edge Function(chunk-article)を、同じコードパスで呼ぶ(チャンク化ロジックを
+  //    ここで再実装しない)。chunk-article は呼び出し元の実ユーザーJWTを見て
+  //    著者本人 or admin かを判定するので、service role キーでは呼べない。
+  //    シードadminでサインインしたJWTを使う(admin権限なので全記事に対して通る)。
+  //    要:Edge Functions起動(`npm run dev:fn` / `npm run dev:all`)+
+  //    `supabase/functions/.env` の OPENAI_API_KEY(embedding生成に必須)。
+  const anonKey = process.env.PUBLIC_SUPABASE_ANON_KEY;
+  if (!anonKey) {
+    throw new Error('PUBLIC_SUPABASE_ANON_KEY を .env に設定してください(chunk-article 呼び出しに必要)');
+  }
+  const authClient = createClient(url, anonKey, { auth: { persistSession: false } });
+  const { error: signInError } = await authClient.auth.signInWithPassword({
+    email: 'admin@seed.local', password: 'seed-pass-1234',
+  });
+  if (signInError) {
+    throw new Error(`検索インデックス構築用のサインインに失敗しました(admin@seed.local): ${signInError.message}`);
+  }
+
+  console.log(`検索インデックスを構築中(chunk-article, ${insertedArticles.length}件)...`);
+  for (const a of insertedArticles) {
+    const { error } = await authClient.functions.invoke('chunk-article', {
+      body: { articleId: a.id },
+    });
+    if (error) {
+      console.error(
+        '\nchunk-article の呼び出しに失敗しました。以下を確認してください:\n' +
+        '  1. Edge Functions が起動しているか(`npm run dev:fn` または `npm run dev:all`)\n' +
+        '  2. `supabase/functions/.env` に OPENAI_API_KEY が設定されているか\n',
+      );
+      throw new Error(`chunk-article ${a.slug}: ${error.message ?? error}`);
+    }
+  }
+
+  console.log('Seed complete: 4 users, 5 published articles (2 commissioned, indexed for search), 1 draft');
 }
 
 main().catch((e) => {

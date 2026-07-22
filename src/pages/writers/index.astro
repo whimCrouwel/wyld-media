@@ -1,6 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import MetaLabel from '../../components/atoms/MetaLabel.astro';
+import SectionHeader from '../../components/molecules/SectionHeader.astro';
 import WriterAvatar from '../../components/atoms/WriterAvatar.astro';
 import Chip from '../../components/atoms/Chip.astro';
 import { supabaseServer } from '../../lib/supabase-server';
@@ -13,12 +14,7 @@ const regions = usedRegions(writers.map((w) => w.region));
 ---
 <Base title="ライター一覧 | Wild Media">
   <div class="px-6 pb-24">
-    <div class="border-card flex items-baseline justify-between border-t pt-3 pb-14">
-      <MetaLabel class="text-ink">Writers</MetaLabel>
-      <MetaLabel id="writer-count" class="tabular-nums">
-        {String(writers.length).padStart(2, '0')}
-      </MetaLabel>
-    </div>
+    <SectionHeader label="Writers" count={writers.length} countId="writer-count" class="pb-14" />
 
     {
       regions.length > 1 && (

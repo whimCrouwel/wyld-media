@@ -1,6 +1,9 @@
 ---
 /*
- * トップページ背景の「等高線 / 地形図」ホスト。全面固定・コンテンツ背後・操作を透過。
+ * 全ページ共通背景の「対称ライフゲーム(開花)」ホスト。全面固定・コンテンツ背後・操作を透過。
+ * Base.astro の .app-shell(NavDrawer + #page-shift の flex 行)の外(body直下)に
+ * 置くこと。内側の要素に将来 transform/filter 等を足すと position:fixed の
+ * 包含ブロックがそちらになり、スクロールで画面外へ流れてしまう。
  * 実処理は src/scripts/contours.ts。reduced-motion / JS無効時は何も描かない。
  */
 ---

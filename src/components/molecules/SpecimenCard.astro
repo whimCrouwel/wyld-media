@@ -1,0 +1,93 @@
+---
+import CardImage from '../atoms/CardImage.astro';
+import CardMeta from './CardMeta.astro';
+import MetaLabel from '../atoms/MetaLabel.astro';
+
+// 標本カードの器(画像 + CardMeta)。グリッド(GalleryCard)と Featured 帯が
+// 同じ見た目を別々に持っていたのを1枚に集約する。呼び出し側は class や
+// data-* を渡して、masonry 用の data-ratio/data-index や帯の幅指定を足す。
+interface Props {
+  href: string;
+  title: string;
+  date: string;
+  imageUrl: string | null;
+  ratio: number;
+  number: number;
+  authorName: string;
+  authorHref: string;
+  authorAvatarUrl: string | null;
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  href,
+  title,
+  date,
+  imageUrl,
+  ratio,
+  number,
+  authorName,
+  authorHref,
+  authorAvatarUrl,
+  class: className = '',
+  ...rest
+} = Astro.props;
+---
+
+{/* カード全体を <a> にすると著者リンクが入れ子になるため、リンクは個別に張る */}
+<article class:list={['specimen', className]} {...rest}>
+  <a href={href} class="specimen-image block overflow-hidden">
+    {
+      imageUrl ? (
+        <CardImage src={imageUrl} alt={title} ratio={ratio} />
+      ) : (
+        <div
+          class="border-card flex items-center justify-center border"
+          style={`aspect-ratio: ${ratio};`}
+        >
+          <MetaLabel class="text-center">{title}</MetaLabel>
+        </div>
+      )
+    }
+  </a>
+  <div class="specimen-body">
+    <CardMeta
+      href={href}
+      title={title}
+      date={date}
+      number={number}
+      authorName={authorName}
+      authorHref={authorHref}
+      authorAvatarUrl={authorAvatarUrl}
+    />
+  </div>
+</article>
+
+<style>
+  /* 器: 古紙色(--color-card)の面を地(--color-bg)の上に置き、うっすら浮かせる。
+     影は控えめ(古紙のインクの落ち影程度)。角丸で標本ラベルのカードに見せる。 */
+  .specimen {
+    border-radius: 16px;
+    background-color: var(--color-card);
+    border: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
+    box-shadow: 0 6px 18px -12px rgba(88, 61, 28, 0.4);
+    overflow: hidden;
+    transition:
+      box-shadow 0.3s ease,
+      border-color 0.3s ease;
+  }
+
+  .specimen:hover {
+    border-color: color-mix(in srgb, var(--color-ink) 16%, transparent);
+    box-shadow: 0 12px 26px -14px rgba(88, 61, 28, 0.5);
+  }
+
+  /* 画像は器の上辺いっぱいに敷き、下側だけメタ行と余白でつなぐ */
+  .specimen-image {
+    border-radius: 15px 15px 0 0;
+  }
+
+  .specimen-body {
+    padding: 0.875rem 0.9rem 1rem;
+  }
+</style>

@@ -1,6 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import MetaLabel from '../../components/atoms/MetaLabel.astro';
+import SectionHeader from '../../components/molecules/SectionHeader.astro';
 import { supabaseServer } from '../../lib/supabase-server';
 import { fetchWriters, fetchWriterBySlug, formatDate } from '../../lib/content';
 import type { WriterDetail } from '../../lib/content';
@@ -135,12 +136,7 @@ const hasCover = Boolean(writer.coverImageUrl);
     {
       writer.articles.length > 0 && (
         <>
-          <div class="border-card mt-14 flex items-baseline justify-between border-t pt-3 pb-5">
-            <MetaLabel class="text-ink">Works</MetaLabel>
-            <MetaLabel class="tabular-nums">
-              {String(writer.articles.length).padStart(2, '0')}
-            </MetaLabel>
-          </div>
+          <SectionHeader label="Works" count={writer.articles.length} class="mt-14 pb-5" />
           <div class="grid gap-4 sm:grid-cols-2">
             {writer.articles.map((a) => (
               <a

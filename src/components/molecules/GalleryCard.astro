@@ -1,6 +1,5 @@
 ---
-import CardImage from '../atoms/CardImage.astro';
-import MetaLabel from '../atoms/MetaLabel.astro';
+import SpecimenCard from './SpecimenCard.astro';
 
 interface Props {
   href: string;
@@ -11,39 +10,35 @@ interface Props {
   number: number;
   authorName: string;
   authorHref: string;
+  authorAvatarUrl: string | null;
   index: number;
 }
-const { href, title, date, imageUrl, ratio, number, authorName, authorHref, index } = Astro.props;
+const {
+  href,
+  title,
+  date,
+  imageUrl,
+  ratio,
+  number,
+  authorName,
+  authorHref,
+  authorAvatarUrl,
+  index,
+} = Astro.props;
 ---
 
-{/* カード全体を <a> にすると作者リンクが入れ子になるため、リンクは個別に張る */}
-<div class="reveal group" data-ratio={ratio} data-index={index}>
-  <a href={href} class="block overflow-hidden rounded-[12px]">
-    {
-      imageUrl ? (
-        <CardImage src={imageUrl} alt={title} ratio={ratio} />
-      ) : (
-        <div
-          class="border-card flex items-center justify-center rounded-[12px] border"
-          style={`aspect-ratio: ${ratio};`}
-        >
-          <MetaLabel class="text-center">{title}</MetaLabel>
-        </div>
-      )
-    }
-  </a>
-  <div class="border-card mx-1 mt-4 border-t pt-2.5">
-    <div class="flex items-baseline justify-between gap-3">
-      <a href={href} class="min-w-0 transition-opacity hover:opacity-60">
-        <MetaLabel class="text-ink block truncate">{title}</MetaLabel>
-      </a>
-      <MetaLabel class="shrink-0 tabular-nums">No. {String(number).padStart(2, '0')}</MetaLabel>
-    </div>
-    <div class="flex items-baseline justify-between gap-3">
-      <a href={authorHref} class="min-w-0 transition-opacity hover:opacity-60">
-        <MetaLabel class="hover:text-ink block truncate transition-colors">{authorName}</MetaLabel>
-      </a>
-      <MetaLabel class="shrink-0 tabular-nums">{date}</MetaLabel>
-    </div>
-  </div>
-</div>
+{/* グリッドのカード。masonry の並べ替え・reveal 用に data-ratio/data-index/reveal を足す。 */}
+<SpecimenCard
+  href={href}
+  title={title}
+  date={date}
+  imageUrl={imageUrl}
+  ratio={ratio}
+  number={number}
+  authorName={authorName}
+  authorHref={authorHref}
+  authorAvatarUrl={authorAvatarUrl}
+  class="reveal group"
+  data-ratio={ratio}
+  data-index={index}
+/>

@@ -1,46 +1,32 @@
 ---
 import '../styles/global.css';
 import SiteHeader from '../components/organisms/SiteHeader.astro';
-import Sidebar from '../components/organisms/Sidebar.astro';
+import NavDrawer from '../components/organisms/NavDrawer.astro';
 import SearchModal from '../components/organisms/SearchModal.astro';
+import BgContours from '../components/organisms/BgContours.astro';
 import MetaLabel from '../components/atoms/MetaLabel.astro';
 
 interface Props {
   title: string;
   activeAreaSlug?: string;
-  padSidebar?: boolean;
   padMain?: boolean;
 }
-// SiteHeader は fixed なので、直後に来る要素は自前で頭上の余白を持たないと
-// 隠れる。full スロットを持つページ(トップ)は Hero 側で既にその余白を
-// 確保しているので、full スロットが無いページでだけサイドバーに足す。
+// SiteHeader は fixed なので、本文はヘッダーぶんの頭上余白(pt-32)を持たないと
+// 隠れる。full スロットを持つページ(トップ)は Hero 側で既にその余白を確保して
+// いるので、full スロットが無いページでだけ本文に足す。
 //
-// デフォルト値は Astro.slots.has('full') から推測しているが、これは
-// テンプレートのソースに slot="full" という記述があるかどうかを見ている
-// だけで、実行時にその分岐が real に通ったかどうかは見ていない
-// (テンプレート内条件分岐)。呼び出し側が `{cond && <Fragment slot="full">...}`
-// のように full スロットを条件付きで出し分けていると、cond が false でも
-// true 判定になってしまう。そのため呼び出し側で slot="full" を条件分岐する
-// ページは、必ず padSidebar を明示的に渡すこと。
+// デフォルト値は Astro.slots.has('full') から推測しているが、これはテンプレートの
+// ソースに slot="full" という記述があるかどうかを見ているだけで、実行時にその分岐が
+// real に通ったかどうかは見ていない(テンプレート内条件分岐)。呼び出し側が
+// `{cond && <Fragment slot="full">...}` のように full スロットを条件付きで出し分けて
+// いると、cond が false でも true 判定になってしまう。そのため full スロットを条件分岐
+// するページ(トップ)は、必ず padMain を明示的に渡すこと。
 //
-// ヘッダークリアランスの所有者はここ(Base)だけにする。ページ側が自前で
-// pt-32 を足すと、lg 未満ではサイドバーと本文がグリッドから縦積みに変わり、
-// 両方に付いた pt-32 が別々の隙間として重なって見えてしまう(lg 以上では
-// グリッド上の兄弟同士がずれるだけで隙間の重複には見えないので気づきにくい)。
-// padMain は既定で padSidebar と同じ値を使うが、writer 詳細ページのカバー
-// バナーのように本文側だけクリアランス不要なページは明示的に渡す。
-//
-// 本文側は lg: だけに pt-32 を付ける。lg 未満では grid が外れてサイドバー →
-// 本文の順に縦積みになり、本文はヘッダーの直下ではなくサイドバーの直下に来る
-// ので、クリアランスはサイドバー側の pt-32 だけで足りる(本文にも pt-32 を
-// 付けると縦積み時に2つ目の隙間になる)。lg 以上ではサイドバーと本文が横に
-// 並ぶので、揃えるために本文側にも同じ pt-32 が要る。
-const {
-  title,
-  activeAreaSlug,
-  padSidebar = !Astro.slots.has('full'),
-  padMain = padSidebar,
-} = Astro.props;
+// ヘッダークリアランスの所有者はここ(Base)だけにする。ページ側は自前で pt-32 を
+// 足さない。カバーバナーのように本文冒頭がフルブリードでクリアランス不要なページは
+// padMain={false} を渡す。検索・地域ナビはサイドバーを廃して NavDrawer に収めたので、
+// 本文は常に全幅の1カラム。
+const { title, activeAreaSlug, padMain = !Astro.slots.has('full') } = Astro.props;
 ---
 <!doctype html>
 <html lang="ja">
@@ -50,20 +36,42 @@ const {
     <title>{title}</title>
   </head>
   <body>
-    <SiteHeader />
-    <!-- サイドバーの外側に出したいもの(トップの Hero など)。無いページでは何も出ない -->
-    <slot name="full" />
-    <!-- 19rem はサイドバーの地図(5列)がガターを保ったまま
-         タイル44pxを割らない幅。変えるときは Sidebar.astro のコメント参照 -->
-    <div class="lg:grid lg:grid-cols-[19rem_1fr] lg:items-start">
-      <div class={padSidebar ? 'pt-32' : ''}>
-        <Sidebar activeAreaSlug={activeAreaSlug} />
+    {/* #bg-contours は .app-shell の外(body直下)に置くこと。将来 .app-shell や
+        #page-shift に transform/filter 等を足すと position:fixed の包含ブロックが
+        viewport ではなくそちらになり、スクロールで画面外へ流れてしまう。全ページで
+        常時うっすら表示するための共通背景なので、ページ側の slot="full" では
+        なくここで一度だけ描画する。 */}
+    <BgContours />
+    {/* NavDrawer(常設サイドバー)と本文(#page-shift)を同じ flex 行に並べる
+        (claude.ai のサイドバーと同じ構成)。NavDrawer の width が変わるだけで
+        #page-shift は flex: 1 の兄弟として自動的に幅が変わる。旧実装は
+        #page-shift 側に transform: translateX() を掛けて「本文を押し出す」演出を
+        していたが、それだと本文の見た目の幅そのものは変わらず画面外へクリップ
+        されていた。 */}
+    <div class="app-shell">
+      <NavDrawer activeAreaSlug={activeAreaSlug} />
+      <div id="page-shift" class="page-shift">
+        <SiteHeader />
+        <!-- 本文の外側に出したいもの(トップの Hero など)。無いページでは何も出ない -->
+        <slot name="full" />
+        <main class={padMain ? 'pt-32' : ''}><slot /></main>
+        <footer class="px-6 pb-10">
+          <MetaLabel>Wild Media — ライターと環境のためのプラットフォーム</MetaLabel>
+        </footer>
       </div>
-      <main class={`min-w-0 ${padMain ? 'lg:pt-32' : ''}`}><slot /></main>
     </div>
     <SearchModal />
-    <footer class="px-6 pb-10">
-      <MetaLabel>Wild Media — ライターと環境のためのプラットフォーム</MetaLabel>
-    </footer>
   </body>
 </html>
+
+<style>
+  .app-shell {
+    display: flex;
+    min-height: 100dvh;
+  }
+
+  .page-shift {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+</style>

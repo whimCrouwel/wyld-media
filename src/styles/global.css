@@ -26,6 +26,16 @@ html {
   background-color: var(--color-bg);
 }
 
+/* 常設サイドバー(NavDrawer)の幅。#page-shift は flex の兄弟として実際に
+   幅が変わるので、他のコンポーネントがこの値を共有する必要はない
+   (NavDrawer.astro が自分の width としてだけ参照する)。
+   幅の根拠は旧サイドバーの 19rem(地図5列が44pxタイルを割らない実寸)。
+   rail 幅は閉時に残るトグルボタン(2.25rem)+左右パディング(1rem×2)の実寸。 */
+:root {
+  --nav-drawer-width: min(20rem, 86vw);
+  --nav-drawer-rail-width: 4.25rem;
+}
+
 body {
   color: var(--color-ink);
   font-family: var(--font-sans);

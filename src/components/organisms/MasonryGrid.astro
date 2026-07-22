@@ -15,7 +15,7 @@ const heights = new Array(COLUMNS).fill(0);
 for (const work of works) {
   const shortest = heights.indexOf(Math.min(...heights));
   columns[shortest].push(work);
-  heights[shortest] += 1 / work.ratio + 0.12; // 0.12 ≈ メタ行ぶんの高さ
+  heights[shortest] += 1 / work.ratio + 0.22; // 0.22 ≈ 標本カードのメタ部(タイトル+著者行+余白)
 }
 ---
 

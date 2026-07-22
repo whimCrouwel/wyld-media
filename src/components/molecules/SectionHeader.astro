@@ -1,0 +1,22 @@
+---
+import MetaLabel from '../atoms/MetaLabel.astro';
+
+// 「ラベル左・件数右」の上罫線付き見出し。トップ(Works)・Featured・地域・
+// ライター一覧・ライター詳細の5箇所で同じ markup を複製していたので集約する。
+// 外側の余白(mx-6 / pb-* など)はページごとに違うので class で受ける。
+interface Props {
+  label: string;
+  count?: number | string;
+  countId?: string;
+  class?: string;
+}
+const { label, count, countId, class: className = '' } = Astro.props;
+const countText = typeof count === 'number' ? String(count).padStart(2, '0') : count;
+---
+
+<div class:list={['border-card flex items-baseline justify-between border-t pt-3', className]}>
+  <MetaLabel class="text-ink">{label}</MetaLabel>
+  {countText !== undefined && (
+    <MetaLabel id={countId} class="tabular-nums">{countText}</MetaLabel>
+  )}
+</div>

@@ -1,6 +1,6 @@
 ---
-import CardImage from '../atoms/CardImage.astro';
-import MetaLabel from '../atoms/MetaLabel.astro';
+import SpecimenCard from '../molecules/SpecimenCard.astro';
+import SectionHeader from '../molecules/SectionHeader.astro';
 import type { GalleryWork } from '../../lib/images';
 
 interface Props {
@@ -12,39 +12,23 @@ const { works } = Astro.props;
 {
   works.length > 0 && (
     <section class="pb-16">
-      <div class="border-card mx-6 flex items-baseline justify-between border-t pt-3 pb-6">
-        <MetaLabel class="text-ink">Featured</MetaLabel>
-        <MetaLabel class="tabular-nums">{String(works.length).padStart(2, '0')}</MetaLabel>
-      </div>
+      <SectionHeader label="Featured" count={works.length} class="mx-6 pb-6" />
       <div id="featured-strip" class="cursor-grab overflow-hidden px-6 active:cursor-grabbing">
         <div class="flex gap-6">
           {works.map((work) => (
-            <div class="reveal group w-[85vw] shrink-0 sm:w-[60vw] lg:w-[45vw]" data-featured-card>
-              <a
-                href={work.href}
-                class="block overflow-hidden rounded-[12px]"
-              >
-                {work.imageUrl && <CardImage src={work.imageUrl} alt={work.title} ratio={16 / 9} />}
-              </a>
-              <div class="border-card mx-1 mt-4 border-t pt-2.5">
-                <div class="flex items-baseline justify-between gap-3">
-                  <a href={work.href} class="min-w-0 transition-opacity hover:opacity-60">
-                    <MetaLabel class="text-ink block truncate">{work.title}</MetaLabel>
-                  </a>
-                  <MetaLabel class="shrink-0 tabular-nums">
-                    No. {String(work.number).padStart(2, '0')}
-                  </MetaLabel>
-                </div>
-                <div class="flex items-baseline justify-between gap-3">
-                  <a href={work.authorHref} class="min-w-0 transition-opacity hover:opacity-60">
-                    <MetaLabel class="hover:text-ink block truncate transition-colors">
-                      {work.authorName}
-                    </MetaLabel>
-                  </a>
-                  <MetaLabel class="tabular-nums">{work.date}</MetaLabel>
-                </div>
-              </div>
-            </div>
+            <SpecimenCard
+              href={work.href}
+              title={work.title}
+              date={work.date}
+              imageUrl={work.imageUrl}
+              ratio={16 / 9}
+              number={work.number}
+              authorName={work.authorName}
+              authorHref={work.authorHref}
+              authorAvatarUrl={work.authorAvatarUrl}
+              class="reveal group w-[85vw] shrink-0 sm:w-[60vw] lg:w-[45vw]"
+              data-featured-card
+            />
           ))}
         </div>
       </div>

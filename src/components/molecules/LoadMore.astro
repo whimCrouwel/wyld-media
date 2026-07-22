@@ -1,0 +1,44 @@
+---
+import type { Page } from 'astro';
+import MetaLabel from '../atoms/MetaLabel.astro';
+
+// 「もっと読み込む」。素の状態では次ページへのリンクとして働き(JS 無効でも
+// たどれる)、JS があれば gallery.ts がクリックを横取りして次ページのカードを
+// このページの末尾へ継ぎ足す(全画面リロードなし)。最終ページでは出さない。
+interface Props {
+  page: Page;
+}
+const { page } = Astro.props;
+---
+
+{
+  page.url.next && (
+    <div class="flex justify-center py-16">
+      <a id="load-more" href={page.url.next} data-next={page.url.next} class="load-more">
+        <MetaLabel class="text-ink">もっと読み込む</MetaLabel>
+      </a>
+    </div>
+  )
+}
+
+<style>
+  .load-more {
+    border: 1px solid var(--color-card);
+    border-radius: 999px;
+    padding: 0.75rem 1.75rem;
+    transition:
+      border-color 0.2s ease,
+      opacity 0.2s ease;
+  }
+
+  .load-more:hover,
+  .load-more:focus-visible {
+    border-color: var(--color-ink);
+  }
+
+  /* 読み込み中はもう一度押せないようにし、進行中であることを示す */
+  .load-more[aria-busy='true'] {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+</style>

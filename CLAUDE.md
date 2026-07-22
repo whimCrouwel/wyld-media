@@ -47,7 +47,14 @@ npm run build && npm run preview      # 公開サイトの静的ビルドをそ�
 `supabase/functions/.env`(ローカル)・本番のFunction Secretsに `OPENAI_API_KEY` が必要
 (ハイブリッド検索のembedding生成用)。
 
-シードログイン: `hana@seed.local` / `seed-pass-1234`
+シードログイン(`npm run seed` 実行後、全アカウント共通パスワード `seed-pass-1234`):
+admin は `admin@seed.local`、ライターは `hana@seed.local` / `kenta@seed.local`、サービスプロバイダーは `forest@seed.local`。
+
+`npm run seed` は記事投入後に Edge Function `chunk-article` を呼んで検索インデックス(`post_chunks`)を構築する(CMS が記事保存時に呼ぶのと同じコードパス)。そのため **`npm run seed` の前に Edge Functions(`npm run dev:fn` または `npm run dev:all`)を起動しておくこと**。起動していない・`OPENAI_API_KEY` 未設定の場合はその旨のエラーで失敗する(サイレントに検索が壊れたままにはならない)。
+
+## 作業中の課題管理
+
+本題と関係ない、または今すぐ対応しなくていいバグ・改善点に気づいても都度直さず、[docs/TODO.md](docs/TODO.md) に追記して本題を続けること。一段落したらまとめて対応し、解消したらチェックを付ける。追記する際は該当ファイルパス(可能なら行番号も)を明記する。
 
 ## ドキュメントの保守
 

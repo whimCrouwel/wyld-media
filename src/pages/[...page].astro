@@ -1,13 +1,12 @@
 ---
 import type { GetStaticPaths, Page } from 'astro';
 import Base from '../layouts/Base.astro';
-import BgContours from '../components/organisms/BgContours.astro';
 import SplashIntro from '../components/organisms/SplashIntro.astro';
 import Hero from '../components/organisms/Hero.astro';
 import FeaturedStrip from '../components/organisms/FeaturedStrip.astro';
 import MasonryGrid from '../components/organisms/MasonryGrid.astro';
-import Pagination from '../components/molecules/Pagination.astro';
-import MetaLabel from '../components/atoms/MetaLabel.astro';
+import LoadMore from '../components/molecules/LoadMore.astro';
+import SectionHeader from '../components/molecules/SectionHeader.astro';
 import { supabaseServer } from '../lib/supabase-server';
 import { fetchPublishedArticles, fetchPageSize } from '../lib/content';
 import { buildGalleryWork } from '../lib/images';
@@ -44,28 +43,24 @@ const gridWorks = await Promise.all(
 {/*
   full スロットは1ページ目でだけ条件付きで出す。Astro.slots.has('full') は
   テンプレートのソースに slot="full" の記述があるかどうかしか見ない(実行時に
-  この分岐が通ったかは見ない)ため、Base 側にその判定を任せず padSidebar を
+  この分岐が通ったかは見ない)ため、Base 側にその判定を任せず padMain を
   明示的に渡している。
 */}
 <Base
   title={isFirstPage ? 'Wild Media' : `Wild Media — ${page.currentPage}ページ目`}
-  padSidebar={!isFirstPage}
+  padMain={!isFirstPage}
 >
   {isFirstPage && (
     <Fragment slot="full">
-      <BgContours />
       <SplashIntro />
       <Hero />
       <FeaturedStrip works={featuredWorks} />
     </Fragment>
   )}
   <section>
-    <div class="border-card mx-6 flex items-baseline justify-between border-t pt-3 pb-6">
-      <MetaLabel class="text-ink">Works</MetaLabel>
-      <MetaLabel class="tabular-nums">{String(page.total).padStart(2, '0')}</MetaLabel>
-    </div>
+    <SectionHeader label="Works" count={page.total} class="mx-6 pb-6" />
     <MasonryGrid works={gridWorks} />
-    <Pagination page={page} />
+    <LoadMore page={page} />
   </section>
 </Base>
 

@@ -49,10 +49,14 @@ supabase test db        # DB層テスト(pgTAP)
 cp .env.example .env    # supabase status のキーを転記
                          # PUBLIC_IMAGE_BASE_URL は R2 の公開URLベース。seed が
                          # settings.image_base_url に流し込む(それが画像公開ホストの唯一の権威)
+cp supabase/functions/.env.example supabase/functions/.env   # OPENAI_API_KEY を設定
 npm install
-npm run seed            # サンプルデータ投入(冪等)
+npm run dev:fn           # 別ターミナルで起動したままにする(seed が chunk-article を叩くため必須)
+npm run seed             # サンプルデータ投入(冪等)。検索インデックス(post_chunks)もここで構築される
 npm test                # データ層テスト(Vitest)
 ```
+
+`npm run seed` は記事投入後、CMS が記事保存時に呼ぶのと同じ Edge Function `chunk-article` を叩いて検索インデックス(`post_chunks`)を構築する。そのため **Edge Functions(`npm run dev:fn` または `npm run dev:all`)が起動していないと `npm run seed` は失敗する**(エラーメッセージにその旨が出る)。`supabase/functions/.env` に `OPENAI_API_KEY` が未設定の場合も embedding 生成に失敗するので、先に設定しておくこと。
 
 CMS 側も別途セットアップが必要(下記「CMS」参照)。
 

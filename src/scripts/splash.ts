@@ -16,6 +16,25 @@ import * as THREE from 'three';
 
 const HOST_ID = 'splash';
 const MASK_SRC = '/earth-mask.jpg';
+// 起動アニメは1セッションに一度だけ。sessionStorage はタブを閉じるまで残るので、
+// 同一タブ内のリロードや戻る/進む・ページ間遷移では二度目以降を出さない。
+// 静的MPAなので毎ナビゲーションでこのスクリプトは再実行される点に注意。
+const SEEN_KEY = 'wm:splash-seen';
+function alreadySeen(): boolean {
+  try {
+    return sessionStorage.getItem(SEEN_KEY) === '1';
+  } catch {
+    return false; // プライベートモード等で使えない時は毎回出す(従来どおり)
+  }
+}
+function markSeen() {
+  try {
+    sessionStorage.setItem(SEEN_KEY, '1');
+  } catch {
+    /* 保存できなくても致命的ではない */
+  }
+}
+
 const host = document.getElementById(HOST_ID);
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -38,11 +57,13 @@ function webglSupported(): boolean {
   }
 }
 
-if (!host || reduced || !webglSupported()) {
+if (!host || reduced || alreadySeen() || !webglSupported()) {
   host?.remove();
   signalDone();
 } else {
   const el = host;
+  // 実際に走らせる時点で「見た」ことにする。途中でリロードしても再生しない。
+  markSeen();
   // 万一途中で落ちてもグリッドが出るよう保険をかける
   window.setTimeout(signalDone, 6000);
   loadLandMask(MASK_SRC)

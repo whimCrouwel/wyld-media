@@ -29,7 +29,7 @@ function targetColumnCount(): number {
   return 1;
 }
 
-const META_HEIGHT = 0.12; // メタ行ぶんの高さ(1/ratio に対する近似加算)
+const META_HEIGHT = 0.22; // 標本カードのメタ部ぶんの高さ(1/ratio に対する近似加算)
 
 function redistribute() {
   if (!grid || columns.length === 0) return;
@@ -130,6 +130,28 @@ columns.forEach((column, columnIndex) => {
 // ヒーロー→Featured→グリッドの登場。スプラッシュがある場合は、粒子が消え切る
 // 'splash:done' を合図に走らせる(それまで何も reveal させないことで、スプラッシュ
 // 裏でアニメが空回りして静止して見えるのを防ぐ)。無ければ即実行。
+// スクロールで画面内に入った .reveal を出す監視。初期分に加えて、
+// 「もっと読み込む」で継ぎ足したカードも同じ監視に載せる(下参照)。
+const revealObserver = new IntersectionObserver(
+  (entries) => {
+    for (const entry of entries) {
+      if (entry.isIntersecting) {
+        revealNow(entry.target);
+        revealObserver.unobserve(entry.target);
+      }
+    }
+  },
+  { rootMargin: '0px 0px -5% 0px' },
+);
+
+function observeReveals(nodes: Iterable<Element>) {
+  for (const el of nodes) {
+    if (el.classList.contains('reveal') && !el.classList.contains('is-revealed')) {
+      revealObserver.observe(el);
+    }
+  }
+}
+
 function runEntrance() {
   if (hero) revealNow(hero, reducedMotion ? 0 : HERO_DELAY);
   if (caption) revealNow(caption, reducedMotion ? 0 : CAPTION_DELAY);
@@ -138,18 +160,7 @@ function runEntrance() {
 
   // 残り(スクロールで入る画面外の要素)だけを IntersectionObserver に任せる。
   // ここまでで初期表示分は reveal 済み/クラス除去済みなので自然に対象外になる。
-  const observer = new IntersectionObserver(
-    (entries) => {
-      for (const entry of entries) {
-        if (entry.isIntersecting) {
-          revealNow(entry.target);
-          observer.unobserve(entry.target);
-        }
-      }
-    },
-    { rootMargin: '0px 0px -5% 0px' },
-  );
-  document.querySelectorAll('.reveal:not(.is-revealed)').forEach((el) => observer.observe(el));
+  observeReveals(document.querySelectorAll('.reveal:not(.is-revealed)'));
 }
 
 const splashEl = document.getElementById('splash');
@@ -164,4 +175,60 @@ if (splashEl && !reducedMotion) {
 const strip = document.getElementById('featured-strip');
 if (strip) {
   EmblaCarousel(strip, { align: 'start', containScroll: 'trimSnaps' });
+}
+
+// ---- 「もっと読み込む」でのカード継ぎ足し ----------------------------------
+// 静的サイトなので、次ページの静的HTML(/2 など)を fetch して #masonry の
+// カードだけ抜き出し、このページの末尾へ足す。data-index はページ内ローカルの
+// 通し番号(MasonryGrid が works.indexOf で振る)なので、そのまま足すと既存分と
+// 衝突して redistribute の並びが崩れる。既存の最大 index の続きへ振り直してから
+// 足し、redistribute() で全カードを index 順に再配分する。
+
+const loadMoreBtn = document.getElementById('load-more') as HTMLAnchorElement | null;
+
+if (loadMoreBtn && grid) {
+  loadMoreBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const next = loadMoreBtn.dataset.next;
+    if (!next) return;
+    loadMoreBtn.setAttribute('aria-busy', 'true');
+
+    try {
+      const res = await fetch(next);
+      if (!res.ok) throw new Error(`load-more fetch failed: ${res.status}`);
+      const doc = new DOMParser().parseFromString(await res.text(), 'text/html');
+      const newCards = [...doc.querySelectorAll<HTMLElement>('#masonry [data-index]')];
+
+      // 既存の最大 index の続きへ振り直す
+      const base =
+        [...grid.querySelectorAll<HTMLElement>('[data-index]')].reduce(
+          (max, c) => Math.max(max, Number(c.dataset.index)),
+          -1,
+        ) + 1;
+      newCards.forEach((card, i) => {
+        card.dataset.index = String(base + i);
+        grid.append(card); // いったん grid 直下へ。redistribute がカラムへ配分する
+      });
+
+      redistribute();
+      observeReveals(newCards);
+
+      // 次の遷移先は、取得したページ自身の「もっと読み込む」から引き継ぐ。
+      // 無ければ最終ページなのでボタンごと片付ける。
+      const nextNext = doc.getElementById('load-more')?.getAttribute('data-next');
+      if (nextNext) {
+        loadMoreBtn.dataset.next = nextNext;
+        loadMoreBtn.href = nextNext;
+      } else {
+        loadMoreBtn.remove();
+      }
+    } catch (err) {
+      // 失敗時は素のリンクとして次ページへ遷移(全画面)してフォールバックする
+      console.error(err);
+      window.location.href = next;
+      return;
+    } finally {
+      loadMoreBtn.removeAttribute('aria-busy');
+    }
+  });
 }
