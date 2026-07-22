@@ -50,7 +50,13 @@ Wild Media の「いまの姿」の地図。意思決定の経緯は [設計ス�
   HTML 化は `packages/blocks-renderer/` の `renderBlocksToHtml()`(非同期、`Promise<string>` を返す)に
   一本化されており、公開サイトのビルド時と CMS のプレビュー時の両方がこれを呼ぶ(生成 HTML が食い違わない)
 - 通常記事の公開は同一著者につき `post_interval_days`(初期値10)日に1回。依頼記事(`commissioned_by` 非null)は対象外
-- 依頼者コード: プロバイダー固有のランダム文字列。ライターがエディタで入力し、SECURITY DEFINER RPC で実在チェック(列挙攻撃防止のため完全一致のみ応答)
+- 依頼トークン: プロバイダーが特定のライター宛てに発行する使い切りの文字列(`WM-XXXXXXXX`)。
+  ライターがエディタで入力すると `commissioned_by` が解決される。プロバイダー1人につき
+  複数のライター・複数の依頼を並行して持てる(1トークン=1記事)。実在チェックは
+  SECURITY DEFINER RPC `validate_commission_token`(列挙攻撃防止のため、呼び出し本人
+  宛てのトークンとの完全一致のみ応答)。未使用のトークンは発行元プロバイダーまたは
+  admin が取り消せる。管理者は `/commissions`(CMS)で全プロバイダー分のトークンと
+  その状態(未使用/使用済み/取消済み)を確認できる。
 - Featured 枠 = 最新の依頼記事 `featured_count`(初期値3)件
 - 本文の画像・ファイルブロックは `settings.image_base_url` 配下の URL のみ許可し、
   画像は 5 枚まで(`articles` のトリガー `a_enforce_body_image_rules`。違反時の例外は

@@ -7,6 +7,9 @@ erDiagram
     "auth.users" ||--o| profiles : "id (1:1)"
     "auth.users" ||--o{ media : "owner_id"
     profiles ||--o{ articles : "author_id"
+    profiles |o--o{ commission_tokens : "provider_id"
+    profiles |o--o{ commission_tokens : "writer_id"
+    commission_tokens |o--o| articles : "commission_token_id (nullable, unique)"
     profiles |o--o{ articles : "commissioned_by (nullable)"
     articles ||--o{ post_chunks : "article_id (cascade delete)"
 
@@ -29,7 +32,6 @@ erDiagram
         jsonb sns_links
         text price_info
         text contact_url
-        text commission_code UK "provider専用、WM-XXXXXXXX形式"
         timestamptz created_at
     }
 
@@ -43,10 +45,21 @@ erDiagram
         text region "取材地(12区分、公開時必須)"
         article_status status "draft / published"
         timestamptz published_at "公開時のみ必須"
-        text commission_code_input "入力値、トリガーがcommissioned_byへ解決"
+        text commission_token_input "入力値、トリガーがcommissioned_by/commission_token_idへ解決"
+        uuid commission_token_id FK "-> commission_tokens.id, nullable, unique"
         uuid commissioned_by FK "-> profiles.id, nullable"
         timestamptz created_at
         timestamptz updated_at
+    }
+
+    commission_tokens {
+        uuid id PK
+        uuid provider_id FK "-> profiles.id"
+        uuid writer_id FK "-> profiles.id"
+        text token UK "WM-XXXXXXXX形式"
+        timestamptz created_at
+        timestamptz revoked_at "nullable"
+        uuid revoked_by FK "-> profiles.id, nullable"
     }
 
     settings {
@@ -82,7 +95,7 @@ erDiagram
 
 | テーブル | アクセス範囲 | 備考 |
 |---|---|---|
-| `profiles` | RLS: 本人 or admin | `role`(admin/writer/provider)。`commission_code` はprovider専用、`set_commission_code` トリガーが自動採番 |
+| `profiles` | RLS: 本人 or admin(select/update)。writer は全認証ユーザーに公開(select、依頼先選択用) | `role`(admin/writer/provider) |
 | `articles` | RLS: 著者 or admin | `body` は Tiptap ブロックJSON(`jsonb`)。公開条件・投稿間隔・画像/埋め込みルールはすべて DB トリガーで強制(`enforce_publish_rules`・`enforce_body_image_rules`・`enforce_body_embed_rules` など) |
 | `settings` | RLS: authenticated 全員read、admin write | シングルトン(`id=1`固定)。`image_base_url` は空文字が既定(fail closed) |
 | `media` | RLS: 所有者 or admin | R2にアップロード済み画像のURL記録のみ。記事から参照中の画像は削除不可(`block_media_in_use`) |
@@ -93,9 +106,10 @@ erDiagram
 | 関数 | 種別 | 役割 |
 |---|---|---|
 | `is_admin()` | トリガー内で使用 | 呼び出しユーザーがadmin roleかを判定 |
-| `set_commission_code()` | トリガー | provider の `commission_code` を自動採番 |
-| `validate_commission_code(code)` | RPC | 依頼者コードの実在チェック(完全一致のみ応答、列挙攻撃防止) |
-| `resolve_commission_code()` | トリガー | 記事保存時、`commission_code_input` から `commissioned_by` を解決 |
+| `set_commission_token()` | トリガー | `commission_tokens` insert時、provider_idを呼び出し本人に強制し、トークンを自動採番 |
+| `guard_commission_token_revoke()` | トリガー | `revoked_at` の null→非null 変更のみ許可し、使用済みトークンの取消を拒否 |
+| `validate_commission_token(token, article_id)` | RPC | 依頼トークンの実在チェック(呼び出し本人宛て・未取消・未使用〈article_idは自分自身を除外〉のみ応答) |
+| `resolve_commission_token()` | トリガー | 記事保存時、`commission_token_input` から `commissioned_by`/`commission_token_id` を解決 |
 | `enforce_publish_rules()` | トリガー | 公開条件(投稿間隔・本文必須など)を強制 |
 | `enforce_body_image_rules()` | トリガー | 本文中の画像枚数・ホスト許可を強制 |
 | `enforce_body_embed_rules()` | トリガー | 本文中の埋め込み(YouTube/Vimeo/X)ホスト許可を強制 |
