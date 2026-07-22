@@ -6,9 +6,15 @@ insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-00000000000c', 'hard-writer@test.local'),
   ('00000000-0000-0000-0000-00000000000d', 'hard-provider@test.local');
 
-insert into profiles (id, role, slug, name, commission_code) values
-  ('00000000-0000-0000-0000-00000000000c', 'writer', 'hard-writer', 'Writer', null),
-  ('00000000-0000-0000-0000-00000000000d', 'provider', 'hard-provider', 'Provider', 'WM-55EE66FF');
+insert into profiles (id, role, slug, name) values
+  ('00000000-0000-0000-0000-00000000000c', 'writer', 'hard-writer', 'Writer'),
+  ('00000000-0000-0000-0000-00000000000d', 'provider', 'hard-provider', 'Provider');
+
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000d","role":"authenticated"}', true);
+set local role authenticated;
+insert into commission_tokens (id, writer_id) values
+  ('50000000-0000-0000-0000-000000000007', '00000000-0000-0000-0000-00000000000c');
 
 -- act as writer
 select set_config('request.jwt.claims',
@@ -82,15 +88,16 @@ select set_config('request.jwt.claims',
 set local role authenticated;
 
 select lives_ok(
-  $$insert into articles (id, author_id, slug, title, status, commission_code_input, body, region)
+  $$insert into articles (id, author_id, slug, title, status, commission_token_input, body, region)
     values ('40000000-0000-0000-0000-000000000003',
             '00000000-0000-0000-0000-00000000000c',
-            'hard-c', 'commissioned post', 'published', 'WM-55EE66FF',
+            'hard-c', 'commissioned post', 'published',
+            (select token from commission_tokens where id = '50000000-0000-0000-0000-000000000007'),
             '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb, '関東')$$,
   'writer publishes a commissioned article (rate limit exempt)');
 
 select throws_like(
-  $$update articles set commission_code_input = null
+  $$update articles set commission_token_input = null
     where id = '40000000-0000-0000-0000-000000000003'$$,
   '%COMMISSION_UNLINK_REQUIRES_UNPUBLISH%',
   'clearing the commission link while still published is rejected');
@@ -107,7 +114,7 @@ select lives_ok(
   'writer unpublishes the commissioned article');
 
 select lives_ok(
-  $$update articles set commission_code_input = null
+  $$update articles set commission_token_input = null
     where id = '40000000-0000-0000-0000-000000000003'$$,
   'commission link can be cleared once the article is a draft');
 

@@ -92,11 +92,32 @@ async function main() {
     ids[u.slug] = id;
   }
 
-  // 2) provider の依頼コード(insert 時に自動生成済み)を取得
-  const { data: provider, error: providerError } = await db
-    .from('profiles').select('commission_code').eq('slug', 'forest-org').single();
-  if (providerError) throw providerError;
-  const code = provider.commission_code;
+  // 2) 依頼記事の数だけ、provider(forest-org)から著者(tanaka-hana)宛ての
+  //    依頼トークンを発行する(1トークン=1記事、使い切り)。
+  //    トークン発行は commission_tokens の RLS で provider_id = auth.uid() を要求するため、
+  //    service role では作れない。forest@seed.local としてサインインして発行する。
+  const anonKeyForTokens = process.env.PUBLIC_SUPABASE_ANON_KEY;
+  if (!anonKeyForTokens) {
+    throw new Error('PUBLIC_SUPABASE_ANON_KEY を .env に設定してください(依頼トークン発行に必要)');
+  }
+  const providerClient = createClient(url, anonKeyForTokens, { auth: { persistSession: false } });
+  const { error: providerSignInError } = await providerClient.auth.signInWithPassword({
+    email: 'forest@seed.local', password: 'seed-pass-1234',
+  });
+  if (providerSignInError) {
+    throw new Error(`依頼トークン発行用のサインインに失敗しました(forest@seed.local): ${providerSignInError.message}`);
+  }
+  const commissionedCount = ARTICLES.filter((a) => a.commissioned).length;
+  const tokens = [];
+  for (let i = 0; i < commissionedCount; i++) {
+    const { data, error } = await providerClient
+      .from('commission_tokens')
+      .insert({ writer_id: ids['tanaka-hana'] })
+      .select('token')
+      .single();
+    if (error) throw new Error(`commission_tokens insert ${i}: ${error.message}`);
+    tokens.push(data.token);
+  }
 
   // 3) シード著者の記事を全削除してから入れ直す(冪等)
   const authorIds = [ids['tanaka-hana'], ids['sato-kenta']];
@@ -112,7 +133,7 @@ async function main() {
       cover_image_url: a.cover ?? null,
       status: 'published',
       published_at: a.publishedAt,
-      commission_code_input: a.commissioned ? code : null,
+      commission_token_input: a.commissioned ? tokens.shift() : null,
       region: a.region ?? null,
     });
     if (error) throw new Error(`article ${a.slug}: ${error.message}`);

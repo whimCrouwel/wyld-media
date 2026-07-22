@@ -7,7 +7,6 @@ export interface AdminProfile {
   role: Role;
   slug: string;
   name: string;
-  commissionCode: string | null;
 }
 
 // ページのロール出し分けに使う。本物の防壁は RLS/トリガー(これは UX)。
@@ -39,7 +38,7 @@ export async function fetchMyProfile(supabase: SupabaseClient): Promise<MyProfil
 export async function fetchAllProfiles(supabase: SupabaseClient): Promise<AdminProfile[]> {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, role, slug, name, commission_code')
+    .select('id, role, slug, name')
     .order('created_at', { ascending: true });
   if (error) throw error;
   return (data ?? []).map((r) => ({
@@ -47,7 +46,6 @@ export async function fetchAllProfiles(supabase: SupabaseClient): Promise<AdminP
     role: r.role as Role,
     slug: r.slug,
     name: r.name,
-    commissionCode: r.commission_code ?? null,
   }));
 }
 

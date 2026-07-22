@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(11);
+select plan(25);
 
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-000000000010', 'tok-writer@test.local'),
@@ -87,6 +87,113 @@ select ok(
 select ok(
   exists(select 1 from profiles where id = '00000000-0000-0000-0000-000000000010'),
   'an authenticated provider can read a writer profile (needed for the "pick a writer" UI)');
+
+-- resolve: articles への解決
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-000000000010","role":"authenticated"}', true);
+set local role authenticated;
+
+-- stash the raw token value while it's still visible under the writer's own
+-- RLS view (commission_tokens select policy only allows the issuing provider
+-- or the recipient writer to see a row); a later test needs this literal
+-- value from a session that cannot see the row at all.
+select token as tok1 from commission_tokens where id = '50000000-0000-0000-0000-000000000001' \gset
+
+select lives_ok(
+  $$insert into articles (id, author_id, title, commission_token_input)
+    values ('60000000-0000-0000-0000-000000000001',
+            '00000000-0000-0000-0000-000000000010',
+            'commissioned draft',
+            (select token from commission_tokens where id = '50000000-0000-0000-0000-000000000001'))$$,
+  'writer publishes using a token issued to them');
+
+select is(
+  (select commissioned_by from articles where id = '60000000-0000-0000-0000-000000000001'),
+  '00000000-0000-0000-0000-000000000011'::uuid,
+  'commissioned_by resolved from the token''s provider');
+
+select is(
+  (select commission_token_id from articles where id = '60000000-0000-0000-0000-000000000001'),
+  '50000000-0000-0000-0000-000000000001'::uuid,
+  'commission_token_id resolved to the matching token');
+
+select is(
+  public.validate_commission_token(
+    (select token from commission_tokens where id = '50000000-0000-0000-0000-000000000001'),
+    '60000000-0000-0000-0000-000000000001'),
+  'Provider',
+  'RPC still returns the provider name when article_id excludes the article that legitimately holds the token');
+
+select throws_like(
+  $$insert into articles (author_id, title, commission_token_input)
+    values ('00000000-0000-0000-0000-000000000010', 'bad token', 'WM-NOPE0000')$$,
+  '%INVALID_COMMISSION_TOKEN%',
+  'an unknown token is rejected');
+
+-- act as a different writer the token was not issued to
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-000000000012","role":"authenticated"}', true);
+set local role authenticated;
+
+-- built dynamically (rather than the usual $$...$$ literal) because this
+-- writer's own RLS view of commission_tokens cannot see a row issued to
+-- someone else, so a same-session subquery would silently resolve to NULL
+-- instead of exercising the WRONG_WRITER branch; tok1 was captured above
+-- while still visible to its rightful recipient.
+select throws_like(
+  'insert into articles (author_id, title, commission_token_input) values (' ||
+    quote_literal('00000000-0000-0000-0000-000000000012') || ', ' ||
+    quote_literal('wrong writer') || ', ' ||
+    quote_literal(:'tok1') || ')',
+  '%COMMISSION_TOKEN_WRONG_WRITER%',
+  'a token issued to a different writer is rejected');
+
+-- back to the token's actual writer: reusing an already-linked token is rejected
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-000000000010","role":"authenticated"}', true);
+set local role authenticated;
+
+select throws_like(
+  $$insert into articles (author_id, title, commission_token_input)
+    values ('00000000-0000-0000-0000-000000000010', 'second use',
+            (select token from commission_tokens where id = '50000000-0000-0000-0000-000000000001'))$$,
+  '%COMMISSION_TOKEN_ALREADY_USED%',
+  'a token already linked to another article cannot be reused');
+
+select lives_ok(
+  $$update articles set commission_token_input = null
+    where id = '60000000-0000-0000-0000-000000000001'$$,
+  'the commission link can be cleared');
+select is(
+  (select commissioned_by from articles where id = '60000000-0000-0000-0000-000000000001'),
+  null::uuid,
+  'clearing the token input clears commissioned_by');
+select is(
+  (select commission_token_id from articles where id = '60000000-0000-0000-0000-000000000001'),
+  null::uuid,
+  'clearing the token input clears commission_token_id');
+
+-- validate_commission_token RPC (used by the editor's blur-time preview)
+select is(
+  public.validate_commission_token(
+    (select token from commission_tokens where id = '50000000-0000-0000-0000-000000000002')),
+  'Provider',
+  'RPC returns the provider name for a valid, unused token belonging to the caller');
+select is(
+  public.validate_commission_token('WM-NOPE0000'),
+  null::text,
+  'RPC returns null for an unknown token');
+
+select lives_ok(
+  $$insert into articles (author_id, title, commission_token_input)
+    values ('00000000-0000-0000-0000-000000000010', 'second commissioned',
+            (select token from commission_tokens where id = '50000000-0000-0000-0000-000000000002'))$$,
+  'writer publishes a second commissioned article using token #2');
+select is(
+  public.validate_commission_token(
+    (select token from commission_tokens where id = '50000000-0000-0000-0000-000000000002')),
+  null::text,
+  'RPC returns null once the token has been used by an article');
 
 select * from finish();
 rollback;

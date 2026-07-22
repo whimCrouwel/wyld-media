@@ -19,7 +19,7 @@ describe('isValidArticleSlug', () => {
 describe('translateSaveError', () => {
   it('maps known trigger error strings to Japanese', () => {
     expect(translateSaveError({ message: 'POST_INTERVAL_NOT_ELAPSED: ...' })).toMatch(/期間/);
-    expect(translateSaveError({ message: 'INVALID_COMMISSION_CODE: ...' })).toMatch(/依頼者コード/);
+    expect(translateSaveError({ message: 'INVALID_COMMISSION_TOKEN: ...' })).toMatch(/依頼トークン/);
     expect(translateSaveError({ message: 'COMMISSION_UNLINK_REQUIRES_UNPUBLISH: ...' })).toMatch(/下書き/);
   });
   it('maps unique-violation code 23505 to a slug message', () => {

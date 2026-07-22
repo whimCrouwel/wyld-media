@@ -10,8 +10,14 @@ export function translateSaveError(err: unknown): string {
   if (msg.includes('POST_INTERVAL_NOT_ELAPSED')) {
     return '前回の通常記事の公開から一定期間が経過していません。';
   }
-  if (msg.includes('INVALID_COMMISSION_CODE')) {
-    return '依頼者コードが正しくありません。';
+  if (msg.includes('INVALID_COMMISSION_TOKEN')) {
+    return '依頼トークンが正しくありません。';
+  }
+  if (msg.includes('COMMISSION_TOKEN_WRONG_WRITER')) {
+    return 'この依頼トークンは別のライター宛てです。';
+  }
+  if (msg.includes('COMMISSION_TOKEN_ALREADY_USED')) {
+    return 'この依頼トークンは使用済みです。';
   }
   if (msg.includes('COMMISSION_UNLINK_REQUIRES_UNPUBLISH')) {
     return '公開中の依頼記事から依頼リンクを外すには、一度下書きに戻してください。';

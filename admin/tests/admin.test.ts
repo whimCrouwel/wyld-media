@@ -64,28 +64,30 @@ describe('fetchAllProfiles', () => {
     for (const s of ['seed-admin', 'tanaka-hana', 'sato-kenta', 'forest-org']) {
       expect(slugs).toContain(s);
     }
-    const forest = all.find((p) => p.slug === 'forest-org')!;
-    expect(forest.commissionCode).toMatch(/^WM-[0-9A-F]{8}$/);
   });
 
-  it('非 admin は RLS により自分の行しか見えない', async () => {
+  it('非 admin(writer)は自分の行と、他の writer の行までしか見えない', async () => {
+    // Task 1 で追加された「authenticated は writer プロフィールを読める」ポリシーにより、
+    // provider が依頼トークンの宛先ライターを選べる。writer 自身から見ても同じ範囲になる。
     const mine = await fetchAllProfiles(hanaClient);
-    expect(mine.map((p) => p.slug)).toEqual(['tanaka-hana']);
+    const slugs = mine.map((p) => p.slug);
+    expect(slugs).toContain('tanaka-hana');
+    expect(slugs).toContain('sato-kenta');
+    expect(slugs).not.toContain('seed-admin');
+    expect(slugs).not.toContain('forest-org');
   });
 });
 
 describe('updateUserRole', () => {
-  it('admin が writer を provider に上げると依頼者コードが自動発行される', async () => {
+  it('admin が writer を provider に上げると role が更新される', async () => {
     try {
       await updateUserRole(adminClient, kentaId, 'provider');
       const { data } = await adminClient
-        .from('profiles').select('role, commission_code').eq('id', kentaId).single();
+        .from('profiles').select('role').eq('id', kentaId).single();
       expect(data!.role).toBe('provider');
-      expect(data!.commission_code).toMatch(/^WM-[0-9A-F]{8}$/);
     } finally {
-      // 後始末: role と commission_code をシード状態へ戻す(admin はトリガーを通過できる)
-      await adminClient.from('profiles')
-        .update({ role: 'writer', commission_code: null }).eq('id', kentaId);
+      // 後始末: role をシード状態へ戻す(admin はトリガーを通過できる)
+      await adminClient.from('profiles').update({ role: 'writer' }).eq('id', kentaId);
     }
   });
 

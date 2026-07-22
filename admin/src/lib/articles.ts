@@ -8,7 +8,7 @@ export interface ArticleInput {
   slug: string;
   body: JSONContent[];
   coverUrl: string;
-  commissionCode: string;
+  commissionToken: string;
   region: string;
 }
 
@@ -17,7 +17,7 @@ export interface ArticlePayload {
   slug: string | null;
   body: JSONContent[];
   cover_image_url: string | null;
-  commission_code_input: string | null;
+  commission_token_input: string | null;
   region: string | null;
 }
 
@@ -27,7 +27,7 @@ export interface EditableArticle {
   slug: string | null;
   body: JSONContent[];
   coverImageUrl: string | null;
-  commissionCodeInput: string | null;
+  commissionTokenInput: string | null;
   region: string | null;
   status: 'draft' | 'published';
   updatedAt: string;
@@ -48,7 +48,7 @@ export function buildArticlePayload(input: ArticleInput): ArticlePayload {
     slug: emptyToNull(input.slug),
     body: input.body,
     cover_image_url: safeUrl(input.coverUrl),
-    commission_code_input: emptyToNull(input.commissionCode),
+    commission_token_input: emptyToNull(input.commissionToken),
     // 想定外の値は送らず null にする(最終的な拒否は DB の check 制約)
     region: isRegion(input.region.trim()) ? input.region.trim() : null,
   };
@@ -72,7 +72,7 @@ export async function fetchArticleForEdit(
 ): Promise<EditableArticle | null> {
   const { data, error } = await supabase
     .from('articles')
-    .select('id, title, slug, body, cover_image_url, commission_code_input, region, status, updated_at')
+    .select('id, title, slug, body, cover_image_url, commission_token_input, region, status, updated_at')
     .eq('id', id)
     .maybeSingle();
   if (error) throw error;
@@ -83,7 +83,7 @@ export async function fetchArticleForEdit(
     slug: data.slug,
     body: (data.body ?? []) as JSONContent[],
     coverImageUrl: data.cover_image_url,
-    commissionCodeInput: data.commission_code_input,
+    commissionTokenInput: data.commission_token_input,
     region: data.region,
     status: data.status,
     updatedAt: data.updated_at,
@@ -124,10 +124,12 @@ export async function checkSlugAvailable(
   return (data ?? []).length === 0;
 }
 
-export async function validateCommissionCode(
-  supabase: SupabaseClient, code: string,
+export async function validateCommissionToken(
+  supabase: SupabaseClient, token: string, articleId?: string,
 ): Promise<string | null> {
-  const { data, error } = await supabase.rpc('validate_commission_code', { code });
+  const { data, error } = await supabase.rpc('validate_commission_token', {
+    token, article_id: articleId ?? null,
+  });
   if (error) throw error;
   return (data as string | null) ?? null;
 }

@@ -31,7 +31,7 @@ const title = '新しい記事 | Wild Media CMS';
         </div>
       </fieldset>
       <div class="space-y-2">
-        <Field id="commission" label="依頼者コード(任意)" type="text" />
+        <Field id="commission" label="依頼トークン(任意)" type="text" />
         <span id="commission-status" class="text-sm text-muted-foreground"></span>
       </div>
     </Card>
@@ -97,7 +97,7 @@ const title = '新しい記事 | Wild Media CMS';
   <script>
       import { supabaseBrowser } from '../../lib/supabase-browser';
       import { redirectTo } from '../../lib/auth';
-      import { createDraft, validateCommissionCode, checkSlugAvailable } from '../../lib/articles';
+      import { createDraft, validateCommissionToken, checkSlugAvailable } from '../../lib/articles';
       import { translateSaveError, isValidArticleSlug } from '../../lib/editor-helpers';
       import { initCoverWidget } from '../../lib/cover-widget';
       import { fetchImageBaseUrl, translateUploadError } from '../../lib/images';
@@ -221,15 +221,15 @@ const title = '新しい記事 | Wild Media CMS';
         });
 
         $('commission').addEventListener('blur', async () => {
-          const code = $('commission').value.trim();
-          if (!code) { commissionStatus.textContent = ''; return; }
-          const name = await validateCommissionCode(supabaseBrowser, code);
-          commissionStatus.textContent = name ? `依頼者: ${name}` : 'コードが見つかりません';
+          const token = $('commission').value.trim();
+          if (!token) { commissionStatus.textContent = ''; return; }
+          const name = await validateCommissionToken(supabaseBrowser, token);
+          commissionStatus.textContent = name ? `依頼者: ${name}` : 'トークンが見つかりません';
         });
 
         const collect = () => ({
           title: $('title').value, slug: $('slug').value, body: getBodyBlocks(editor),
-          coverUrl: cover.getUrl(), commissionCode: $('commission').value, region: defaultRegion,
+          coverUrl: cover.getUrl(), commissionToken: $('commission').value, region: defaultRegion,
         });
 
         const previewModal = document.getElementById('preview-modal') as HTMLElement;

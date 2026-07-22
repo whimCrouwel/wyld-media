@@ -31,9 +31,9 @@ const title = 'ユーザー管理 | Wild Media CMS';
       <h2 class="mb-4 text-lg font-semibold tracking-tight">ユーザー一覧</h2>
       <table class="admin-table">
         <thead>
-          <tr><th>名前</th><th>スラッグ</th><th>種別</th><th>依頼者コード</th></tr>
+          <tr><th>名前</th><th>スラッグ</th><th>種別</th></tr>
         </thead>
-        <tbody id="user-rows"><tr><td colspan="4">読み込み中…</td></tr></tbody>
+        <tbody id="user-rows"><tr><td colspan="3">読み込み中…</td></tr></tbody>
       </table>
     </Card>
 
@@ -121,12 +121,9 @@ const title = 'ユーザー管理 | Wild Media CMS';
               roleTd.appendChild(sel);
               roleTd.appendChild(btn);
             }
-            const codeTd = document.createElement('td');
-            codeTd.textContent = p.commissionCode ?? '—';
             tr.appendChild(nameTd);
             tr.appendChild(slugTd);
             tr.appendChild(roleTd);
-            tr.appendChild(codeTd);
             tbody.appendChild(tr);
           }
         };
@@ -134,7 +131,7 @@ const title = 'ユーザー管理 | Wild Media CMS';
         try {
           await renderRows();
         } catch (err) {
-          tbody.innerHTML = '<tr><td colspan="4">読み込みに失敗しました。</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="3">読み込みに失敗しました。</td></tr>';
           console.error(err);
         }
 
