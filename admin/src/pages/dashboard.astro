@@ -14,7 +14,11 @@ const navLink = 'text-muted-foreground transition-colors hover:text-foreground';
         <a href="/dashboard" class={navLink}>ダッシュボード</a>
         <span id="admin-nav" hidden>
           <a href="/users" class={`mr-4 ${navLink}`}>ユーザー管理</a>
+          <a href="/commissions" class={`mr-4 ${navLink}`}>依頼トークン管理</a>
           <a href="/settings" class={navLink}>サイト設定</a>
+        </span>
+        <span id="provider-nav" hidden>
+          <a href="/commission" class={navLink}>ライターに依頼する</a>
         </span>
       </div>
       <div class="flex items-center gap-3">
@@ -87,8 +91,11 @@ const navLink = 'text-muted-foreground transition-colors hover:text-foreground';
         // admin にだけ管理ナビを見せる(出し分けは UX。防壁は RLS/トリガー)
         // fetchMyRole が失敗しても記事一覧の表示は妨げない(管理ナビが出ないだけにする)
         try {
-          if ((await fetchMyRole(supabaseBrowser)) === 'admin') {
+          const role = await fetchMyRole(supabaseBrowser);
+          if (role === 'admin') {
             document.getElementById('admin-nav')!.hidden = false;
+          } else if (role === 'provider') {
+            document.getElementById('provider-nav')!.hidden = false;
           }
         } catch (err) {
           console.error(err);

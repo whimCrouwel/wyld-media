@@ -6,9 +6,16 @@ insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-000000000009', 'pub-writer@test.local'),
   ('00000000-0000-0000-0000-00000000000b', 'pub-provider@test.local');
 
-insert into profiles (id, role, slug, name, commission_code) values
-  ('00000000-0000-0000-0000-000000000009', 'writer', 'pub-writer', 'Writer', null),
-  ('00000000-0000-0000-0000-00000000000b', 'provider', 'pub-provider', 'Provider', 'WM-33CC44DD');
+insert into profiles (id, role, slug, name) values
+  ('00000000-0000-0000-0000-000000000009', 'writer', 'pub-writer', 'Writer'),
+  ('00000000-0000-0000-0000-00000000000b', 'provider', 'pub-provider', 'Provider');
+
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+set local role authenticated;
+insert into commission_tokens (id, writer_id) values
+  ('50000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000009'),
+  ('50000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000009');
 
 -- act as writer
 select set_config('request.jwt.claims',
@@ -54,15 +61,17 @@ select lives_ok(
   'normal publish succeeds after the interval elapsed');
 
 select lives_ok(
-  $$insert into articles (author_id, slug, title, status, commission_code_input, body, region)
+  $$insert into articles (author_id, slug, title, status, commission_token_input, body, region)
     values ('00000000-0000-0000-0000-000000000009',
-            'pub-c', 'commissioned 1', 'published', 'WM-33CC44DD',
+            'pub-c', 'commissioned 1', 'published',
+            (select token from commission_tokens where id = '50000000-0000-0000-0000-000000000005'),
             '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb, '関東')$$,
   'commissioned article publishes immediately (exempt)');
 select lives_ok(
-  $$insert into articles (author_id, slug, title, status, commission_code_input, body, region)
+  $$insert into articles (author_id, slug, title, status, commission_token_input, body, region)
     values ('00000000-0000-0000-0000-000000000009',
-            'pub-d', 'commissioned 2', 'published', 'WM-33CC44DD',
+            'pub-d', 'commissioned 2', 'published',
+            (select token from commission_tokens where id = '50000000-0000-0000-0000-000000000006'),
             '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb, '関東')$$,
   'multiple commissioned articles are all exempt');
 

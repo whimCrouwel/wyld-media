@@ -126,6 +126,26 @@
     @apply border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground;
   }
 
+  /* Commission: writer list & issued-token history */
+  .commission-list {
+    @apply divide-y divide-border overflow-hidden rounded-lg border bg-card;
+  }
+  .commission-list li {
+    @apply flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3;
+  }
+  .commission-pill {
+    @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium;
+  }
+  .commission-pill--pending {
+    @apply bg-secondary text-secondary-foreground;
+  }
+  .commission-pill--used {
+    @apply bg-primary/10 text-primary;
+  }
+  .commission-pill--revoked {
+    @apply bg-destructive/10 text-destructive;
+  }
+
   /* Users: profile table */
   .admin-table {
     @apply w-full overflow-hidden rounded-lg border text-sm;

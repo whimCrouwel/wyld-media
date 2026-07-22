@@ -7,7 +7,7 @@ import {
   saveArticle,
   deleteArticle,
   checkSlugAvailable,
-  validateCommissionCode,
+  validateCommissionToken,
 } from '../src/lib/articles';
 
 const supabase = createClient(
@@ -38,25 +38,25 @@ describe('buildArticlePayload', () => {
     const body = [{ type: 'paragraph', content: [{ type: 'text', text: '本文' }] }];
     expect(buildArticlePayload({
       title: 'テスト', slug: 'test-slug', body,
-      coverUrl: 'https://img.example/x.webp', commissionCode: 'WM-11AA22BB', region: '関東',
+      coverUrl: 'https://img.example/x.webp', commissionToken: 'WM-11AA22BB', region: '関東',
     })).toEqual({
       title: 'テスト', slug: 'test-slug', body,
       cover_image_url: 'https://img.example/x.webp',
-      commission_code_input: 'WM-11AA22BB',
+      commission_token_input: 'WM-11AA22BB',
       region: '関東',
     });
   });
   it('nulls empty slug/cover/commission and rejects unsafe cover', () => {
     const p = buildArticlePayload({
-      title: 'T', slug: '', body: [], coverUrl: 'javascript:x', commissionCode: '', region: '関東',
+      title: 'T', slug: '', body: [], coverUrl: 'javascript:x', commissionToken: '', region: '関東',
     });
     expect(p.slug).toBeNull();
     expect(p.cover_image_url).toBeNull();
-    expect(p.commission_code_input).toBeNull();
+    expect(p.commission_token_input).toBeNull();
   });
   it('never includes status/published_at/commissioned_by', () => {
     const p = buildArticlePayload({
-      title: 'T', slug: '', body: [], coverUrl: '', commissionCode: '', region: '関東',
+      title: 'T', slug: '', body: [], coverUrl: '', commissionToken: '', region: '関東',
     });
     expect(p).not.toHaveProperty('status');
     expect(p).not.toHaveProperty('published_at');
@@ -65,33 +65,45 @@ describe('buildArticlePayload', () => {
 
   it('取材地を payload に入れる', () => {
     const p = buildArticlePayload({
-      title: 't', slug: 's', body: [], coverUrl: '', commissionCode: '', region: '甲信越',
+      title: 't', slug: 's', body: [], coverUrl: '', commissionToken: '', region: '甲信越',
     });
     expect(p.region).toBe('甲信越');
   });
 
   it('リスト外の取材地は null にする(最終判断はDBのcheck制約)', () => {
     const p = buildArticlePayload({
-      title: 't', slug: 's', body: [], coverUrl: '', commissionCode: '', region: '中部',
+      title: 't', slug: 's', body: [], coverUrl: '', commissionToken: '', region: '中部',
     });
     expect(p.region).toBeNull();
   });
 
   it('未選択は null', () => {
     const p = buildArticlePayload({
-      title: 't', slug: 's', body: [], coverUrl: '', commissionCode: '', region: '',
+      title: 't', slug: 's', body: [], coverUrl: '', commissionToken: '', region: '',
     });
     expect(p.region).toBeNull();
   });
 });
 
-describe('validateCommissionCode (seeded)', () => {
-  it('returns provider name for the seeded code and null for a bad one', async () => {
-    // seed の provider forest-org のコードを取得(RLS で読めないため RPC 経由)。
-    // seed スクリプトは固定コードを使わないので、まず有効コードを知る手段が要る:
-    // provider 本人ではないので、既存の依頼記事から辿るのは不可。
-    // → seed は forest-org にコードを自動生成する。テストは「不正コードは null」を主に確認する。
-    expect(await validateCommissionCode(supabase, 'WM-00000000')).toBeNull();
+describe('validateCommissionToken (seeded)', () => {
+  it('returns the provider name for a token issued to hana, and null for an unknown token', async () => {
+    expect(await validateCommissionToken(supabase, 'WM-00000000')).toBeNull();
+
+    const providerClient = createClient(
+      process.env.PUBLIC_SUPABASE_URL!, process.env.PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false } },
+    );
+    const { error: signInError } = await providerClient.auth.signInWithPassword({
+      email: 'forest@seed.local', password: 'seed-pass-1234',
+    });
+    if (signInError) throw signInError;
+
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data: tokenRow, error: tokenError } = await providerClient
+      .from('commission_tokens').insert({ writer_id: user!.id }).select('token').single();
+    if (tokenError) throw tokenError;
+
+    expect(await validateCommissionToken(supabase, tokenRow.token)).toBe('フォレスト再生機構');
   });
 });
 
@@ -100,7 +112,7 @@ describe('article CRUD (seeded, as hana)', () => {
     const id = await createDraft(supabase, {
       title: '新しい下書き', slug: '',
       body: [{ type: 'paragraph', content: [{ type: 'text', text: '見出しと本文' }] }],
-      coverUrl: '', commissionCode: '', region: '関東',
+      coverUrl: '', commissionToken: '', region: '関東',
     });
     created.push(id);
     expect(typeof id).toBe('string');
@@ -113,7 +125,7 @@ describe('article CRUD (seeded, as hana)', () => {
     await saveArticle(supabase, id, {
       title: '更新後タイトル', slug: '',
       body: [{ type: 'paragraph', content: [{ type: 'text', text: '本文2' }] }],
-      coverUrl: '', commissionCode: '', region: '関東',
+      coverUrl: '', commissionToken: '', region: '関東',
     }, false);
     const updated = await fetchArticleForEdit(supabase, id);
     expect(updated!.title).toBe('更新後タイトル');
@@ -134,7 +146,7 @@ describe('article CRUD (seeded, as hana)', () => {
     const id = await createDraft(supabase, {
       title: 'slug自己除外', slug: 'self-exclude-slug-test',
       body: [{ type: 'paragraph', content: [{ type: 'text', text: '本文' }] }],
-      coverUrl: '', commissionCode: '', region: '関東',
+      coverUrl: '', commissionToken: '', region: '関東',
     });
     created.push(id);
     // without excludeId: the row itself makes the slug appear taken
@@ -143,18 +155,18 @@ describe('article CRUD (seeded, as hana)', () => {
     expect(await checkSlugAvailable(supabase, 'self-exclude-slug-test', id)).toBe(true);
   });
 
-  it('publishing a commissioned draft with a bad code raises INVALID_COMMISSION_CODE', async () => {
+  it('publishing a commissioned draft with an unknown token raises INVALID_COMMISSION_TOKEN', async () => {
     const body = [{ type: 'paragraph', content: [{ type: 'text', text: '本文' }] }];
     const id = await createDraft(supabase, {
-      title: '依頼下書き', slug: 'commissioned-draft-test', body, coverUrl: '', commissionCode: '', region: '関東',
+      title: '依頼下書き', slug: 'commissioned-draft-test', body, coverUrl: '', commissionToken: '', region: '関東',
     });
     created.push(id);
     await expect(
       saveArticle(supabase, id, {
         title: '依頼下書き', slug: 'commissioned-draft-test', body,
-        coverUrl: '', commissionCode: 'WM-BADCODE0', region: '関東',
+        coverUrl: '', commissionToken: 'WM-BADTOKEN', region: '関東',
       }, true),
-    ).rejects.toThrow(/INVALID_COMMISSION_CODE/);
+    ).rejects.toThrow(/INVALID_COMMISSION_TOKEN/);
   });
 });
 
@@ -163,7 +175,7 @@ describe('optimistic concurrency (Task 18)', () => {
     const id = await createDraft(supabase, {
       title: '更新日時テスト', slug: '',
       body: [{ type: 'paragraph', content: [{ type: 'text', text: '本文' }] }],
-      coverUrl: '', commissionCode: '', region: '関東',
+      coverUrl: '', commissionToken: '', region: '関東',
     });
     created.push(id);
     const article = await fetchArticleForEdit(supabase, id);
@@ -174,25 +186,25 @@ describe('optimistic concurrency (Task 18)', () => {
 
   it('saveArticle succeeds when expectedUpdatedAt matches the current row', async () => {
     const id = await createDraft(supabase, {
-      title: '一致テスト', slug: '', body: [], coverUrl: '', commissionCode: '', region: '関東',
+      title: '一致テスト', slug: '', body: [], coverUrl: '', commissionToken: '', region: '関東',
     });
     created.push(id);
     const before = await fetchArticleForEdit(supabase, id);
     const result = await saveArticle(supabase, id, {
-      title: '一致テスト2', slug: '', body: [], coverUrl: '', commissionCode: '', region: '関東',
+      title: '一致テスト2', slug: '', body: [], coverUrl: '', commissionToken: '', region: '関東',
     }, false, before!.updatedAt);
     expect(typeof result.updatedAt).toBe('string');
   });
 
   it('saveArticle throws CONFLICT when expectedUpdatedAt is stale', async () => {
     const id = await createDraft(supabase, {
-      title: '競合テスト', slug: '', body: [], coverUrl: '', commissionCode: '', region: '関東',
+      title: '競合テスト', slug: '', body: [], coverUrl: '', commissionToken: '', region: '関東',
     });
     created.push(id);
     const staleTimestamp = new Date(0).toISOString();
     await expect(
       saveArticle(supabase, id, {
-        title: '競合テスト2', slug: '', body: [], coverUrl: '', commissionCode: '', region: '関東',
+        title: '競合テスト2', slug: '', body: [], coverUrl: '', commissionToken: '', region: '関東',
       }, false, staleTimestamp),
     ).rejects.toThrow('CONFLICT');
   });
@@ -200,7 +212,7 @@ describe('optimistic concurrency (Task 18)', () => {
   it('saveArticle throws NOT_FOUND when the article id does not exist and no expectedUpdatedAt is given', async () => {
     await expect(
       saveArticle(supabase, '00000000-0000-0000-0000-000000000000', {
-        title: '存在しない', slug: '', body: [], coverUrl: '', commissionCode: '', region: '関東',
+        title: '存在しない', slug: '', body: [], coverUrl: '', commissionToken: '', region: '関東',
       }, false),
     ).rejects.toThrow('NOT_FOUND');
   });
