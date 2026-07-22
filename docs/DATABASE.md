@@ -9,8 +9,6 @@ erDiagram
     profiles ||--o{ articles : "author_id"
     profiles |o--o{ articles : "commissioned_by (nullable)"
     articles ||--o{ post_chunks : "article_id (cascade delete)"
-    profiles ||--o{ commission_tokens : "provider_id"
-    profiles ||--o{ commission_tokens : "writer_id"
 
     "auth.users" {
         uuid id PK
@@ -78,14 +76,6 @@ erDiagram
         timestamptz created_at
         timestamptz updated_at
     }
-
-    commission_tokens {
-        uuid id PK
-        uuid provider_id FK "-> profiles.id"
-        uuid writer_id FK "-> profiles.id"
-        text token UK "format: WM-XXXXXXXX(16進8文字)"
-        timestamptz created_at
-    }
 ```
 
 ## テーブルごとの補足
@@ -97,7 +87,6 @@ erDiagram
 | `settings` | RLS: authenticated 全員read、admin write | シングルトン(`id=1`固定)。`image_base_url` は空文字が既定(fail closed) |
 | `media` | RLS: 所有者 or admin | R2にアップロード済み画像のURL記録のみ。記事から参照中の画像は削除不可(`block_media_in_use`) |
 | `post_chunks` | RLS: ポリシーなし(service role専用) | ハイブリッド検索用。`embedding`(pgvector, 1536次元)+ `content`(pgroonga全文検索対象)。anon/authenticatedからは直接アクセス不可、`chunk-article`/`search-articles` Edge Function経由のみ |
-| `commission_tokens` | RLS: provider/writer/admin | プロバイダーがライターに向けて発行する一回限りの依頼トークン。`set_commission_token()` トリガーがプロバイダーと対象者の role を検証し、token を自動採番する。format: WM-XXXXXXXX(16進8文字) |
 
 ## 主なDB関数(トリガー・RPC)
 
@@ -107,7 +96,6 @@ erDiagram
 | `set_commission_code()` | トリガー | provider の `commission_code` を自動採番 |
 | `validate_commission_code(code)` | RPC | 依頼者コードの実在チェック(完全一致のみ応答、列挙攻撃防止) |
 | `resolve_commission_code()` | トリガー | 記事保存時、`commission_code_input` から `commissioned_by` を解決 |
-| `set_commission_token()` | トリガー | commission_tokens 行挿入時、provider_id を呼び出し本人に強制、writer_id の role を検証、token を自動採番 |
 | `enforce_publish_rules()` | トリガー | 公開条件(投稿間隔・本文必須など)を強制 |
 | `enforce_body_image_rules()` | トリガー | 本文中の画像枚数・ホスト許可を強制 |
 | `enforce_body_embed_rules()` | トリガー | 本文中の埋め込み(YouTube/Vimeo/X)ホスト許可を強制 |
