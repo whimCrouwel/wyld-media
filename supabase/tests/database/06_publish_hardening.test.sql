@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(11);
+select plan(12);
 
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-00000000000c', 'hard-writer@test.local'),
@@ -15,6 +15,10 @@ select set_config('request.jwt.claims',
 set local role authenticated;
 insert into commission_tokens (id, writer_id) values
   ('50000000-0000-0000-0000-000000000007', '00000000-0000-0000-0000-00000000000c');
+-- a second valid token to the same writer, so we can test swapping the link
+-- to a different token (not just clearing it to null) on a published article.
+insert into commission_tokens (id, writer_id) values
+  ('50000000-0000-0000-0000-000000000008', '00000000-0000-0000-0000-00000000000c');
 
 -- act as writer
 select set_config('request.jwt.claims',
@@ -101,6 +105,13 @@ select throws_like(
     where id = '40000000-0000-0000-0000-000000000003'$$,
   '%COMMISSION_UNLINK_REQUIRES_UNPUBLISH%',
   'clearing the commission link while still published is rejected');
+
+select throws_like(
+  $$update articles set commission_token_input =
+      (select token from commission_tokens where id = '50000000-0000-0000-0000-000000000008')
+    where id = '40000000-0000-0000-0000-000000000003'$$,
+  '%COMMISSION_UNLINK_REQUIRES_UNPUBLISH%',
+  'swapping the commission link to a different token while still published is rejected');
 
 -- 6) unpublish first, then the link can be cleared; republishing afterwards
 --    is a normal (uncommissioned) publish and goes through the rate limit
