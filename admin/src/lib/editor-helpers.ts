@@ -19,6 +19,9 @@ export function translateSaveError(err: unknown): string {
   if (msg.includes('COMMISSION_TOKEN_ALREADY_USED')) {
     return 'この依頼トークンは使用済みです。';
   }
+  if (msg.includes('COMMISSION_TOKEN_REVOKED')) {
+    return 'この依頼トークンは取り消されています。';
+  }
   if (msg.includes('COMMISSION_UNLINK_REQUIRES_UNPUBLISH')) {
     return '公開中の依頼記事から依頼リンクを外すには、一度下書きに戻してください。';
   }
