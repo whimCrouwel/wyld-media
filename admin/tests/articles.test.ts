@@ -86,8 +86,21 @@ describe('buildArticlePayload', () => {
 });
 
 describe('validateCommissionToken (seeded)', () => {
-  it('returns the provider name for a token issued to hana, and null for an unknown token', async () => {
+  it('returns the provider name for a token issued to a writer, and null for an unknown token', async () => {
     expect(await validateCommissionToken(supabase, 'WM-00000000')).toBeNull();
+
+    // kenta 宛てに発行する: commissions.test.ts が forest→hana のペアで頻繁にトークンを
+    // 発行しており、commission_interval_days の間隔チェックが並行実行時に衝突しうるため
+    // (テストの分離のため別ペアを使う)。
+    const kentaClient = createClient(
+      process.env.PUBLIC_SUPABASE_URL!, process.env.PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false } },
+    );
+    const { error: kentaSignInError } = await kentaClient.auth.signInWithPassword({
+      email: 'kenta@seed.local', password: 'seed-pass-1234',
+    });
+    if (kentaSignInError) throw kentaSignInError;
+    const { data: { user: kentaUser } } = await kentaClient.auth.getUser();
 
     const providerClient = createClient(
       process.env.PUBLIC_SUPABASE_URL!, process.env.PUBLIC_SUPABASE_ANON_KEY!,
@@ -98,12 +111,18 @@ describe('validateCommissionToken (seeded)', () => {
     });
     if (signInError) throw signInError;
 
-    const { data: { user } } = await supabase.auth.getUser();
     const { data: tokenRow, error: tokenError } = await providerClient
-      .from('commission_tokens').insert({ writer_id: user!.id }).select('token').single();
+      .from('commission_tokens').insert({ writer_id: kentaUser!.id }).select('id, token').single();
     if (tokenError) throw tokenError;
 
-    expect(await validateCommissionToken(supabase, tokenRow.token)).toBe('フォレスト再生機構');
+    expect(await validateCommissionToken(kentaClient, tokenRow.token)).toBe('フォレスト再生機構');
+
+    // 未使用のまま残すと commission_interval_days の間隔チェックにより次回のテスト実行で
+    // このペアへの発行がブロックされるため、後始末として取り消す。
+    await providerClient
+      .from('commission_tokens')
+      .update({ revoked_at: new Date().toISOString() })
+      .eq('id', tokenRow.id);
   });
 });
 

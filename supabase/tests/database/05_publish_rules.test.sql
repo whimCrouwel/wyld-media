@@ -13,8 +13,12 @@ insert into profiles (id, role, slug, name) values
 select set_config('request.jwt.claims',
   '{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
 set local role authenticated;
+-- 2件目は commission_interval_days の間隔チェックに引っかからないよう、1件目を
+-- あえて過去日時で発行する。
+insert into commission_tokens (id, writer_id, created_at) values
+  ('50000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000009',
+   now() - interval '11 days');
 insert into commission_tokens (id, writer_id) values
-  ('50000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000009'),
   ('50000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000009');
 
 -- act as writer

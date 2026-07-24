@@ -1,5 +1,5 @@
 ---
-import PageShell from '../components/templates/PageShell.astro';
+import AdminShell from '../components/templates/AdminShell.astro';
 import Card from '../components/atoms/Card.astro';
 import Button from '../components/atoms/Button.astro';
 import Field from '../components/molecules/Field.astro';
@@ -8,34 +8,79 @@ import { REGIONS } from '../lib/regions';
 
 const title = 'プロフィール編集 | Wild Media CMS';
 ---
-<PageShell title={title} heading="プロフィール編集">
+<AdminShell title={title} wide>
+  <h1 id="profile-heading" class="mb-6 text-2xl font-semibold tracking-tight">基本情報の編集</h1>
+  <div class="mb-4 flex items-center gap-2" role="tablist">
+    <Button type="button" id="tab-basic" variant="outline" size="sm" role="tab" aria-selected="true">基本情報</Button>
+    <Button type="button" id="tab-service" variant="outline" size="sm" role="tab" aria-selected="false" hidden>主要サービス</Button>
+    <Button type="button" id="tab-pricing" variant="outline" size="sm" role="tab" aria-selected="false" hidden>料金プラン</Button>
+  </div>
   <Card class="p-6">
     <form id="profile-form" class="space-y-4">
-      <Field id="name" label="名前" type="text" required />
-      <Field id="bio" label="自己紹介" as="textarea" rows={4} />
-      <ImageUploadField id="avatar" label="顔写真" hint="正方形にトリミングされます。" />
-      <ImageUploadField id="cover" label="カバー画像" hint="横長のバナーにトリミングされます。" />
-      <Field id="region" label="活動拠点(エリア)" as="select">
-        <option value="">未設定</option>
-        {REGIONS.map((r) => <option value={r}>{r}</option>)}
-      </Field>
-      <Field id="location" label="活動拠点(詳細)" type="text" />
-      <Field id="homepage" label="ホームページURL" type="url" />
-      <Field id="sns" label="SNSリンク(1行に1つ)" as="textarea" rows={3} />
-      <Field id="price" label="料金" type="text" />
-      <Field id="contact" label="相談窓口URL" type="url" />
-      <div class="flex items-center gap-4 pt-2">
+      <div id="panel-basic" class="space-y-4">
+        <Field id="name" label="名前" type="text" required />
+        <Field id="bio" label="自己紹介" as="textarea" rows={4} />
+        <ImageUploadField id="avatar" label="顔写真" hint="正方形にトリミングされます。" />
+        <ImageUploadField id="cover" label="カバー画像" hint="横長のバナーにトリミングされます。" />
+        <Field id="region" label="活動拠点(エリア)" as="select">
+          <option value="">未設定</option>
+          {REGIONS.map((r) => <option value={r}>{r}</option>)}
+        </Field>
+        <Field id="location" label="活動拠点(詳細)" type="text" />
+        <Field id="homepage" label="ホームページURL" type="url" />
+        <Field id="sns" label="SNSリンク(1行に1つ)" as="textarea" rows={3} />
+        <Field id="contact" label="相談窓口URL" type="url" />
+      </div>
+      <div id="panel-service" class="space-y-4" hidden>
+        <Field id="service-name" label="サービス名" type="text" />
+        <Field id="service-description" label="説明" as="textarea" rows={4} />
+        <Field id="service-url" label="URL" type="url" />
+        <ImageUploadField id="service-image" label="サービス画像" hint="正方形にトリミングされます。" />
+      </div>
+      <div id="panel-basic-actions" class="flex items-center gap-4 pt-2">
         <Button type="submit">保存</Button>
         <p id="message" role="alert" class="text-sm text-muted-foreground"></p>
       </div>
     </form>
+
+    <div id="panel-pricing" hidden>
+      <p class="mb-4 text-sm text-muted-foreground">
+        公開ページの「料金プラン」に上から順に表示されます。下書きは表示されません。
+      </p>
+      <div class="mb-3 flex items-center justify-end">
+        <button
+          id="pricing-add-btn"
+          type="button"
+          class="inline-flex h-9 items-center gap-1 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90"
+        >＋ 項目を追加</button>
+      </div>
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>項目名</th>
+            <th style="width: 180px">単位</th>
+            <th style="width: 160px" class="text-right">単価 (¥)</th>
+            <th style="width: 120px">公開</th>
+            <th style="width: 100px"></th>
+          </tr>
+        </thead>
+        <tbody id="pricing-rows"><tr><td colspan="5">読み込み中…</td></tr></tbody>
+      </table>
+      <p id="pricing-message" role="alert" class="mt-3 text-sm text-muted-foreground"></p>
+    </div>
   </Card>
 
   <script>
       import { supabaseBrowser } from '../lib/supabase-browser';
       import { redirectTo } from '../lib/auth';
-      import { buildProfileUpdate } from '../lib/profile';
+      import { buildProfileUpdate, getProfileFieldLabels } from '../lib/profile';
       import { initImageUploadWidget } from '../lib/image-upload-widget';
+      import { initShellChrome } from '../lib/shell';
+      import { initConfirmDialog } from '../lib/confirm-dialog';
+      import {
+        fetchPricingItems, createPricingItem, updatePricingItem,
+        deletePricingItem, type PricingItem,
+      } from '../lib/pricing';
 
       const { data: { session } } = await supabaseBrowser.auth.getSession();
       if (!session) {
@@ -44,23 +89,92 @@ const title = 'プロフィール編集 | Wild Media CMS';
         const messageEl = document.getElementById('message')!;
         const $ = (id: string) => document.getElementById(id) as HTMLInputElement & HTMLTextAreaElement & HTMLSelectElement;
 
-        // 顔写真は正方形、カバーは横長バナーにトリミング。プロフィール画像は
+        // ライター/プロバイダーで項目名・表示項目を出し分ける(UX。値の意味自体は共通カラム)。
+        // 「主要サービス」タブは認定済み(certified)の provider にしか出さないため、
+        // ロールと一緒に certified もプロフィール読み込み前に確定させる。
+        const { role: myRole } = await initShellChrome(supabaseBrowser);
+
+        // 現在のプロフィールをロード(RLS: 自分の行のみ取得可)
+        const { data: profile, error: loadError } = await supabaseBrowser
+          .from('profiles')
+          .select(
+            'name, bio, avatar_url, cover_image_url, region, location, homepage_url, sns_links, ' +
+            'contact_url, service_name, service_description, service_url, service_image_url, certified',
+          )
+          .eq('id', session!.user.id)
+          .single();
+
+        const fieldLabels = getProfileFieldLabels(myRole, profile?.certified ?? false);
+        document.getElementById('name-label')!.textContent = fieldLabels.name;
+        document.getElementById('bio-label')!.textContent = fieldLabels.bio;
+        document.getElementById('avatar-label')!.textContent = fieldLabels.avatar;
+        (document.getElementById('contact-field') as HTMLElement).hidden = !fieldLabels.showContactUrl;
+
+        // タブ切り替え(「主要サービス」は認定済み provider だけ、「料金プラン」はライターだけ)。
+        // サイドバーの「主要サービスの編集」「料金プランの編集」は /profile?tab=... で直接遷移する。
+        // activateTab は「料金プランを開いたら一度だけロード」も担当するため、
+        // 先に pricingLoaded / loadPricing が使える状態にしてから呼ぶ(下の "料金プラン" セクション参照)。
+        const headingEl = document.getElementById('profile-heading')!;
+        const tabBasic = document.getElementById('tab-basic')!;
+        const tabService = document.getElementById('tab-service')!;
+        const tabPricing = document.getElementById('tab-pricing')!;
+        const panelBasic = document.getElementById('panel-basic') as HTMLElement;
+        const panelBasicActions = document.getElementById('panel-basic-actions') as HTMLElement;
+        const panelService = document.getElementById('panel-service') as HTMLElement;
+        const panelPricing = document.getElementById('panel-pricing') as HTMLElement;
+        type TabKey = 'basic' | 'service' | 'pricing';
+        let pricingLoaded = false;
+        // loadPricing は下で定義される。activateTab は変数として動的に参照するため、
+        // ここでは「その時点の pricingLoaded/loadPricing を見る」形にしておく。
+        let loadPricing: () => Promise<void> = async () => {};
+        const activateTab = (tab: TabKey) => {
+          panelBasic.hidden = tab !== 'basic';
+          panelService.hidden = tab !== 'service';
+          panelPricing.hidden = tab !== 'pricing';
+          // 「保存」ボタン + メッセージは basic/service タブ(=profile form)専用。
+          panelBasicActions.hidden = tab === 'pricing';
+          tabBasic.setAttribute('aria-selected', String(tab === 'basic'));
+          tabService.setAttribute('aria-selected', String(tab === 'service'));
+          tabPricing.setAttribute('aria-selected', String(tab === 'pricing'));
+          tabBasic.classList.toggle('bg-secondary', tab === 'basic');
+          tabService.classList.toggle('bg-secondary', tab === 'service');
+          tabPricing.classList.toggle('bg-secondary', tab === 'pricing');
+          headingEl.textContent =
+            tab === 'basic' ? '基本情報の編集'
+            : tab === 'service' ? '主要サービスの編集'
+            : '料金プランの編集';
+          if (tab === 'pricing' && !pricingLoaded) void loadPricing();
+        };
+        if (fieldLabels.showServiceTab) {
+          tabService.hidden = false;
+          tabService.addEventListener('click', () => activateTab('service'));
+        }
+        if (fieldLabels.showPricingTab) {
+          tabPricing.hidden = false;
+          tabPricing.addEventListener('click', () => activateTab('pricing'));
+        }
+        tabBasic.addEventListener('click', () => activateTab('basic'));
+        const requestedTab = new URLSearchParams(location.search).get('tab');
+        const initialTab: TabKey =
+          requestedTab === 'service' && fieldLabels.showServiceTab ? 'service'
+          : requestedTab === 'pricing' && fieldLabels.showPricingTab ? 'pricing'
+          : 'basic';
+
+        // 顔写真・サービス画像は正方形、カバーは横長バナーにトリミング。プロフィール画像は
         // メディアライブラリには登録しない(記事メディアと区別する)。
         const avatarWidget = initImageUploadWidget(supabaseBrowser, {
           idPrefix: 'avatar', aspectRatio: 1, recordToMediaLibrary: false,
-          emptyLabel: '顔写真は未設定です。',
+          emptyLabel: `${fieldLabels.avatar}は未設定です。`,
         });
         const coverWidget = initImageUploadWidget(supabaseBrowser, {
           idPrefix: 'cover', aspectRatio: 3, recordToMediaLibrary: false,
           emptyLabel: 'カバー画像は未設定です。',
         });
+        const serviceImageWidget = initImageUploadWidget(supabaseBrowser, {
+          idPrefix: 'service-image', aspectRatio: 1, recordToMediaLibrary: false,
+          emptyLabel: 'サービス画像は未設定です。',
+        });
 
-        // 現在のプロフィールをロード(RLS: 自分の行のみ取得可)
-        const { data: profile, error: loadError } = await supabaseBrowser
-          .from('profiles')
-          .select('name, bio, avatar_url, cover_image_url, region, location, homepage_url, sns_links, price_info, contact_url')
-          .eq('id', session!.user.id)
-          .single();
         if (loadError) {
           messageEl.textContent = 'プロフィールの読み込みに失敗しました';
         } else if (profile) {
@@ -72,8 +186,11 @@ const title = 'プロフィール編集 | Wild Media CMS';
           $('location').value = profile.location ?? '';
           $('homepage').value = profile.homepage_url ?? '';
           $('sns').value = Array.isArray(profile.sns_links) ? profile.sns_links.join('\n') : '';
-          $('price').value = profile.price_info ?? '';
           $('contact').value = profile.contact_url ?? '';
+          $('service-name').value = profile.service_name ?? '';
+          $('service-description').value = profile.service_description ?? '';
+          $('service-url').value = profile.service_url ?? '';
+          serviceImageWidget.setUrl(profile.service_image_url ?? null);
         }
 
         document.getElementById('profile-form')!.addEventListener('submit', async (e) => {
@@ -88,8 +205,11 @@ const title = 'プロフィール編集 | Wild Media CMS';
             location: $('location').value,
             homepageUrl: $('homepage').value,
             snsRaw: $('sns').value,
-            priceInfo: $('price').value,
             contactUrl: $('contact').value,
+            serviceName: $('service-name').value,
+            serviceDescription: $('service-description').value,
+            serviceUrl: $('service-url').value,
+            serviceImageUrl: $('service-image').value,
           });
           if (!payload.name) { messageEl.textContent = '名前を入力してください'; return; }
 
@@ -105,6 +225,194 @@ const title = 'プロフィール編集 | Wild Media CMS';
           }
           messageEl.textContent = '保存しました。';
         });
+
+        // ================= 料金プランタブ =================
+        // 初回開いたときだけロードする(基本情報タブから来たときの余計な fetch を避ける)。
+        const writerId = session!.user.id;
+        const pricingRowsEl = document.getElementById('pricing-rows') as HTMLElement;
+        const pricingAddBtn = document.getElementById('pricing-add-btn') as HTMLButtonElement;
+        const pricingMessageEl = document.getElementById('pricing-message') as HTMLElement;
+        const confirmDialog = initConfirmDialog(
+          document.getElementById('confirm-dialog') as HTMLDialogElement,
+        );
+
+        const parseAmount = (raw: string): number | null => {
+          const cleaned = raw.replace(/[,\s]/g, '');
+          if (cleaned === '') return null;
+          const n = Number(cleaned);
+          if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0) return null;
+          return n;
+        };
+        const yen = (n: number) => n.toLocaleString('ja-JP');
+        const setPricingMessage = (text: string, kind: 'info' | 'error' = 'info') => {
+          pricingMessageEl.textContent = text;
+          pricingMessageEl.className = kind === 'error'
+            ? 'mt-3 text-sm text-destructive'
+            : 'mt-3 text-sm text-muted-foreground';
+        };
+
+        const renderPricingRow = (item: PricingItem) => {
+          const tr = document.createElement('tr');
+          tr.dataset.id = item.id;
+          const mkInput = (value: string, extraClass = '') => {
+            const i = document.createElement('input');
+            i.type = 'text'; i.value = value;
+            i.className =
+              'w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm ' +
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ' +
+              extraClass;
+            return i;
+          };
+          const labelIn = mkInput(item.label);
+          const unitIn = mkInput(item.unit);
+          const amountIn = mkInput(yen(item.amount), 'text-right tabular-nums font-mono');
+
+          const publishedSel = document.createElement('select');
+          for (const [value, text] of [['true', '公開中'], ['false', '下書き']] as const) {
+            const o = document.createElement('option');
+            o.value = value; o.textContent = text;
+            o.selected = String(item.published) === value;
+            publishedSel.appendChild(o);
+          }
+
+          const labelTd = document.createElement('td'); labelTd.appendChild(labelIn);
+          const unitTd = document.createElement('td'); unitTd.appendChild(unitIn);
+          const amountTd = document.createElement('td'); amountTd.className = 'text-right'; amountTd.appendChild(amountIn);
+          const publishedTd = document.createElement('td'); publishedTd.appendChild(publishedSel);
+
+          const actionTd = document.createElement('td');
+          actionTd.className = 'text-right';
+          const delBtn = document.createElement('button');
+          delBtn.type = 'button';
+          delBtn.textContent = '削除';
+          delBtn.className =
+            'inline-flex h-8 items-center rounded-md border border-destructive/30 bg-background ' +
+            'px-2 text-xs font-medium text-destructive hover:bg-destructive hover:text-destructive-foreground';
+          delBtn.addEventListener('click', async () => {
+            setPricingMessage('');
+            const ok = await confirmDialog.confirm({
+              title: '料金項目を削除',
+              body: `「${labelIn.value.trim() || item.label}」を削除します。この操作は取り消せません。`,
+            });
+            if (!ok) return;
+            try {
+              await deletePricingItem(supabaseBrowser, item.id);
+            } catch (err) {
+              setPricingMessage('削除に失敗しました。', 'error');
+              console.error(err);
+              return;
+            }
+            tr.remove();
+            setPricingMessage(`「${labelIn.value.trim() || item.label}」を削除しました。`);
+          });
+          actionTd.appendChild(delBtn);
+
+          const saveBtn = document.createElement('button');
+          saveBtn.type = 'button';
+          saveBtn.textContent = '保存';
+          saveBtn.className =
+            'ml-1 inline-flex h-8 items-center rounded-md bg-primary px-2 text-xs font-medium ' +
+            'text-primary-foreground hover:bg-primary/90';
+          saveBtn.hidden = true;
+          const markDirty = () => { saveBtn.hidden = false; };
+          for (const el of [labelIn, unitIn, amountIn]) el.addEventListener('input', markDirty);
+          publishedSel.addEventListener('change', markDirty);
+
+          saveBtn.addEventListener('click', async () => {
+            setPricingMessage('');
+            const amount = parseAmount(amountIn.value);
+            if (!labelIn.value.trim()) {
+              setPricingMessage('項目名を入力してください。', 'error'); return;
+            }
+            if (amount === null) {
+              setPricingMessage('単価は0以上の整数で入力してください。', 'error'); return;
+            }
+            saveBtn.disabled = true;
+            try {
+              await updatePricingItem(supabaseBrowser, item.id, {
+                label: labelIn.value,
+                unit: unitIn.value,
+                amount,
+                published: publishedSel.value === 'true',
+                sortOrder: item.sortOrder,
+              });
+              item.label = labelIn.value.trim();
+              item.amount = amount;
+              amountIn.value = yen(amount);
+              saveBtn.hidden = true;
+              setPricingMessage(`「${item.label}」を保存しました。`);
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : '';
+              setPricingMessage(msg.includes('項目名') || msg.includes('単価')
+                ? msg
+                : '保存に失敗しました。', 'error');
+              console.error(err);
+            } finally {
+              saveBtn.disabled = false;
+            }
+          });
+          actionTd.appendChild(saveBtn);
+
+          tr.appendChild(labelTd);
+          tr.appendChild(unitTd);
+          tr.appendChild(amountTd);
+          tr.appendChild(publishedTd);
+          tr.appendChild(actionTd);
+          return tr;
+        };
+
+        loadPricing = async () => {
+          pricingLoaded = true;
+          pricingRowsEl.innerHTML = '';
+          try {
+            const items = await fetchPricingItems(supabaseBrowser, writerId);
+            if (items.length === 0) {
+              const tr = document.createElement('tr');
+              const td = document.createElement('td');
+              td.colSpan = 5;
+              td.className = 'text-muted-foreground';
+              td.textContent = 'まだ料金項目がありません。「＋ 項目を追加」から追加してください。';
+              tr.appendChild(td);
+              pricingRowsEl.appendChild(tr);
+              return;
+            }
+            for (const item of items) pricingRowsEl.appendChild(renderPricingRow(item));
+          } catch (err) {
+            pricingRowsEl.innerHTML = '<tr><td colspan="5">読み込みに失敗しました。</td></tr>';
+            console.error(err);
+          }
+        };
+
+        pricingAddBtn.addEventListener('click', async () => {
+          setPricingMessage('');
+          pricingAddBtn.disabled = true;
+          try {
+            const items = await fetchPricingItems(supabaseBrowser, writerId);
+            const nextSort = items.length === 0
+              ? 10
+              : Math.max(...items.map((i) => i.sortOrder)) + 10;
+            const created = await createPricingItem(supabaseBrowser, writerId, {
+              label: '新しい料金項目', unit: '1本', amount: 0,
+              published: false, sortOrder: nextSort,
+            });
+            const empty = pricingRowsEl.querySelector('td[colspan]');
+            if (empty) pricingRowsEl.innerHTML = '';
+            const tr = renderPricingRow(created);
+            pricingRowsEl.appendChild(tr);
+            const firstInput = tr.querySelector('input');
+            firstInput?.focus();
+            (firstInput as HTMLInputElement | null)?.select();
+            setPricingMessage('行を追加しました。内容を編集して「保存」を押してください。');
+          } catch (err) {
+            setPricingMessage('追加に失敗しました。', 'error');
+            console.error(err);
+          } finally {
+            pricingAddBtn.disabled = false;
+          }
+        });
+
+        // loadPricing の実体が確定したので、ようやくタブ初期化を実行する。
+        activateTab(initialTab);
       }
     </script>
-</PageShell>
+</AdminShell>

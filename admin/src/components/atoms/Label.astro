@@ -3,11 +3,12 @@ import { cn } from '../../lib/cn';
 
 interface Props {
   for?: string;
+  id?: string;
   class?: string;
 }
 
-const { for: htmlFor, class: className } = Astro.props;
+const { for: htmlFor, id, class: className } = Astro.props;
 ---
-<label for={htmlFor} class={cn('text-sm font-medium leading-none', className)}>
+<label for={htmlFor} id={id} class={cn('text-sm font-medium leading-none', className)}>
   <slot />
 </label>

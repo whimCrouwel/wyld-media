@@ -15,13 +15,19 @@ const title = 'ログイン | Wild Media CMS';
         <Field id="password" label="パスワード" type="password" required />
         <Button type="submit" class="w-full">ログイン</Button>
       </form>
+      <button
+        type="button"
+        id="forgot-password"
+        class="mt-3 text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+        >パスワードをお忘れですか?</button
+      >
       <p id="error" role="alert" class="mt-4 text-sm text-destructive"></p>
     </Card>
   </main>
 
   <script>
       import { supabaseBrowser } from '../lib/supabase-browser';
-      import { validateLoginInput, redirectTo, translateAuthError } from '../lib/auth';
+      import { validateLoginInput, validateResetEmail, redirectTo, translateAuthError } from '../lib/auth';
 
       const form = document.getElementById('login-form') as HTMLFormElement;
       const errorEl = document.getElementById('error')!;
@@ -31,18 +37,47 @@ const title = 'ログイン | Wild Media CMS';
       if (session) {
         redirectTo('/dashboard');
       } else {
+        const setMessage = (text: string, tone: 'error' | 'info') => {
+          errorEl.textContent = text;
+          errorEl.classList.toggle('text-destructive', tone === 'error');
+          errorEl.classList.toggle('text-muted-foreground', tone === 'info');
+        };
+
         form.addEventListener('submit', async (e) => {
           e.preventDefault();
-          errorEl.textContent = '';
+          setMessage('', 'error');
           const email = (document.getElementById('email') as HTMLInputElement).value.trim();
           const password = (document.getElementById('password') as HTMLInputElement).value;
 
           const validationError = validateLoginInput(email, password);
-          if (validationError) { errorEl.textContent = validationError; return; }
+          if (validationError) { setMessage(validationError, 'error'); return; }
 
           const { error } = await supabaseBrowser.auth.signInWithPassword({ email, password });
-          if (error) { errorEl.textContent = translateAuthError(error); console.error(error); return; }
+          if (error) { setMessage(translateAuthError(error), 'error'); console.error(error); return; }
           redirectTo('/dashboard');
+        });
+
+        document.getElementById('forgot-password')!.addEventListener('click', async () => {
+          setMessage('', 'error');
+          const email = (document.getElementById('email') as HTMLInputElement).value.trim();
+          const validationError = validateResetEmail(email);
+          if (validationError) { setMessage(validationError, 'error'); return; }
+
+          const { error } = await supabaseBrowser.auth.resetPasswordForEmail(email, {
+            redirectTo: `${window.location.origin}/set-password`,
+          });
+          const isRateLimit = error && (
+            error.message.toLowerCase().includes('rate limit')
+            || error.message.includes('you can only request this after')
+          );
+          if (isRateLimit) {
+            setMessage(translateAuthError(error), 'error');
+            return;
+          }
+          if (error) console.error(error);
+          // 列挙攻撃対策: メールが実在するかに関わらず同じ文言を出す(レート制限は
+          // メールの実在有無と無関係に起きるので、これだけは正直に伝えて良い)。
+          setMessage('このメールアドレス宛てにパスワード再設定用のリンクを送信しました(登録がある場合)。', 'info');
         });
       }
     </script>

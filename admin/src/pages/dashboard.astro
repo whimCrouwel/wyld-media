@@ -1,76 +1,93 @@
 ---
-import AdminLayout from '../layouts/AdminLayout.astro';
-import Button from '../components/atoms/Button.astro';
+import AdminShell from '../components/templates/AdminShell.astro';
 import Avatar from '../components/atoms/Avatar.astro';
+import Card from '../components/atoms/Card.astro';
+import Button from '../components/atoms/Button.astro';
 
 const title = 'ダッシュボード | Wild Media CMS';
-const navLink = 'text-muted-foreground transition-colors hover:text-foreground';
 ---
-<AdminLayout title={title}>
-  <header class="border-b bg-card">
-    <nav class="mx-auto flex h-14 max-w-3xl items-center justify-between px-4 text-sm">
-      <div class="flex items-center gap-4">
-        <a href="/dashboard" class="font-semibold text-foreground">Wild Media CMS</a>
-        <a href="/dashboard" class={navLink}>ダッシュボード</a>
-        <span id="admin-nav" hidden>
-          <a href="/users" class={`mr-4 ${navLink}`}>ユーザー管理</a>
-          <a href="/commissions" class={`mr-4 ${navLink}`}>依頼トークン管理</a>
-          <a href="/settings" class={navLink}>サイト設定</a>
-        </span>
-        <span id="provider-nav" hidden>
-          <a href="/commission" class={navLink}>ライターに依頼する</a>
-        </span>
-      </div>
-      <div class="flex items-center gap-3">
-        <a id="profile-nav" href="/profile" class={`flex items-center gap-2 ${navLink}`} hidden>
-          <Avatar id="profile-nav-avatar" size={28} />
-          <span id="profile-nav-name"></span>
-        </a>
-        <Button id="logout" type="button" variant="outline" size="sm">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="h-4 w-4"
-            aria-hidden="true"
-          >
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-            <polyline points="16 17 21 12 16 7" />
-            <line x1="21" y1="12" x2="9" y2="12" />
-          </svg>
-          ログアウト
-        </Button>
-      </div>
-    </nav>
-  </header>
-  <main class="mx-auto max-w-3xl px-4 py-8">
+<AdminShell title={title} wide>
+  <div id="articles-section">
     <div class="mb-6 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <Avatar id="articles-heading-avatar" size={32} hidden />
         <h1 id="articles-heading" class="text-2xl font-semibold tracking-tight">自分の記事</h1>
       </div>
       <a
+        id="create-article-link"
         href="/articles/new"
-        class="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        class="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
         >＋ 新しい記事を作成</a
       >
     </div>
     <p id="article-list-message" role="alert" class="mb-3 text-sm text-destructive"></p>
     <ul id="article-list" class="article-list"><li>読み込み中…</li></ul>
-  </main>
+  </div>
+
+  <div id="commission-section" class="space-y-6" hidden>
+    <h1 class="mb-2 text-2xl font-semibold tracking-tight">ライターに依頼する</h1>
+    <Card class="p-6">
+      <h2 class="mb-4 text-lg font-semibold tracking-tight">ライター一覧</h2>
+      <ul id="writer-rows" class="commission-list"><li>読み込み中…</li></ul>
+    </Card>
+
+    <div id="issued-card" hidden>
+      <Card class="p-6">
+        <p class="text-sm">
+          <span id="issued-writer" class="font-medium"></span> さんへのトークンを発行しました
+        </p>
+        <div class="mt-2 flex items-center gap-2">
+          <code id="issued-token" class="rounded bg-secondary px-2 py-1 text-sm font-medium"></code>
+          <Button id="issued-copy" type="button" variant="outline" size="sm">コピー</Button>
+        </div>
+        <p class="mt-3 text-xs text-muted-foreground">
+          このトークンをライターさんに直接お渡しください。ライターさんがこのトークンを使って記事を公開すると、依頼記事としてFeatured枠に表示されます。
+        </p>
+      </Card>
+    </div>
+
+    <Card class="p-6">
+      <h2 class="mb-4 text-lg font-semibold tracking-tight">発行済みトークン(直近3件)</h2>
+      <table class="admin-table">
+        <thead>
+          <tr><th>ライター</th><th>トークン</th><th>状態</th><th></th></tr>
+        </thead>
+        <tbody id="token-rows"><tr><td colspan="4">読み込み中…</td></tr></tbody>
+      </table>
+    </Card>
+
+    <p id="commission-message" role="alert" class="text-sm text-muted-foreground"></p>
+  </div>
+
+  <div id="audit-section" hidden>
+    <h1 class="mb-6 text-2xl font-semibold tracking-tight">全記事</h1>
+    <Card class="p-6">
+      <table class="admin-table">
+        <thead>
+          <tr><th>タイトル</th><th>著者</th><th>状態</th><th>審査</th><th>公開日</th></tr>
+        </thead>
+        <tbody id="audit-rows"><tr><td colspan="5">読み込み中…</td></tr></tbody>
+      </table>
+    </Card>
+    <p id="audit-message" role="alert" class="mt-3 text-sm text-destructive"></p>
+  </div>
 
   <script>
       import { supabaseBrowser } from '../lib/supabase-browser';
       import { redirectTo } from '../lib/auth';
       import { fetchMyArticles } from '../lib/dashboard';
-      import { fetchMyRole, fetchMyProfile } from '../lib/admin';
+      import { fetchMyProfile, fetchAllArticlesForAudit, type AuditArticle } from '../lib/admin';
       import { toAvatarViewModel, applyAvatar } from '../lib/avatar';
       import { deleteArticle } from '../lib/articles';
       import { initConfirmDialog } from '../lib/confirm-dialog';
+      import { initShellChrome } from '../lib/shell';
+      import {
+        fetchWriters, issueCommissionToken, fetchMyIssuedTokens,
+        revokeCommissionToken, translateCommissionError, type CommissionToken,
+      } from '../lib/commissions';
+
+      const STATUS_LABEL: Record<CommissionToken['status'], string> =
+        { pending: '未使用', used: '使用済み', revoked: '取消済み' };
 
       // 静的な SVG 定数のみ(ユーザーデータは含まない)。innerHTML で使って良い。
       const EDIT_ICON_SVG =
@@ -83,46 +100,221 @@ const navLink = 'text-muted-foreground transition-colors hover:text-foreground';
       if (!session) {
         redirectTo('/login');
       } else {
-        document.getElementById('logout')!.addEventListener('click', async () => {
-          await supabaseBrowser.auth.signOut();
-          redirectTo('/login');
-        });
+        const { role } = await initShellChrome(supabaseBrowser);
 
-        // admin にだけ管理ナビを見せる(出し分けは UX。防壁は RLS/トリガー)
-        // fetchMyRole が失敗しても記事一覧の表示は妨げない(管理ナビが出ないだけにする)
-        try {
-          const role = await fetchMyRole(supabaseBrowser);
-          if (role === 'admin') {
-            document.getElementById('admin-nav')!.hidden = false;
-          } else if (role === 'provider') {
-            document.getElementById('provider-nav')!.hidden = false;
-          }
-        } catch (err) {
-          console.error(err);
+        // プロバイダーは記事を作成できない(RLS で強制。ここは UX)ので、ダッシュボードの主要
+        // コンテンツを記事一覧ではなく「ライターに依頼する」に差し替える。
+        const isProvider = role === 'provider';
+        // admin は記事を書かない(審査のみ)ので、「自分の記事」ではなく全記事の監査一覧を出す。
+        const isAdmin = role === 'admin';
+        if (isProvider) {
+          (document.getElementById('articles-section') as HTMLElement).hidden = true;
+          (document.getElementById('commission-section') as HTMLElement).hidden = false;
+        } else if (isAdmin) {
+          (document.getElementById('articles-section') as HTMLElement).hidden = true;
+          (document.getElementById('audit-section') as HTMLElement).hidden = false;
         }
 
-        // ナビ・見出しのアバター/名前(失敗しても記事一覧の表示は妨げない)
-        try {
-          const profile = await fetchMyProfile(supabaseBrowser);
-          if (profile) {
-            const vm = toAvatarViewModel(profile.name, profile.avatarUrl);
-
-            applyAvatar(document.getElementById('profile-nav-avatar')!, vm);
-            document.getElementById('profile-nav-name')!.textContent = profile.name;
-            document.getElementById('profile-nav')!.hidden = false;
-
-            const headingAvatarEl = document.getElementById('articles-heading-avatar')!;
-            applyAvatar(headingAvatarEl, vm);
-            headingAvatarEl.hidden = false;
-            document.getElementById('articles-heading')!.textContent = `${profile.name}さんの記事`;
+        // 見出しのアバター/名前(失敗しても記事一覧の表示は妨げない)
+        if (!isProvider && !isAdmin) {
+          try {
+            const profile = await fetchMyProfile(supabaseBrowser);
+            if (profile) {
+              const vm = toAvatarViewModel(profile.name, profile.avatarUrl);
+              const headingAvatarEl = document.getElementById('articles-heading-avatar')!;
+              applyAvatar(headingAvatarEl, vm);
+              headingAvatarEl.hidden = false;
+              document.getElementById('articles-heading')!.textContent = `${profile.name}さんの記事`;
+            }
+          } catch (err) {
+            console.error(err);
           }
-        } catch (err) {
-          console.error(err);
         }
 
         const confirmDialog = initConfirmDialog(
           document.getElementById('confirm-dialog') as HTMLDialogElement,
         );
+
+        if (isProvider) {
+          const writerRowsEl = document.getElementById('writer-rows')!;
+          const tokenRowsEl = document.getElementById('token-rows')!;
+          const issuedCard = document.getElementById('issued-card')!;
+          const issuedWriterEl = document.getElementById('issued-writer')!;
+          const issuedTokenEl = document.getElementById('issued-token')!;
+          const commissionMessageEl = document.getElementById('commission-message')!;
+
+          const renderTokens = async () => {
+            // 直近3件のみ表示(全履歴は監査目的でDBに残るが、一覧は見やすさ優先)
+            const tokens = (await fetchMyIssuedTokens(supabaseBrowser)).slice(0, 3);
+            tokenRowsEl.innerHTML = '';
+            if (tokens.length === 0) {
+              tokenRowsEl.innerHTML = '<tr><td colspan="4">まだ依頼していません。</td></tr>';
+              return;
+            }
+            for (const t of tokens) {
+              const tr = document.createElement('tr');
+
+              const writerTd = document.createElement('td');
+              writerTd.textContent = t.writerName;
+
+              const tokenTd = document.createElement('td');
+              tokenTd.textContent = t.token;
+
+              const statusTd = document.createElement('td');
+              const pill = document.createElement('span');
+              pill.className = `commission-pill commission-pill--${t.status}`;
+              pill.textContent = STATUS_LABEL[t.status];
+              statusTd.appendChild(pill);
+
+              const actionTd = document.createElement('td');
+              if (t.status === 'pending') {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = '取消す';
+                btn.addEventListener('click', async () => {
+                  commissionMessageEl.textContent = '';
+                  try {
+                    await revokeCommissionToken(supabaseBrowser, t.id);
+                  } catch (err) {
+                    commissionMessageEl.textContent = translateCommissionError(err);
+                    console.error(err);
+                    return;
+                  }
+                  await renderTokens();
+                });
+                actionTd.appendChild(btn);
+              }
+
+              tr.appendChild(writerTd);
+              tr.appendChild(tokenTd);
+              tr.appendChild(statusTd);
+              tr.appendChild(actionTd);
+              tokenRowsEl.appendChild(tr);
+            }
+          };
+
+          const renderWriters = async () => {
+            const writers = await fetchWriters(supabaseBrowser);
+            writerRowsEl.innerHTML = '';
+            if (writers.length === 0) {
+              writerRowsEl.innerHTML = '<li>ライターがいません。</li>';
+              return;
+            }
+            for (const w of writers) {
+              const li = document.createElement('li');
+
+              const info = document.createElement('div');
+              const nameEl = document.createElement('div');
+              nameEl.className = 'font-medium';
+              nameEl.textContent = w.name;
+              const metaEl = document.createElement('div');
+              metaEl.className = 'text-xs text-muted-foreground';
+              metaEl.textContent = [w.region, w.bio].filter(Boolean).join(' ・ ');
+              info.appendChild(nameEl);
+              info.appendChild(metaEl);
+
+              const btn = document.createElement('button');
+              btn.type = 'button';
+              btn.textContent = '依頼する';
+              btn.className =
+                'inline-flex h-9 shrink-0 items-center justify-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90';
+              btn.addEventListener('click', async () => {
+                commissionMessageEl.textContent = '';
+                try {
+                  const token = await issueCommissionToken(supabaseBrowser, w.id);
+                  issuedWriterEl.textContent = w.name;
+                  issuedTokenEl.textContent = token;
+                  issuedCard.hidden = false;
+                } catch (err) {
+                  commissionMessageEl.textContent = translateCommissionError(err);
+                  console.error(err);
+                  return;
+                }
+                try {
+                  await renderTokens();
+                } catch (err) {
+                  commissionMessageEl.textContent = '一覧の再読み込みに失敗しました。ページを再読み込みしてください。';
+                  console.error(err);
+                }
+              });
+
+              li.appendChild(info);
+              li.appendChild(btn);
+              writerRowsEl.appendChild(li);
+            }
+          };
+
+          document.getElementById('issued-copy')!.addEventListener('click', () => {
+            navigator.clipboard.writeText(issuedTokenEl.textContent ?? '');
+          });
+
+          try {
+            await renderWriters();
+          } catch (err) {
+            writerRowsEl.innerHTML = '<li>読み込みに失敗しました。</li>';
+            console.error(err);
+          }
+          try {
+            await renderTokens();
+          } catch (err) {
+            tokenRowsEl.innerHTML = '<tr><td colspan="4">読み込みに失敗しました。</td></tr>';
+            console.error(err);
+          }
+        } else if (isAdmin) {
+          const auditRowsEl = document.getElementById('audit-rows')!;
+          const auditMessageEl = document.getElementById('audit-message')!;
+          const STATUS_LABEL: Record<AuditArticle['status'], string> = { draft: '下書き', published: '公開中' };
+
+          const renderAudit = (articles: AuditArticle[]) => {
+            auditRowsEl.innerHTML = '';
+            if (articles.length === 0) {
+              auditRowsEl.innerHTML = '<tr><td colspan="5">記事がありません。</td></tr>';
+              return;
+            }
+            for (const a of articles) {
+              const tr = document.createElement('tr');
+
+              const titleTd = document.createElement('td');
+              const titleLink = document.createElement('a');
+              titleLink.href = `/articles/edit?id=${a.id}`;
+              titleLink.textContent = a.title;
+              titleTd.appendChild(titleLink);
+
+              const authorTd = document.createElement('td');
+              authorTd.textContent = a.authorName;
+
+              const statusTd = document.createElement('td');
+              statusTd.textContent = STATUS_LABEL[a.status];
+
+              const holdTd = document.createElement('td');
+              if (a.moderationHold) {
+                const badge = document.createElement('span');
+                badge.className = 'commission-pill commission-pill--revoked';
+                badge.textContent = '審査中';
+                if (a.moderationHoldReason) badge.title = a.moderationHoldReason;
+                holdTd.appendChild(badge);
+              }
+
+              const dateTd = document.createElement('td');
+              dateTd.textContent = a.publishedAt ? new Date(a.publishedAt).toLocaleDateString('ja-JP') : '';
+
+              tr.appendChild(titleTd);
+              tr.appendChild(authorTd);
+              tr.appendChild(statusTd);
+              tr.appendChild(holdTd);
+              tr.appendChild(dateTd);
+              auditRowsEl.appendChild(tr);
+            }
+          };
+
+          try {
+            renderAudit(await fetchAllArticlesForAudit(supabaseBrowser));
+          } catch (err) {
+            auditMessageEl.textContent = '記事一覧の読み込みに失敗しました。';
+            auditRowsEl.innerHTML = '<tr><td colspan="5">読み込みに失敗しました。</td></tr>';
+            console.error(err);
+          }
+        } else {
 
         const listEl = document.getElementById('article-list')!;
         const listMessageEl = document.getElementById('article-list-message')!;
@@ -158,6 +350,14 @@ const navLink = 'text-muted-foreground transition-colors hover:text-foreground';
                 commissionedBadge.className = 'article-badge article-badge--commissioned';
                 commissionedBadge.textContent = '依頼記事';
                 meta.appendChild(commissionedBadge);
+              }
+
+              if (a.moderationHold) {
+                const holdBadge = document.createElement('span');
+                holdBadge.className = 'commission-pill commission-pill--revoked';
+                holdBadge.textContent = '審査中';
+                if (a.moderationHoldReason) holdBadge.title = a.moderationHoldReason;
+                meta.appendChild(holdBadge);
               }
 
               if (a.publishedAt) {
@@ -210,6 +410,7 @@ const navLink = 'text-muted-foreground transition-colors hover:text-foreground';
           listEl.innerHTML = '<li>読み込みに失敗しました。</li>';
           console.error(err);
         }
+        }
       }
     </script>
-</AdminLayout>
+</AdminShell>

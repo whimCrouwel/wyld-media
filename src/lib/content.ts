@@ -27,13 +27,39 @@ export interface WriterSummary {
   location: string | null;
 }
 
+export interface PricingItemPublic {
+  label: string;
+  unit: string;
+  amount: number;
+  currency: string;
+}
+
 export interface WriterDetail extends WriterSummary {
   coverImageUrl: string | null;
   homepageUrl: string | null;
   snsLinks: string[];
-  priceInfo: string | null;
   contactUrl: string | null;
+  pricingItems: PricingItemPublic[];
   articles: ArticleSummary[];
+}
+
+export interface ProviderSummary {
+  slug: string;
+  name: string;
+  bio: string;
+  avatarUrl: string | null;
+  region: string | null;
+  location: string | null;
+  serviceName: string | null;
+  serviceImageUrl: string | null;
+}
+
+export interface ProviderDetail extends ProviderSummary {
+  coverImageUrl: string | null;
+  homepageUrl: string | null;
+  snsLinks: string[];
+  serviceDescription: string | null;
+  serviceUrl: string | null;
 }
 
 // http(s) 以外のスキーム(javascript: 等)を弾き、書式不正な文字列も null にする
@@ -119,6 +145,7 @@ export async function fetchPublishedArticles(
     .from('articles')
     .select(ARTICLE_SELECT)
     .eq('status', 'published')
+    .eq('moderation_hold', false)
     .order('published_at', { ascending: false })
     .order('id');
   if (error) throw error;
@@ -144,6 +171,7 @@ export async function fetchArticleBySlug(
     .from('articles')
     .select(`${ARTICLE_SELECT}, body`)
     .eq('status', 'published')
+    .eq('moderation_hold', false)
     .eq('slug', slug)
     .maybeSingle();
   if (error) throw error;
@@ -179,7 +207,7 @@ export async function fetchWriterBySlug(
   const { data: profile, error } = await db
     .from('profiles')
     .select(
-      'id, slug, name, bio, avatar_url, cover_image_url, region, location, homepage_url, sns_links, price_info, contact_url',
+      'id, slug, name, bio, avatar_url, cover_image_url, region, location, homepage_url, sns_links, contact_url',
     )
     .eq('role', 'writer')
     .eq('slug', slug)
@@ -191,9 +219,20 @@ export async function fetchWriterBySlug(
     .from('articles')
     .select(ARTICLE_SELECT)
     .eq('status', 'published')
+    .eq('moderation_hold', false)
     .eq('author_id', profile.id)
     .order('published_at', { ascending: false });
   if (articlesError) throw articlesError;
+
+  // 公開料金のみ、sort_order 昇順で(admin側で入れた並びをそのまま反映)。
+  const { data: pricing, error: pricingError } = await db
+    .from('pricing_items')
+    .select('label, unit, amount, currency')
+    .eq('writer_id', profile.id)
+    .eq('published', true)
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: true });
+  if (pricingError) throw pricingError;
 
   return {
     slug: profile.slug,
@@ -207,8 +246,71 @@ export async function fetchWriterBySlug(
     snsLinks: Array.isArray(profile.sns_links)
       ? profile.sns_links.map(safeUrl).filter((u): u is string => u !== null)
       : [],
-    priceInfo: profile.price_info ?? null,
     contactUrl: safeUrl(profile.contact_url),
+    pricingItems: (pricing ?? []).map((r) => ({
+      label: r.label,
+      unit: r.unit,
+      amount: r.amount,
+      currency: r.currency,
+    })),
     articles: (articles ?? []).map(toSummary),
+  };
+}
+
+// 認定プロバイダーのみ(未認定は一覧にも詳細にも出さない — certified の意味を
+// 薄めないため。詳細ページ側も同じ条件で絞るので、URL を直接叩かれても出ない)。
+export async function fetchProviders(db: SupabaseClient): Promise<ProviderSummary[]> {
+  const { data, error } = await db
+    .from('profiles')
+    .select('slug, name, bio, avatar_url, region, location, service_name, service_image_url')
+    .eq('role', 'provider')
+    .eq('certified', true)
+    .order('name');
+  if (error) throw error;
+  return (data ?? []).map((row) => ({
+    slug: row.slug,
+    name: row.name,
+    bio: row.bio,
+    avatarUrl: safeUrl(row.avatar_url),
+    region: row.region ?? null,
+    location: row.location ?? null,
+    serviceName: row.service_name ?? null,
+    serviceImageUrl: safeUrl(row.service_image_url),
+  }));
+}
+
+export async function fetchProviderBySlug(
+  db: SupabaseClient,
+  slug: string,
+): Promise<ProviderDetail | null> {
+  const { data: profile, error } = await db
+    .from('profiles')
+    .select(
+      'slug, name, bio, avatar_url, cover_image_url, region, location, homepage_url, sns_links, ' +
+        'service_name, service_description, service_url, service_image_url',
+    )
+    .eq('role', 'provider')
+    .eq('certified', true)
+    .eq('slug', slug)
+    .maybeSingle();
+  if (error) throw error;
+  if (!profile) return null;
+
+  return {
+    slug: profile.slug,
+    name: profile.name,
+    bio: profile.bio,
+    avatarUrl: safeUrl(profile.avatar_url),
+    coverImageUrl: safeUrl(profile.cover_image_url),
+    region: profile.region ?? null,
+    location: profile.location ?? null,
+    homepageUrl: safeUrl(profile.homepage_url),
+    snsLinks: Array.isArray(profile.sns_links)
+      ? profile.sns_links.map(safeUrl).filter((u): u is string => u !== null)
+      : [],
+    serviceName: profile.service_name ?? null,
+    serviceDescription: profile.service_description ?? null,
+    serviceUrl: safeUrl(profile.service_url),
+    serviceImageUrl: safeUrl(profile.service_image_url),
   };
 }

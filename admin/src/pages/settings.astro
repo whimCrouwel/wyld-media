@@ -1,12 +1,12 @@
 ---
-import PageShell from '../components/templates/PageShell.astro';
+import AdminShell from '../components/templates/AdminShell.astro';
 import Card from '../components/atoms/Card.astro';
 import Button from '../components/atoms/Button.astro';
 import Field from '../components/molecules/Field.astro';
 
 const title = 'サイト設定 | Wild Media CMS';
 ---
-<PageShell title={title} heading="サイト設定">
+<AdminShell title={title} heading="サイト設定">
   <Card class="p-6">
     <form id="settings-form" class="space-y-4">
       <Field id="interval" label="通常記事の投稿間隔(日)" type="number" min="0" step="1" required />
@@ -30,30 +30,19 @@ const title = 'サイト設定 | Wild Media CMS';
   <script>
       import { supabaseBrowser } from '../lib/supabase-browser';
       import { redirectTo } from '../lib/auth';
-      import { fetchMyRole, fetchSettings, updateSettings } from '../lib/admin';
+      import { fetchSettings, updateSettings } from '../lib/admin';
+      import { initShellChrome } from '../lib/shell';
 
       const { data: { session } } = await supabaseBrowser.auth.getSession();
-
-      // fetchMyRole が失敗しても(通信エラー等)、ここで例外が投げっぱなしになって
-      // 画面が固まらないよう、先に安全に解決してから分岐する。
-      let myRole: string | null = null;
-      let roleLookupFailed = false;
-      if (session) {
-        try {
-          myRole = await fetchMyRole(supabaseBrowser);
-        } catch (err) {
-          roleLookupFailed = true;
-          console.error(err);
-        }
-      }
-
       if (!session) {
         redirectTo('/login');
-      } else if (roleLookupFailed) {
+      } else {
+        const { role, roleLookupFailed } = await initShellChrome(supabaseBrowser);
+        if (roleLookupFailed) {
         // リダイレクトループを避けるため、ここではリダイレクトしない。
         document.getElementById('message')!.textContent =
           '権限の確認に失敗しました。ページを再読み込みしてください。';
-      } else if (myRole !== 'admin') {
+      } else if (role !== 'admin') {
         // UX のためのリダイレクト。実際の防壁は RLS/トリガー。
         redirectTo('/dashboard');
       } else {
@@ -110,5 +99,6 @@ const title = 'サイト設定 | Wild Media CMS';
           }
         });
       }
+      }
     </script>
-</PageShell>
+</AdminShell>

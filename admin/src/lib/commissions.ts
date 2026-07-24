@@ -130,5 +130,8 @@ export function translateCommissionError(err: unknown): string {
   if (msg.includes('INVALID_WRITER')) return '依頼先がライターではありません。';
   if (msg.includes('TOKEN_IN_USE_CANNOT_REVOKE')) return '使用済みのトークンは取り消せません。';
   if (msg.includes('COMMISSION_TOKEN_ALREADY_REVOKED')) return 'このトークンは既に取り消されています。';
+  if (msg.includes('COMMISSION_INTERVAL_NOT_ELAPSED')) {
+    return '同じライターへの依頼は一定の間隔を空ける必要があります。しばらくしてから再度お試しください。';
+  }
   return '操作に失敗しました。時間をおいて再度お試しください。';
 }

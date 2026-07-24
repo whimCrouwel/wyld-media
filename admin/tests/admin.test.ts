@@ -1,10 +1,13 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
 import {
   fetchMyRole, fetchMyProfile, fetchAllProfiles, updateUserRole,
+  updateProviderCertification,
   validateInviteInput, inviteUser, translateInviteError,
   fetchSettings, updateSettings,
+  fetchAllArticlesForAudit, setModerationHold,
 } from '../src/lib/admin';
+import { createDraft, deleteArticle } from '../src/lib/articles';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 const url = process.env.PUBLIC_SUPABASE_URL!;
@@ -12,6 +15,7 @@ const anon = process.env.PUBLIC_SUPABASE_ANON_KEY!;
 
 const adminClient = createClient(url, anon, { auth: { persistSession: false } });
 const hanaClient = createClient(url, anon, { auth: { persistSession: false } });
+const certifiedClient = createClient(url, anon, { auth: { persistSession: false } });
 
 let hanaId: string;
 let kentaId: string;
@@ -26,6 +30,10 @@ beforeAll(async () => {
   });
   if (h.error) throw h.error;
   hanaId = h.data.user!.id;
+  const c = await certifiedClient.auth.signInWithPassword({
+    email: 'certified@seed.local', password: 'seed-pass-1234',
+  });
+  if (c.error) throw c.error;
 
   const { data, error } = await adminClient
     .from('profiles').select('id').eq('slug', 'sato-kenta').single();
@@ -45,6 +53,7 @@ describe('fetchMyProfile', () => {
     expect(await fetchMyProfile(hanaClient)).toEqual({
       name: '田中 花',
       avatarUrl: 'https://picsum.photos/seed/tanaka-hana/400/400',
+      certified: false,
     });
   });
 
@@ -52,7 +61,13 @@ describe('fetchMyProfile', () => {
     expect(await fetchMyProfile(adminClient)).toEqual({
       name: '運営 太郎',
       avatarUrl: null,
+      certified: false,
     });
+  });
+
+  it('認定済みプロバイダーは certified: true を返す', async () => {
+    const profile = await fetchMyProfile(certifiedClient);
+    expect(profile!.certified).toBe(true);
   });
 });
 
@@ -64,6 +79,8 @@ describe('fetchAllProfiles', () => {
     for (const s of ['seed-admin', 'tanaka-hana', 'sato-kenta', 'forest-org']) {
       expect(slugs).toContain(s);
     }
+    const forest = all.find((p) => p.slug === 'forest-org')!;
+    expect(forest.certified).toBe(false);
   });
 
   it('非 admin(writer)は自分の行と、他の writer の行までしか見えない', async () => {
@@ -108,6 +125,32 @@ describe('updateUserRole', () => {
   });
 });
 
+describe('updateProviderCertification', () => {
+  let forestId: string;
+  beforeAll(async () => {
+    const { data, error } = await adminClient
+      .from('profiles').select('id').eq('slug', 'forest-org').single();
+    if (error) throw error;
+    forestId = data.id;
+  });
+
+  it('admin が認定フラグを切り替えられる', async () => {
+    try {
+      await updateProviderCertification(adminClient, forestId, true);
+      const { data } = await adminClient
+        .from('profiles').select('certified').eq('id', forestId).single();
+      expect(data!.certified).toBe(true);
+    } finally {
+      await adminClient.from('profiles').update({ certified: false }).eq('id', forestId);
+    }
+  });
+
+  it('非 admin は自分の認定フラグを変えられない(トリガーで拒否)', async () => {
+    await expect(updateProviderCertification(hanaClient, hanaId, true))
+      .rejects.toThrow(/admin/);
+  });
+});
+
 describe('validateInviteInput', () => {
   const ok = { email: 'x@example.com', name: '山田', slug: 'yamada', role: 'writer' as const };
   it('正しい入力は null', () => {
@@ -117,6 +160,12 @@ describe('validateInviteInput', () => {
     expect(validateInviteInput({ ...ok, email: 'ダメ' })).toContain('メールアドレス');
     expect(validateInviteInput({ ...ok, name: '  ' })).toContain('名前');
     expect(validateInviteInput({ ...ok, slug: 'Bad_Slug' })).toContain('スラッグ');
+  });
+  it('provider には certified: true を許可する', () => {
+    expect(validateInviteInput({ ...ok, role: 'provider', certified: true })).toBeNull();
+  });
+  it('writer に certified: true を指定すると弾く', () => {
+    expect(validateInviteInput({ ...ok, role: 'writer', certified: true })).toContain('認定');
   });
 });
 
@@ -139,6 +188,13 @@ describe('inviteUser', () => {
     const { supabase, calls } = stubInvoke({ error: null });
     await inviteUser(supabase, input);
     expect(calls[0]).toEqual(['invite-user', { body: input }]);
+  });
+
+  it('certified を含むペイロードもそのまま送る', async () => {
+    const { supabase, calls } = stubInvoke({ error: null });
+    const certifiedInput = { ...input, role: 'provider' as const, certified: true };
+    await inviteUser(supabase, certifiedInput);
+    expect(calls[0]).toEqual(['invite-user', { body: certifiedInput }]);
   });
 
   it('EF のエラー本文を掘り出して throw する', async () => {
@@ -220,5 +276,65 @@ describe('settings', () => {
     await expect(
       updateSettings(adminClient, { ...current, pageSize: 1.5 }),
     ).rejects.toThrow('INVALID_SETTINGS');
+  });
+});
+
+describe('article moderation hold (admin auditing)', () => {
+  let articleId: string;
+
+  beforeAll(async () => {
+    articleId = await createDraft(hanaClient, {
+      title: '審査対象の下書き', slug: '',
+      body: [{ type: 'paragraph', content: [{ type: 'text', text: '本文' }] }],
+      coverUrl: '', commissionToken: '', region: '関東',
+    });
+  });
+
+  afterAll(async () => {
+    await deleteArticle(hanaClient, articleId);
+  });
+
+  it('fetchAllArticlesForAudit は著者名つきで全記事を返す(admin専用)', async () => {
+    const all = await fetchAllArticlesForAudit(adminClient);
+    const mine = all.find((a) => a.id === articleId);
+    expect(mine).toBeDefined();
+    expect(mine!.authorName).toBe('田中 花');
+    expect(mine!.moderationHold).toBe(false);
+  });
+
+  it('writer は他人の記事を審査対象一覧として見られない(RLSで自分の行のみ)', async () => {
+    const mine = await fetchAllArticlesForAudit(hanaClient);
+    expect(mine.map((a) => a.id)).toContain(articleId);
+    for (const a of mine) expect(a.authorName).toBe('田中 花');
+  });
+
+  it('admin は理由つきでホールドを設置・解除できる', async () => {
+    await setModerationHold(adminClient, articleId, true, '事実誤認の指摘あり');
+    let all = await fetchAllArticlesForAudit(adminClient);
+    let mine = all.find((a) => a.id === articleId)!;
+    expect(mine.moderationHold).toBe(true);
+    expect(mine.moderationHoldReason).toBe('事実誤認の指摘あり');
+
+    await setModerationHold(adminClient, articleId, false);
+    all = await fetchAllArticlesForAudit(adminClient);
+    mine = all.find((a) => a.id === articleId)!;
+    expect(mine.moderationHold).toBe(false);
+    expect(mine.moderationHoldReason).toBeNull();
+  });
+
+  it('理由なしでホールドを設置しようとすると拒否される(クライアント側)', async () => {
+    await expect(setModerationHold(adminClient, articleId, true))
+      .rejects.toThrow('MODERATION_HOLD_REASON_REQUIRED');
+  });
+
+  it('理由なしでホールドを設置しようとすると拒否される(DBトリガー側)', async () => {
+    const { error } = await adminClient
+      .from('articles').update({ moderation_hold: true }).eq('id', articleId);
+    expect(error?.message).toMatch(/requires a reason/);
+  });
+
+  it('writer は自分の記事であってもホールドを変更できない(トリガーで拒否)', async () => {
+    await expect(setModerationHold(hanaClient, articleId, true, '理由'))
+      .rejects.toThrow(/admin/);
   });
 });

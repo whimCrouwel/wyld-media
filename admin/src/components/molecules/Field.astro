@@ -17,8 +17,8 @@ interface Props {
 
 const { id, label, as = 'input', type = 'text', ...rest } = Astro.props;
 ---
-<div class="space-y-2">
-  <Label for={id}>{label}</Label>
+<div id={`${id}-field`} class="space-y-2">
+  <Label for={id} id={`${id}-label`}>{label}</Label>
   {
     as === 'textarea' ? (
       <Textarea id={id} {...rest} />

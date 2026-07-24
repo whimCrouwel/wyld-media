@@ -1,12 +1,12 @@
 ---
-import PageShell from '../../components/templates/PageShell.astro';
+import AdminShell from '../../components/templates/AdminShell.astro';
 import Card from '../../components/atoms/Card.astro';
 import Button from '../../components/atoms/Button.astro';
 import Field from '../../components/molecules/Field.astro';
 
 const title = '新しい記事 | Wild Media CMS';
 ---
-<PageShell title={title} heading="新しい記事" wide>
+<AdminShell title={title} heading="新しい記事" wide>
   <form id="article-form" class="space-y-6">
     <Card class="space-y-4 p-6">
       <div class="space-y-2">
@@ -97,6 +97,7 @@ const title = '新しい記事 | Wild Media CMS';
   <script>
       import { supabaseBrowser } from '../../lib/supabase-browser';
       import { redirectTo } from '../../lib/auth';
+      import { initShellChrome } from '../../lib/shell';
       import { createDraft, validateCommissionToken, checkSlugAvailable } from '../../lib/articles';
       import { translateSaveError, isValidArticleSlug } from '../../lib/editor-helpers';
       import { initCoverWidget } from '../../lib/cover-widget';
@@ -117,6 +118,11 @@ const title = '新しい記事 | Wild Media CMS';
       if (!session) {
         redirectTo('/login');
       } else {
+        // UX のためのリダイレクト。実際の防壁は RLS(articles insert は writer/admin のみ)。
+        const { role: myRole } = await initShellChrome(supabaseBrowser);
+        if (myRole === 'provider') {
+          redirectTo('/dashboard');
+        } else {
         const $ = (id: string) => document.getElementById(id) as HTMLInputElement & HTMLTextAreaElement;
         const messageEl = document.getElementById('message')!;
         const slugStatus = document.getElementById('slug-status')!;
@@ -266,6 +272,7 @@ const title = '新しい記事 | Wild Media CMS';
         };
 
         draftBtn.addEventListener('click', () => create());
+        }
       }
     </script>
-</PageShell>
+</AdminShell>

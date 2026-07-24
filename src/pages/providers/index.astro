@@ -1,0 +1,121 @@
+---
+import Base from '../../layouts/Base.astro';
+import SectionHeader from '../../components/molecules/SectionHeader.astro';
+import WriterAvatar from '../../components/atoms/WriterAvatar.astro';
+import MetaLabel from '../../components/atoms/MetaLabel.astro';
+import { supabaseServer } from '../../lib/supabase-server';
+import { fetchProviders } from '../../lib/content';
+import { buildAreaLinks } from '../../lib/sidebar';
+
+const providers = await fetchProviders(supabaseServer);
+// このページだけ、サイドバーの地図を「記事の地域ブラウズ」ではなく
+// 「プロバイダーを地域で絞り込む」フィルタとして使う(areaMode="filter")。
+// 件数は記事ではなくプロバイダーの活動拠点でカウントし直す(/writers と同じ扱い)。
+const providerAreas = buildAreaLinks(providers.map((p) => p.region));
+---
+<Base
+  title="プロバイダー一覧 | Wild Media"
+  areaMode="filter"
+  areaLinks={providerAreas}
+  areaFilterLabel={{ en: 'Providers per Area', ja: '地域でプロバイダーを絞り込む' }}
+>
+  <div class="px-6 pb-24">
+    <SectionHeader
+      label="Providers"
+      count={providers.length}
+      countId="provider-count"
+      subLabelId="active-region-label"
+      class="pb-14"
+    />
+
+    <ul id="provider-list">
+      {
+        providers.map((p) => (
+          <li class="border-card border-b" data-region={p.region ?? ''}>
+            <a
+              href={`/providers/${p.slug}`}
+              class="group flex items-center gap-8 py-8 transition-opacity hover:opacity-70"
+            >
+              <WriterAvatar src={p.avatarUrl} name={p.name} size={72} />
+              <span class="min-w-0 flex-1">
+                <span class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                  <span
+                    style="font-family: var(--font-heading); font-size: clamp(20px, 2.5vw, 26px); line-height: 1.3;"
+                  >
+                    {p.name}
+                  </span>
+                  {(p.region || p.location) && (
+                    <MetaLabel>{[p.region, p.location].filter(Boolean).join(' ')}</MetaLabel>
+                  )}
+                </span>
+                <p class="text-meta mt-1.5 max-w-xl" style="line-height: 1.9;">{p.bio}</p>
+                {p.serviceName && (
+                  <span class="provider-teaser">
+                    {p.serviceImageUrl ? (
+                      <img
+                        src={p.serviceImageUrl}
+                        alt=""
+                        class="provider-teaser-thumb"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <span class="provider-teaser-thumb provider-teaser-thumb-empty" />
+                    )}
+                    <span class="provider-teaser-text">
+                      <MetaLabel class="provider-teaser-label">主要サービス</MetaLabel>
+                      {p.serviceName}
+                    </span>
+                  </span>
+                )}
+              </span>
+              <MetaLabel class="hidden shrink-0 sm:block">→</MetaLabel>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</Base>
+
+<script>
+  import '../../scripts/provider-filter';
+</script>
+
+<style>
+  .provider-teaser {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 0.65rem;
+    width: fit-content;
+    padding: 0.4rem 0.7rem 0.4rem 0.4rem;
+    border-radius: 10px;
+    background-color: var(--color-card);
+  }
+
+  .provider-teaser-thumb {
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    border-radius: 7px;
+    object-fit: cover;
+  }
+
+  .provider-teaser-thumb-empty {
+    background-color: var(--color-panel);
+  }
+
+  .provider-teaser-text {
+    font-size: 12px;
+    line-height: 1.3;
+  }
+
+  /* .meta(global.css)はレイヤー外の生CSSで font-size を直接指定しているため、
+     同じ詳細度の単純クラスセレクタだと勝てない場合がある。祖先を含めて詳細度を
+     上げ、確実に上書きする(NavDrawer の .area-heading-en と同じ手当て)。 */
+  .provider-teaser :global(.provider-teaser-label) {
+    display: block;
+    font-size: 9px;
+  }
+</style>

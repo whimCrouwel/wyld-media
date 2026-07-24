@@ -1,18 +1,24 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(20);
+select plan(26);
 
 select has_table('public', 'profiles', 'profiles table exists');
 select has_column('public', 'profiles', 'avatar_url', 'profiles has avatar_url');
 select has_column('public', 'profiles', 'location', 'profiles has location');
 select has_column('public', 'profiles', 'region', 'profiles has region');
 select has_column('public', 'profiles', 'cover_image_url', 'profiles has cover_image_url');
+select has_column('public', 'profiles', 'service_name', 'profiles has service_name');
+select has_column('public', 'profiles', 'service_description', 'profiles has service_description');
+select has_column('public', 'profiles', 'service_url', 'profiles has service_url');
+select has_column('public', 'profiles', 'service_image_url', 'profiles has service_image_url');
+select has_column('public', 'profiles', 'certified', 'profiles has certified');
 
 select has_table('public', 'articles', 'articles table exists');
 select has_column('public', 'articles', 'region', 'articles has region');
 
 select has_table('public', 'settings', 'settings table exists');
 select has_column('public', 'settings', 'page_size', 'settings has page_size');
+select has_column('public', 'settings', 'commission_interval_days', 'settings has commission_interval_days');
 
 select throws_ok(
   $$update settings set page_size = 0 where id = 1$$,
@@ -20,8 +26,8 @@ select throws_ok(
 );
 
 select results_eq(
-  'select post_interval_days, featured_count from settings where id = 1',
-  $$values (10, 3)$$,
+  'select post_interval_days, featured_count, commission_interval_days from settings where id = 1',
+  $$values (10, 3, 10)$$,
   'settings has initial row with defaults'
 );
 

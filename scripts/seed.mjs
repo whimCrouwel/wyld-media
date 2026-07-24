@@ -17,11 +17,25 @@ const USERS = [
   { email: 'hana@seed.local', role: 'writer', slug: 'tanaka-hana', name: '田中 花', bio: '川と森を歩いて書くネイチャーライター。',
     avatar: 'https://picsum.photos/seed/tanaka-hana/400/400', cover: 'https://picsum.photos/seed/tanaka-hana-cover/1600/500', region: '甲信越', location: '長野県松本市',
     homepage: 'https://tanaka-hana.example', sns: ['https://x.example/tanakahana', 'https://instagram.example/tanakahana'],
-    price: '記事1本 3万円〜', contact: 'https://forms.example/tanaka-hana' },
+    contact: 'https://forms.example/tanaka-hana',
+    pricing: [
+      { label: '基本記事(1,500〜2,000字)', unit: '1本', amount: 30000, published: true },
+      { label: '現地取材同行', unit: '1日', amount: 25000, published: true },
+      { label: '写真追加', unit: '1枚', amount: 3000, published: true },
+      { label: '長文特集(4,000字〜)', unit: '1本', amount: 60000, published: false },
+    ] },
   { email: 'kenta@seed.local', role: 'writer', slug: 'sato-kenta', name: '佐藤 健太', bio: '都市の生きものを追いかけています。',
     avatar: 'https://picsum.photos/seed/sato-kenta/400/400', cover: 'https://picsum.photos/seed/sato-kenta-cover/1600/500', region: '関東', location: '東京都杉並区',
-    sns: ['https://x.example/satokenta'], price: '応相談' },
+    sns: ['https://x.example/satokenta'],
+    pricing: [
+      { label: '観察レポート', unit: '1本', amount: 20000, published: true },
+    ] },
   { email: 'forest@seed.local', role: 'provider', slug: 'forest-org', name: 'フォレスト再生機構', bio: '企業と森をつなぐNPO。' },
+  // 認定済みプロバイダーの動作確認用(forest-org は未認定のまま残す)。
+  { email: 'certified@seed.local', role: 'provider', slug: 'certified-partners', name: '認定パートナーズ株式会社',
+    bio: '森林保全と地域再生を手がける認定事業者。', certified: true,
+    serviceName: '森林再生パートナーシップ', serviceDescription: '企業の森林保全活動を一気通貫で支援します。',
+    serviceUrl: 'https://certified-partners.example', serviceImage: 'https://picsum.photos/seed/certified-partners/800/800' },
 ];
 
 // 通常記事は同一著者で10日以上間隔を空け、古い順に insert する(頻度制限トリガー対策)。
@@ -85,17 +99,61 @@ async function main() {
         { id, role: u.role, slug: u.slug, name: u.name, bio: u.bio,
           avatar_url: u.avatar ?? null, cover_image_url: u.cover ?? null, region: u.region ?? null, location: u.location ?? null,
           homepage_url: u.homepage ?? null, sns_links: u.sns ?? [],
-          price_info: u.price ?? null, contact_url: u.contact ?? null },
+          contact_url: u.contact ?? null,
+          // certified はここでは新規作成(insert)時にしか効かない: protect_profile_columns
+          // トリガーが admin 以外(service role含む)による既存行への変更を拒否するため、
+          // 既に存在するユーザーの認定状態を切り替えたい場合は admin が /users で行う。
+          certified: u.certified ?? false,
+          service_name: u.serviceName ?? null, service_description: u.serviceDescription ?? null,
+          service_url: u.serviceUrl ?? null, service_image_url: u.serviceImage ?? null },
         { onConflict: 'id' },
       );
     if (upsertError) throw new Error(`profile ${u.slug}: ${upsertError.message}`);
     ids[u.slug] = id;
   }
 
-  // 2) 依頼記事の数だけ、provider(forest-org)から著者(tanaka-hana)宛ての
+  // 1b) 料金プラン(pricing_items)を冪等に seed。writer 全員分の既存行を消してから
+  //    USERS 定義に沿って再挿入する(sort_order は配列順で10刻み)。
+  const pricingWriterIds = USERS.filter((u) => u.pricing?.length).map((u) => ids[u.slug]);
+  if (pricingWriterIds.length) {
+    const { error: delPricingError } = await db
+      .from('pricing_items')
+      .delete()
+      .in('writer_id', pricingWriterIds);
+    if (delPricingError) throw delPricingError;
+    const pricingRows = USERS.flatMap((u) => (u.pricing ?? []).map((p, idx) => ({
+      writer_id: ids[u.slug],
+      label: p.label,
+      unit: p.unit,
+      amount: p.amount,
+      published: p.published,
+      sort_order: (idx + 1) * 10,
+    })));
+    if (pricingRows.length) {
+      const { error: pricingInsertError } = await db.from('pricing_items').insert(pricingRows);
+      if (pricingInsertError) throw pricingInsertError;
+    }
+  }
+
+  // 2) シード著者の記事を全削除してから入れ直す(冪等)。依頼トークンの再発行より先に
+  //    削除する: 記事が commission_token_id を参照している間はそのトークンを削除できない。
+  const authorIds = [ids['tanaka-hana'], ids['sato-kenta']];
+  const { error: delError } = await db.from('articles').delete().in('author_id', authorIds);
+  if (delError) throw delError;
+
+  // 3) 依頼記事の数だけ、provider(forest-org)から著者(tanaka-hana)宛ての
   //    依頼トークンを発行する(1トークン=1記事、使い切り)。
+  //    まず旧トークンを削除してから発行し直す(冪等。残したままだと再seed時に
+  //    commission_interval_days の間隔チェックに引っかかることがある)。
   //    トークン発行は commission_tokens の RLS で provider_id = auth.uid() を要求するため、
   //    service role では作れない。forest@seed.local としてサインインして発行する。
+  const { error: delTokensError } = await db
+    .from('commission_tokens')
+    .delete()
+    .eq('provider_id', ids['forest-org'])
+    .eq('writer_id', ids['tanaka-hana']);
+  if (delTokensError) throw delTokensError;
+
   const anonKeyForTokens = process.env.PUBLIC_SUPABASE_ANON_KEY;
   if (!anonKeyForTokens) {
     throw new Error('PUBLIC_SUPABASE_ANON_KEY を .env に設定してください(依頼トークン発行に必要)');
@@ -110,19 +168,16 @@ async function main() {
   const commissionedCount = ARTICLES.filter((a) => a.commissioned).length;
   const tokens = [];
   for (let i = 0; i < commissionedCount; i++) {
+    // commission_interval_days(同一provider/writerへの依頼は最短10日おき)を満たすよう、
+    // トークンごとに間隔を空けた過去日時で発行する。
     const { data, error } = await providerClient
       .from('commission_tokens')
-      .insert({ writer_id: ids['tanaka-hana'] })
+      .insert({ writer_id: ids['tanaka-hana'], created_at: daysAgo(15 * (commissionedCount - i)) })
       .select('token')
       .single();
     if (error) throw new Error(`commission_tokens insert ${i}: ${error.message}`);
     tokens.push(data.token);
   }
-
-  // 3) シード著者の記事を全削除してから入れ直す(冪等)
-  const authorIds = [ids['tanaka-hana'], ids['sato-kenta']];
-  const { error: delError } = await db.from('articles').delete().in('author_id', authorIds);
-  if (delError) throw delError;
 
   const insertedArticles = [];
   for (const a of ARTICLES) {
@@ -201,7 +256,9 @@ async function main() {
     }
   }
 
-  console.log('Seed complete: 4 users, 5 published articles (2 commissioned, indexed for search), 1 draft');
+  console.log(
+    `Seed complete: ${USERS.length} users, 5 published articles (2 commissioned, indexed for search), 1 draft`,
+  );
 }
 
 main().catch((e) => {

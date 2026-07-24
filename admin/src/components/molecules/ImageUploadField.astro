@@ -13,7 +13,7 @@ interface Props {
 const { id, label, hint, accept = 'image/jpeg,image/png,image/webp' } = Astro.props;
 ---
 <fieldset class="rounded-md border p-4">
-  <legend class="px-1 text-sm font-medium">{label}</legend>
+  <legend id={`${id}-label`} class="px-1 text-sm font-medium">{label}</legend>
   {hint && <p class="mb-2 text-sm text-muted-foreground">{hint}</p>}
   <input type="hidden" id={id} />
   <p id={`${id}-current`} class="mb-2"></p>

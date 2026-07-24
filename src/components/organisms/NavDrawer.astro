@@ -1,17 +1,29 @@
 ---
 import AreaNav from '../molecules/AreaNav.astro';
-import SearchTrigger from '../molecules/SearchTrigger.astro';
 import MetaLabel from '../atoms/MetaLabel.astro';
 import { supabaseServer } from '../../lib/supabase-server';
-import { getAreaLinks } from '../../lib/sidebar';
+import { getAreaLinks, type AreaLink } from '../../lib/sidebar';
 
 interface Props {
   activeAreaSlug?: string;
+  /* 既定(browse): 記事件数の地域リンク集をビルド時に1回だけ取得して使い回す。
+     ライター一覧・プロバイダー一覧など、地図を「このページ内の絞り込み」として
+     使いたい場合だけ areaMode/areaLinks を明示的に渡して上書きする。 */
+  areaMode?: 'browse' | 'filter';
+  areaLinks?: AreaLink[];
+  /* filter モード時の見出し文言。何を絞り込んでいるかはページごとに違うので
+     呼び出し側から渡す(未指定ならライター一覧向けの文言のまま)。 */
+  areaFilterLabel?: { en: string; ja: string };
 }
-const { activeAreaSlug } = Astro.props;
+const {
+  activeAreaSlug,
+  areaMode = 'browse',
+  areaLinks,
+  areaFilterLabel = { en: 'Writers per Area', ja: '地域でライターを絞り込む' },
+} = Astro.props;
 
 // ページ側から props で渡さない。ビルド中1回だけ実行されてメモ化される。
-const areas = await getAreaLinks(supabaseServer);
+const areas = areaLinks ?? (await getAreaLinks(supabaseServer));
 ---
 
 {/* 常設サイドバー(claude.ai のサイドバーと同じ「押し出し式」)。デフォルトで
@@ -20,36 +32,66 @@ const areas = await getAreaLinks(supabaseServer);
     transform で本文をずらす旧方式だと、本文の見た目の幅そのものは変わらず
     画面外へクリップされていた)。モーダルではなく常設レイアウトの一部なので
     inert やスクロールロックは掛けない。閉じるとロゴ等は隠れ、トグルボタンだけが
-    残る細い帯(rail)になる(再度開く手段を残すため)。 */}
+    残る細い帯(rail)になる(再度開く手段を残すため)。
+    デスクトップの検索導線は「記事を検索」の帯UIをやめ、開閉トグル(スライド
+    アイコン)の真下に検索アイコンボタンを1個だけ並べる形にした
+    (search-open-trigger は search-modal.ts が拾う共有クラス)。rail(閉時)
+    でもこの2つのアイコンは隠さない — 折りたたんだままでも検索だけは開ける。
+    768px 未満(モバイル)では別の見た目になる: この <aside> 自体を画面下から
+    せり上がるシートに変え、下部タブバー(MobileTabBar.astro)の Area ボタン
+    (id="area-sheet-open")で開閉する。検索も同タブバー側の検索ボタンに
+    任せるため、この <aside> 内の頭部(ロゴ・トグル・検索アイコン列)は
+    モバイルでは丸ごと非表示にする。 */}
+<div id="area-sheet-backdrop" class="area-sheet-backdrop" data-lenis-prevent></div>
 <aside id="nav-drawer" class="nav-drawer" aria-label="メニュー" data-lenis-prevent>
   <div class="nav-drawer-inner">
+    <div class="sheet-handle" aria-hidden="true"></div>
+
     <div class="nav-drawer-head">
       <a href="/" class="logo-link">
         <img src="/logo.svg" alt="Wild Media" class="logo-mark" />
       </a>
-      <button type="button" id="nav-toggle" class="nav-toggle" aria-label="メニューを閉じる" aria-expanded="true">
-        <svg
-          class="nav-toggle-icon"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.75"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <rect x="3" y="3" width="18" height="18" rx="3" />
-          <line x1="9" y1="3" x2="9" y2="21" />
-        </svg>
-      </button>
+      <div class="nav-head-actions">
+        <button type="button" class="nav-toggle search-open-trigger nav-search-toggle" aria-label="記事を検索">
+          <svg
+            class="nav-toggle-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+        </button>
+        <button type="button" id="nav-toggle" class="nav-toggle" aria-label="メニューを閉じる" aria-expanded="true">
+          <svg
+            class="nav-toggle-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.75"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="3" y="3" width="18" height="18" rx="3" />
+            <line x1="9" y1="3" x2="9" y2="21" />
+          </svg>
+        </button>
+      </div>
     </div>
 
     <div class="nav-drawer-body">
-      <SearchTrigger />
-      <hr class="panel-rule" />
-      <MetaLabel class="text-ink">Area</MetaLabel>
+      <MetaLabel class="area-heading-en">{areaMode === 'filter' ? areaFilterLabel.en : 'Articles per Area'}</MetaLabel>
+      <span class="area-heading-ja">
+        {areaMode === 'filter' ? areaFilterLabel.ja : '地域から記事を探す'}
+      </span>
       <div class="mt-3">
-        <AreaNav areas={areas} activeSlug={activeAreaSlug} />
+        <AreaNav areas={areas} activeSlug={activeAreaSlug} mode={areaMode} />
       </div>
     </div>
   </div>
@@ -57,12 +99,14 @@ const areas = await getAreaLinks(supabaseServer);
 
 <script>
   import '../../scripts/nav-drawer';
+  import '../../scripts/area-sheet';
 </script>
 
 <style>
   /* 常設の押し出しパネル。閉じると rail 幅まで縮む(0にはしない。トグル
      ボタンの再アクセスを残すため)。幅は global.css の --nav-drawer-width /
-     --nav-drawer-rail-width。 */
+     --nav-drawer-rail-width。背景は --color-ink(黒)にして本文と明確に分離し、
+     内側の文字・罫線・ロゴは反転させて黒地の上で読めるようにしている。 */
   .nav-drawer {
     position: sticky;
     top: 0;
@@ -73,8 +117,8 @@ const areas = await getAreaLinks(supabaseServer);
     width: var(--nav-drawer-width);
     flex-shrink: 0;
     overflow: hidden;
-    background-color: color-mix(in srgb, var(--color-ink) 7%, var(--color-bg));
-    color: var(--color-ink);
+    background-color: var(--color-ink);
+    color: var(--color-bg);
     transition: width 0.32s cubic-bezier(0.22, 1, 0.36, 1);
   }
 
@@ -86,7 +130,7 @@ const areas = await getAreaLinks(supabaseServer);
     height: 100%;
     overflow-y: auto;
     overscroll-behavior: contain;
-    padding: 1.1rem 1rem 1.5rem;
+    padding: 1.1rem 0.85rem 1.5rem;
   }
 
   .nav-drawer-head {
@@ -97,6 +141,31 @@ const areas = await getAreaLinks(supabaseServer);
     margin-bottom: 1rem;
   }
 
+  /* .meta(global.css)がレイヤー外の生CSSで color を直接指定しているため、
+     Tailwind の text-accent ユーティリティ(@layer utilities 内)は詳細度・
+     ソース順に関わらず負ける。同じくレイヤー外のセレクタとして書き、
+     詳細度を上げて確実に上書きする。 */
+  :global(.nav-drawer-body .area-heading-en) {
+    color: var(--color-accent);
+  }
+
+  /* 英語ラベル(MetaLabel)の下に添える日本語の小さな補足。letter-spacing や
+     uppercase は英語チップ用の意匠なので継承させない。 */
+  .area-heading-ja {
+    display: block;
+    margin-top: 2px;
+    font-size: 10px;
+    line-height: 1.3;
+    color: var(--color-meta);
+    opacity: 0.85;
+  }
+
+  .nav-head-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
   .logo-link {
     display: flex;
     align-items: center;
@@ -105,9 +174,11 @@ const areas = await getAreaLinks(supabaseServer);
   }
 
   .logo-mark {
-    height: 18px;
+    height: 14px;
     width: auto;
     display: block;
+    /* ロゴSVGは濃色(#231f20)固定塗りのため、黒地の上では反転させて生成り色に見せる */
+    filter: invert(1);
   }
 
   .nav-toggle {
@@ -125,7 +196,7 @@ const areas = await getAreaLinks(supabaseServer);
   }
 
   .nav-toggle:hover {
-    background-color: color-mix(in srgb, var(--color-ink) 8%, transparent);
+    background-color: color-mix(in srgb, var(--color-bg) 12%, transparent);
   }
 
   .nav-toggle-icon {
@@ -136,19 +207,15 @@ const areas = await getAreaLinks(supabaseServer);
   }
 
   .nav-toggle:hover .nav-toggle-icon {
-    color: var(--color-ink);
+    color: var(--color-bg);
   }
 
-  /* rail 状態(閉時)ではロゴと本文一式を隠し、トグルボタンだけの帯にする */
+  /* rail 状態(閉時)ではロゴ・検索アイコン・本文一式を隠し、トグルボタンだけの
+     帯にする(検索は開いているときだけの導線にする)。 */
   html.drawer-closed .logo-link,
+  html.drawer-closed .nav-search-toggle,
   html.drawer-closed .nav-drawer-body {
     display: none;
-  }
-
-  .panel-rule {
-    margin: 0.875rem 0;
-    border: 0;
-    border-top: 1px solid color-mix(in srgb, var(--color-ink) 12%, transparent);
   }
 
   .nav-drawer-inner button {
@@ -157,6 +224,81 @@ const areas = await getAreaLinks(supabaseServer);
 
   @media (prefers-reduced-motion: reduce) {
     .nav-drawer {
+      transition: none;
+    }
+  }
+
+  .area-sheet-backdrop {
+    display: none;
+  }
+
+  .sheet-handle {
+    display: none;
+  }
+
+  /* モバイル: 常設サイドバーではなく、地図アイコンで開閉する下からのシートにする。
+     rail(閉時に幅だけ残す)の概念は無し。既定は非表示(translateY(100%))で、
+     html.area-sheet-open が付いたときだけ迫り上がる。 */
+  @media (max-width: 767px) {
+    .nav-drawer {
+      position: fixed;
+      inset: auto auto 0 50%;
+      top: auto;
+      z-index: 70;
+      width: 100%;
+      max-width: 26rem;
+      height: auto;
+      max-height: min(80dvh, 640px);
+      border-radius: 20px 20px 0 0;
+      transform: translate(-50%, 100%);
+      transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+      box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    html.area-sheet-open .nav-drawer {
+      transform: translate(-50%, 0);
+    }
+
+    .nav-drawer-inner {
+      max-height: min(80dvh, 640px);
+      padding: 0.6rem 1.1rem 1.5rem;
+    }
+
+    /* デスクトップの rail 用ロゴ・トグルは出さない。シートの開閉は
+       モバイルヘッダーの地図アイコン(#area-sheet-open)とバックドロップが担う。 */
+    .nav-drawer-head {
+      display: none;
+    }
+
+    .sheet-handle {
+      display: block;
+      width: 2.5rem;
+      height: 4px;
+      margin: 0 auto 0.75rem;
+      border-radius: 999px;
+      background-color: color-mix(in srgb, var(--color-bg) 25%, transparent);
+    }
+
+    .area-sheet-backdrop {
+      display: block;
+      position: fixed;
+      inset: 0;
+      z-index: 65;
+      background-color: rgba(20, 20, 19, 0.45);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.32s ease;
+    }
+
+    html.area-sheet-open .area-sheet-backdrop {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+
+  @media (max-width: 767px) and (prefers-reduced-motion: reduce) {
+    .nav-drawer,
+    .area-sheet-backdrop {
       transition: none;
     }
   }

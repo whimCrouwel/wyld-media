@@ -56,7 +56,12 @@ Wild Media の「いまの姿」の地図。意思決定の経緯は [設計ス�
   SECURITY DEFINER RPC `validate_commission_token`(列挙攻撃防止のため、呼び出し本人
   宛てのトークンとの完全一致のみ応答)。未使用のトークンは発行元プロバイダーまたは
   admin が取り消せる。管理者は `/commissions`(CMS)で全プロバイダー分のトークンと
-  その状態(未使用/使用済み/取消済み)を確認できる。
+  その状態(未使用/使用済み/取消済み)を確認できる。同一 provider→writer ペアへの発行は
+  `commission_interval_days`(初期値10)日に1回まで(取消済みトークンはカウント対象外)。
+- プロバイダーの認定(`profiles.certified`、admin のみ変更可): 認定済みの provider だけが
+  CMS で「主要サービス」タブを編集できる(未認定は無条件に不可。公開サイト側での主要
+  サービス表示は未実装 — 表示できないうちは編集させても意味がないための制限)。
+  依頼トークンの発行は認定の有無に関係なく、全 provider が可能。
 - Featured 枠 = 最新の依頼記事 `featured_count`(初期値3)件
 - 本文の画像・ファイルブロックは `settings.image_base_url` 配下の URL のみ許可し、
   画像は 5 枚まで(`articles` のトリガー `a_enforce_body_image_rules`。違反時の例外は
@@ -67,6 +72,19 @@ Wild Media の「いまの姿」の地図。意思決定の経緯は [設計ス�
   抜け道はそもそも存在しない。
 - 公開するには本文ブロックにテキストを持つノードが1つ以上必要
   (トリガー `b_enforce_publish_rules`、`enforce_publish_rules` 内の `BODY_EMPTY_ON_PUBLISH` チェック)。
+- admin は記事を執筆しない(`articles` insert は writer role のみ)。admin の役割は審査で、
+  `articles.moderation_hold` を立てると `status` に関係なく公開サイト・検索から即座に隠れる
+  (`fetchPublishedArticles`/`fetchArticleBySlug`/`search_articles_hybrid` すべてが
+  `not moderation_hold` を強制)。ライター自身の下書き/公開トグルとは独立しており、
+  ライターがステータスを変更してもホールドは解除されない。ホールドの設置/解除は
+  admin のみ可能(トリガー `a_protect_moderation_hold_columns`)で、`moderation_hold_at`/
+  `moderation_hold_by` はサーバー側で自動記録される。ホールド設置には理由
+  (`moderation_hold_reason`)が必須(トリガーが空文字/nullを拒否)で、解除時にサーバー側で
+  自動クリアされる。CMS では `/articles/edit` に理由つきの通知(「監査AIが以下の理由により
+  記事を非表示としました。修正が確認出来次第再審査が行われます。」という文言 + 理由)を
+  著者・admin 双方に表示し、admin にはホールド操作ボタンが出る(ダッシュボードの
+  「全記事」一覧から遷移)。理由を書くのは人間の admin だが、通知の文面は自動監査システムの
+  体裁にしている。
 - アップロード済み画像は `media` テーブルに記録される。記事から参照されている
   画像は削除できない(`a_block_media_in_use`)。R2 のオブジェクト削除は
   Edge Function `r2-delete-object` が行い、呼び出し元の uid 配下のキーに限る。
@@ -76,7 +94,10 @@ Wild Media の「いまの姿」の地図。意思決定の経緯は [設計ス�
   `post_chunks` テーブルに保存する(20秒毎のautosaveでは呼ばない)。
   `post_chunks` はservice role専用(RLS+GRANTの両方でanon/authenticatedを拒否)。
   検索は `search-articles` Edge Function → DB関数 `search_articles_hybrid` が
-  `articles.status = 'published'` をDB層で強制し、下書きは結果に混ざらない。
+  `articles.status = 'published' and not moderation_hold` をDB層で強制し、
+  下書き・審査ホールド中の記事は結果に混ざらない。ベクトル側は
+  cosine distance が `max_distance`(既定0.5)以下のチャンクだけを候補にする
+  ため、コーパスが小さくても kNN の下位に無関係な記事が混ざらない。
   記事削除時は `post_chunks.article_id` の `on delete cascade` で自動的に
   チャンクも削除される。
 - `articles.region`(取材地)と `profiles.region`(ライターの活動拠点)は別物。

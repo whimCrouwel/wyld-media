@@ -2,9 +2,11 @@
 import Base from '../../layouts/Base.astro';
 import MetaLabel from '../../components/atoms/MetaLabel.astro';
 import SectionHeader from '../../components/molecules/SectionHeader.astro';
+import SocialIcon from '../../components/atoms/SocialIcon.astro';
 import { supabaseServer } from '../../lib/supabase-server';
 import { fetchWriters, fetchWriterBySlug, formatDate } from '../../lib/content';
 import type { WriterDetail } from '../../lib/content';
+import { detectSocialPlatform } from '../../lib/social-links';
 
 export async function getStaticPaths() {
   const writers = await fetchWriters(supabaseServer);
@@ -118,16 +120,28 @@ const hasCover = Boolean(writer.coverImageUrl);
 
     {
       writer.snsLinks.length > 0 && (
-        <div class="mt-5 flex flex-wrap gap-x-5 gap-y-1">
-          {writer.snsLinks.map((url) => (
-            <a
-              href={url}
-              class="underline underline-offset-4 transition-opacity hover:opacity-60"
-              style="text-decoration-color: var(--color-meta);"
-            >
-              <MetaLabel>{new URL(url).hostname}</MetaLabel>
-            </a>
-          ))}
+        <div class="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2">
+          {writer.snsLinks.map((url) => {
+            const social = detectSocialPlatform(url);
+            return social ? (
+              <a
+                href={url}
+                aria-label={social.label}
+                class="bg-ink flex h-9 w-9 items-center justify-center rounded-full transition-opacity hover:opacity-80"
+                style="color: var(--color-bg);"
+              >
+                <SocialIcon platform={social.platform} />
+              </a>
+            ) : (
+              <a
+                href={url}
+                class="text-ink underline underline-offset-4 transition-opacity hover:opacity-60"
+                style="text-decoration-color: var(--color-ink);"
+              >
+                {new URL(url).hostname}
+              </a>
+            );
+          })}
         </div>
       )
     }
@@ -170,17 +184,35 @@ const hasCover = Boolean(writer.coverImageUrl);
       )
     }
 
-    {/* 取材・寄稿料バー */}
+    {/* 料金プラン(pricing_items) */}
     {
-      writer.priceInfo && (
-        <div class="border-card mt-6 flex flex-wrap items-baseline justify-between gap-3 rounded-[16px] border px-6 py-5">
-          <MetaLabel>取材・寄稿料</MetaLabel>
-          <p class="flex items-baseline gap-3">
-            <span style="font-family: var(--font-heading); font-size: 20px; font-weight: 600;">
-              {writer.priceInfo}
-            </span>
+      writer.pricingItems.length > 0 && (
+        <div class="border-card mt-6 rounded-[16px] border px-6 py-5">
+          <div class="mb-3 flex items-baseline justify-between gap-3">
+            <MetaLabel>料金プラン</MetaLabel>
             <MetaLabel>ライターが自由に設定</MetaLabel>
-          </p>
+          </div>
+          <ul class="divide-border/60 divide-y">
+            {writer.pricingItems.map((p) => (
+              <li class="flex flex-wrap items-baseline justify-between gap-3 py-3">
+                <span
+                  class="min-w-0"
+                  style="font-family: var(--font-heading); font-size: 16px; line-height: 1.4;"
+                >
+                  {p.label}
+                  {p.unit && (
+                    <MetaLabel class="ml-2 inline-block">/ {p.unit}</MetaLabel>
+                  )}
+                </span>
+                <span
+                  class="tabular-nums"
+                  style="font-family: var(--font-heading); font-size: 18px; font-weight: 600;"
+                >
+                  ¥{p.amount.toLocaleString('ja-JP')}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
       )
     }

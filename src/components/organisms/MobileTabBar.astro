@@ -1,0 +1,82 @@
+{/* モバイル専用の下部タブバー(アプリのような固定ナビ)。検索と地域(地図シート
+    開閉)の2項目だけ。検索ボタンは search-modal.ts が拾う共有クラス
+    search-open-trigger を持つ。地域ボタンは NavDrawer.astro 側の
+    area-sheet.ts が id="area-sheet-open" で拾う(同じIDの要素はページ内に
+    ここしかない)。 */}
+<nav class="mobile-tab-bar md:hidden" aria-label="モバイルナビゲーション">
+  <button type="button" class="tab-item search-open-trigger" aria-label="記事を検索">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="7" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+    <span class="tab-label">Search</span>
+  </button>
+  <button
+    type="button"
+    id="area-sheet-open"
+    class="tab-item"
+    aria-label="地域から探す"
+    aria-expanded="false"
+    aria-controls="nav-drawer"
+  >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M12 21s-7-6.1-7-11.5A7 7 0 0 1 19 9.5C19 14.9 12 21 12 21Z" />
+      <circle cx="12" cy="9.5" r="2.5" />
+    </svg>
+    <span class="tab-label">Area</span>
+  </button>
+</nav>
+
+<style>
+  .mobile-tab-bar {
+    display: none;
+  }
+
+  @media (max-width: 767px) {
+    .mobile-tab-bar {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      position: fixed;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 60;
+      background-color: var(--color-ink);
+      border-top: 1px solid color-mix(in srgb, var(--color-bg) 15%, transparent);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    .tab-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.15rem;
+      padding: 0.35rem 0 0.3rem;
+      border: none;
+      background-color: transparent;
+      color: color-mix(in srgb, var(--color-bg) 55%, transparent);
+      cursor: pointer;
+      transition: color 0.2s ease;
+    }
+
+    .tab-item:hover,
+    .tab-item:focus-visible,
+    .tab-item:active {
+      color: var(--color-bg);
+    }
+
+    .tab-item svg {
+      width: 1.05rem;
+      height: 1.05rem;
+    }
+
+    .tab-label {
+      font-family: var(--font-accent);
+      font-size: 8px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+  }
+</style>

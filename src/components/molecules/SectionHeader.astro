@@ -9,13 +9,19 @@ interface Props {
   count?: number | string;
   countId?: string;
   class?: string;
+  /* 絞り込み中のラベル(例: ライター一覧を地域で絞ったときの地域名)を
+     label の隣に出す場所。中身はJSが書き込むので初期状態は空。 */
+  subLabelId?: string;
 }
-const { label, count, countId, class: className = '' } = Astro.props;
+const { label, count, countId, class: className = '', subLabelId } = Astro.props;
 const countText = typeof count === 'number' ? String(count).padStart(2, '0') : count;
 ---
 
 <div class:list={['border-card flex items-baseline justify-between border-t pt-3', className]}>
-  <MetaLabel class="text-ink">{label}</MetaLabel>
+  <span class="flex items-baseline gap-3">
+    <MetaLabel class="text-ink">{label}</MetaLabel>
+    {subLabelId && <MetaLabel id={subLabelId} class="text-accent" />}
+  </span>
   {countText !== undefined && (
     <MetaLabel id={countId} class="tabular-nums">{countText}</MetaLabel>
   )}

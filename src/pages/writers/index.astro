@@ -1,31 +1,27 @@
 ---
 import Base from '../../layouts/Base.astro';
-import MetaLabel from '../../components/atoms/MetaLabel.astro';
 import SectionHeader from '../../components/molecules/SectionHeader.astro';
 import WriterAvatar from '../../components/atoms/WriterAvatar.astro';
-import Chip from '../../components/atoms/Chip.astro';
+import MetaLabel from '../../components/atoms/MetaLabel.astro';
 import { supabaseServer } from '../../lib/supabase-server';
 import { fetchWriters } from '../../lib/content';
-import { usedRegions } from '../../lib/regions';
+import { buildAreaLinks } from '../../lib/sidebar';
 
 const writers = await fetchWriters(supabaseServer);
-// 該当ライターがいないエリアはボタンを出さない(押しても0件になるだけなので)
-const regions = usedRegions(writers.map((w) => w.region));
+// このページだけ、サイドバーの地図を「記事の地域ブラウズ」ではなく
+// 「ライターを地域で絞り込む」フィルタとして使う(areaMode="filter")。
+// 件数は記事ではなくライターの居住地域でカウントし直す。
+const writerAreas = buildAreaLinks(writers.map((w) => w.region));
 ---
-<Base title="ライター一覧 | Wild Media">
+<Base title="ライター一覧 | Wild Media" areaMode="filter" areaLinks={writerAreas}>
   <div class="px-6 pb-24">
-    <SectionHeader label="Writers" count={writers.length} countId="writer-count" class="pb-14" />
-
-    {
-      regions.length > 1 && (
-        <nav id="region-filter" class="-mt-8 flex flex-wrap gap-x-6 gap-y-2 pb-10">
-          <Chip active data-region="" aria-pressed="true">すべて</Chip>
-          {regions.map((r) => (
-            <Chip data-region={r} aria-pressed="false">{r}</Chip>
-          ))}
-        </nav>
-      )
-    }
+    <SectionHeader
+      label="Writers"
+      count={writers.length}
+      countId="writer-count"
+      subLabelId="active-region-label"
+      class="pb-14"
+    />
 
     <ul id="writer-list">
       {

@@ -13,8 +13,11 @@ insert into profiles (id, role, slug, name) values
 select set_config('request.jwt.claims',
   '{"sub":"00000000-0000-0000-0000-00000000000d","role":"authenticated"}', true);
 set local role authenticated;
-insert into commission_tokens (id, writer_id) values
-  ('50000000-0000-0000-0000-000000000007', '00000000-0000-0000-0000-00000000000c');
+-- あえて過去日時で発行する: 直後に2件目を発行するため、commission_interval_days の
+-- 間隔チェックに引っかからないようにする。
+insert into commission_tokens (id, writer_id, created_at) values
+  ('50000000-0000-0000-0000-000000000007', '00000000-0000-0000-0000-00000000000c',
+   now() - interval '11 days');
 -- a second valid token to the same writer, so we can test swapping the link
 -- to a different token (not just clearing it to null) on a published article.
 insert into commission_tokens (id, writer_id) values

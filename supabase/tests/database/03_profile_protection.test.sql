@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(5);
+select plan(8);
 
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-000000000004', 'prot-writer@test.local'),
@@ -24,6 +24,11 @@ select throws_like(
     where id = '00000000-0000-0000-0000-000000000004'$$,
   '%only be changed by an admin%',
   'writer cannot change own role');
+select throws_like(
+  $$update profiles set certified = true
+    where id = '00000000-0000-0000-0000-000000000004'$$,
+  '%only be changed by an admin%',
+  'a non-admin cannot self-certify');
 
 set local role postgres;
 select is(
@@ -41,11 +46,20 @@ select lives_ok(
     where id = '00000000-0000-0000-0000-000000000004'$$,
   'admin can change roles');
 
+select lives_ok(
+  $$update profiles set certified = true
+    where id = '00000000-0000-0000-0000-000000000004'$$,
+  'admin can certify a provider');
+
 set local role postgres;
 select is(
   (select role from profiles
     where id = '00000000-0000-0000-0000-000000000004')::text,
   'provider', 'role change by admin was persisted');
+select is(
+  (select certified from profiles
+    where id = '00000000-0000-0000-0000-000000000004'),
+  true, 'certification by admin was persisted');
 
 select * from finish();
 rollback;

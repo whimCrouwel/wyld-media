@@ -31,6 +31,9 @@ export interface EditableArticle {
   region: string | null;
   status: 'draft' | 'published';
   updatedAt: string;
+  moderationHold: boolean;
+  moderationHoldAt: string | null;
+  moderationHoldReason: string | null;
 }
 
 export interface SaveResult {
@@ -72,7 +75,10 @@ export async function fetchArticleForEdit(
 ): Promise<EditableArticle | null> {
   const { data, error } = await supabase
     .from('articles')
-    .select('id, title, slug, body, cover_image_url, commission_token_input, region, status, updated_at')
+    .select(
+      'id, title, slug, body, cover_image_url, commission_token_input, region, status, updated_at, ' +
+      'moderation_hold, moderation_hold_at, moderation_hold_reason',
+    )
     .eq('id', id)
     .maybeSingle();
   if (error) throw error;
@@ -87,6 +93,9 @@ export async function fetchArticleForEdit(
     region: data.region,
     status: data.status,
     updatedAt: data.updated_at,
+    moderationHold: data.moderation_hold,
+    moderationHoldAt: data.moderation_hold_at,
+    moderationHoldReason: data.moderation_hold_reason,
   };
 }
 

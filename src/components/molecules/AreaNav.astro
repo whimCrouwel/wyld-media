@@ -5,8 +5,13 @@ import type { AreaLink } from '../../lib/sidebar';
 interface Props {
   areas: AreaLink[];
   activeSlug?: string;
+  /* browse(既定): タイルは /areas/xxx へのリンクで、記事を地域で絞り込む。
+     filter: タイルは data-region 付きボタンになり、同じページ内のリストを
+     クライアント側で絞り込む(ライター一覧用)。ナビゲーションはしない。 */
+  mode?: 'browse' | 'filter';
 }
-const { areas, activeSlug } = Astro.props;
+const { areas, activeSlug, mode = 'browse' } = Astro.props;
+const isFilter = mode === 'filter';
 
 // モザイクの日本地図。5列グリッド上の配置で、col/row は CSS grid の
 // `開始 / 終了`(終了は含まない)。北東の北海道から南西の九州へ階段状に下る。
@@ -34,49 +39,78 @@ const tiles = areas
 const overseas = areas.find((a) => a.slug === 'overseas');
 ---
 
-<nav aria-label="地域から探す">
-  <div class="area-map">
-    {
-      tiles.map((t) =>
-        t.count === 0 ? (
-          <div
-            class="area-tile is-empty"
-            style={`grid-column:${t.col};grid-row:${t.row}`}
-            aria-disabled="true"
-          >
-            <span class="area-tile-name">{t.region}</span>
-            <span class="area-tile-count tabular-nums">{String(t.count).padStart(2, '0')}</span>
-          </div>
-        ) : (
-          <a
-            href={t.href}
-            class:list={['area-tile', { 'is-active': t.slug === activeSlug }]}
-            style={`grid-column:${t.col};grid-row:${t.row}`}
-            aria-current={t.slug === activeSlug ? 'page' : undefined}
-          >
-            <span class="area-tile-name">{t.region}</span>
-            <span class="area-tile-count tabular-nums">{String(t.count).padStart(2, '0')}</span>
-          </a>
+<nav aria-label="地域から探す" id={isFilter ? 'area-filter' : undefined}>
+  {/* サイドバーの地色(琥珀)の上に、本文と同じ紙色の額装カードとして地図を置く。
+      タイルの地色も同じ --color-bg なので、パディング分の縁取りだけが見える。 */}
+  <div class="area-map-frame">
+    <div class="area-map">
+      {
+        tiles.map((t) =>
+          t.count === 0 ? (
+            <div
+              class="area-tile is-empty"
+              style={`grid-column:${t.col};grid-row:${t.row}`}
+              aria-disabled="true"
+            >
+              <span class="area-tile-name">{t.region}</span>
+              <span class="area-tile-count tabular-nums">{String(t.count).padStart(2, '0')}</span>
+            </div>
+          ) : isFilter ? (
+            <button
+              type="button"
+              data-region={t.region}
+              aria-pressed="false"
+              class="area-tile"
+              style={`grid-column:${t.col};grid-row:${t.row}`}
+            >
+              <span class="area-tile-name">{t.region}</span>
+              <span class="area-tile-count tabular-nums">{String(t.count).padStart(2, '0')}</span>
+            </button>
+          ) : (
+            <a
+              href={t.href}
+              class:list={['area-tile', { 'is-active': t.slug === activeSlug }]}
+              style={`grid-column:${t.col};grid-row:${t.row}`}
+              aria-current={t.slug === activeSlug ? 'page' : undefined}
+            >
+              <span class="area-tile-name">{t.region}</span>
+              <span class="area-tile-count tabular-nums">{String(t.count).padStart(2, '0')}</span>
+            </a>
+          )
         )
-      )
-    }
-    {/* 沖縄インセットの折れ線。沖縄の真下から本州へ向けて引く。
-        地図記号なので読み上げからは外す */}
-    <div class="area-inset-rule" aria-hidden="true">
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-        <polyline points="5,62 45,62 95,8" vector-effect="non-scaling-stroke" />
-      </svg>
+      }
+      {/* 沖縄インセットの折れ線。沖縄の真下から本州へ向けて引く。
+          地図記号なので読み上げからは外す */}
+      <div class="area-inset-rule" aria-hidden="true">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+          <polyline points="5,62 45,62 95,8" vector-effect="non-scaling-stroke" />
+        </svg>
+      </div>
     </div>
   </div>
 
   <div class="area-foot">
-    <Chip href="/" active={activeSlug === undefined}>すべて</Chip>
+    {
+      isFilter ? (
+        <Chip data-region="" aria-pressed="true" active={activeSlug === undefined}>
+          すべて
+        </Chip>
+      ) : (
+        <Chip href="/" active={activeSlug === undefined}>
+          すべて
+        </Chip>
+      )
+    }
     {
       overseas &&
         (overseas.count === 0 ? (
           <span class="area-foot-muted" aria-disabled="true">
             海外 <span class="tabular-nums">{String(overseas.count).padStart(2, '0')}</span>
           </span>
+        ) : isFilter ? (
+          <Chip data-region={overseas.region} aria-pressed="false">
+            海外 <span class="tabular-nums">{String(overseas.count).padStart(2, '0')}</span>
+          </Chip>
         ) : (
           <Chip href={overseas.href} active={overseas.slug === activeSlug}>
             海外 <span class="tabular-nums">{String(overseas.count).padStart(2, '0')}</span>
@@ -87,16 +121,39 @@ const overseas = areas.find((a) => a.slug === 'overseas');
 </nav>
 
 <style>
-  /* タイル同士は隙間なく接し、区切りはカードの地色が透ける2pxの筋だけ。
-     これがないと地図ではなく表に見える。幅の確保は親の .area-card 側で
-     やっているので、ここでは食い出さない。 */
+  /* 黒いサイドバーの上に、暖色の額(--color-panel、生成りより一段沈んだオート色)を
+     敷いて地図を「額装」する。地色の上に細かいドットグリッドを重ね、モザイクの
+     マス目ではなく「座標グリッドに置かれたチップ」として読めるようにしている。 */
+  .area-map-frame {
+    position: relative;
+    background-color: var(--color-panel);
+    background-image: radial-gradient(
+      circle at 1px 1px,
+      color-mix(in srgb, var(--color-ink) 9%, transparent) 1px,
+      transparent 0
+    );
+    background-size: 9px 9px;
+    border-radius: 10px;
+    padding: 0.65rem;
+  }
+
+  /* タイル同士は隙間を空けて角を丸め、額のドットグリッドが目地から覗く
+     「チップ」の見た目にする(旧デザインは隙間なしの陸地モザイクだった)。
+     行の高さは均一(grid-auto-rows)にせず1行ずつ明示している。北海道・
+     東北・九州は2行分の枠(縦2/3=53px相当)に詰めたいが、他のタイルと
+     行を共有しているため、その行自体を縮めないと後続タイルとの間に
+     空白ができてしまう(タイル側だけ丈を縮めても、行の高さそのものは
+     変わらないため)。row2(沖縄と共有)・row7(東海・四国と共有)は
+     テキストが収まる最小の高さ(29px)までしか縮めていない。 */
   .area-map {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    grid-auto-rows: 48px;
-    gap: 2px;
+    grid-template-rows: 20px 29px 29px 20px 38px 38px 29px 20px;
+    gap: 4px;
   }
 
+  /* filter モードでは <button> になるので、既定のボタン装飾(枠線・背景・
+     フォント)をリセットして <a> 版と見た目を揃える。 */
   .area-tile {
     display: flex;
     flex-direction: column;
@@ -105,47 +162,74 @@ const overseas = areas.find((a) => a.slug === 'overseas');
     gap: 1px;
     padding: 4px 2px;
     text-align: center;
+    border-radius: 7px;
+    border: none;
+    font: inherit;
+    cursor: pointer;
     /* カードの地色より明るくして、陸が海から浮くようにする */
     background-color: var(--color-bg);
     color: var(--color-ink);
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--color-ink) 12%, transparent);
     transition:
       background-color 0.2s ease,
-      color 0.2s ease;
+      color 0.2s ease,
+      transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.2s ease;
   }
 
   .area-tile-name {
-    font-size: 11px;
-    line-height: 1.25;
+    font-size: 9.5px;
+    line-height: 1.2;
   }
 
   .area-tile-count {
     font-family: var(--font-accent);
-    font-size: 10px;
+    font-size: 8.5px;
     color: var(--color-meta);
     transition: color 0.2s ease;
   }
 
-  a.area-tile:hover {
-    background-color: var(--color-meta);
-    color: var(--color-bg);
+  /* ホバーは塗りつぶしではなく、差し色をうっすら混ぜて浮き上がらせる
+     (チップを指で持ち上げるような動き)。 */
+  a.area-tile:hover,
+  button.area-tile:hover {
+    background-color: color-mix(in srgb, var(--color-accent) 20%, var(--color-bg));
+    color: var(--color-ink);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px color-mix(in srgb, var(--color-ink) 20%, transparent);
   }
 
-  a.area-tile:hover .area-tile-count {
-    color: var(--color-bg);
-    opacity: 0.8;
+  a.area-tile:hover .area-tile-count,
+  button.area-tile:hover .area-tile-count {
+    color: var(--color-accent-hover);
+    opacity: 1;
   }
 
-  a.area-tile:focus-visible {
+  a.area-tile:focus-visible,
+  button.area-tile:focus-visible {
     outline: 2px solid var(--color-ink);
-    outline-offset: -2px;
+    outline-offset: 2px;
   }
 
-  a.area-tile.is-active {
-    background-color: var(--color-ink);
+  /* browse モードでは現在地、filter モードでは選択中のフィルタを差し色
+     (--color-accent)で示す。地図上で「今ここ/今の絞り込み」を一目で
+     拾えるように、地図内で唯一色のついたタイルにする。輪郭を淡いリングで
+     囲み、選択中であることをホバーより強く主張させる。 */
+  a.area-tile.is-active,
+  button.area-tile.is-active {
+    background-color: var(--color-accent);
     color: var(--color-bg);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 35%, transparent);
   }
 
-  a.area-tile.is-active .area-tile-count {
+  a.area-tile.is-active:hover,
+  button.area-tile.is-active:hover {
+    transform: none;
+    background-color: var(--color-accent);
+  }
+
+  a.area-tile.is-active .area-tile-count,
+  button.area-tile.is-active .area-tile-count {
     color: var(--color-bg);
     opacity: 0.75;
   }
@@ -184,6 +268,7 @@ const overseas = areas.find((a) => a.slug === 'overseas');
     stroke-width: 1.5;
   }
 
+  /* この罫線は黒いサイドバー地に直接乗るので、他の罫線と違い --color-bg 側から薄める */
   .area-foot {
     display: flex;
     flex-wrap: wrap;
@@ -191,7 +276,7 @@ const overseas = areas.find((a) => a.slug === 'overseas');
     align-items: baseline;
     margin-top: 0.75rem;
     padding-top: 0.5rem;
-    border-top: 1px solid color-mix(in srgb, var(--color-ink) 13%, transparent);
+    border-top: 1px solid color-mix(in srgb, var(--color-bg) 15%, transparent);
   }
 
   /* 記事0件の海外。地図の0件タイルと同じく、出すが押せない */

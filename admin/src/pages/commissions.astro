@@ -1,10 +1,10 @@
 ---
-import PageShell from '../components/templates/PageShell.astro';
+import AdminShell from '../components/templates/AdminShell.astro';
 import Card from '../components/atoms/Card.astro';
 
 const title = '依頼トークン管理 | Wild Media CMS';
 ---
-<PageShell title={title} heading="依頼トークン管理" wide>
+<AdminShell title={title} heading="依頼トークン管理" wide>
   <Card class="p-6">
     <table class="admin-table">
       <thead>
@@ -18,7 +18,7 @@ const title = '依頼トークン管理 | Wild Media CMS';
   <script>
       import { supabaseBrowser } from '../lib/supabase-browser';
       import { redirectTo } from '../lib/auth';
-      import { fetchMyRole } from '../lib/admin';
+      import { initShellChrome } from '../lib/shell';
       import {
         fetchAllTokens, revokeCommissionToken, translateCommissionError, type CommissionToken,
       } from '../lib/commissions';
@@ -27,25 +27,15 @@ const title = '依頼トークン管理 | Wild Media CMS';
         { pending: '未使用', used: '使用済み', revoked: '取消済み' };
 
       const { data: { session } } = await supabaseBrowser.auth.getSession();
-
-      let myRole: string | null = null;
-      let roleLookupFailed = false;
-      if (session) {
-        try {
-          myRole = await fetchMyRole(supabaseBrowser);
-        } catch (err) {
-          roleLookupFailed = true;
-          console.error(err);
-        }
-      }
-
       const messageEl = document.getElementById('message')!;
 
       if (!session) {
         redirectTo('/login');
-      } else if (roleLookupFailed) {
+      } else {
+        const { role, roleLookupFailed } = await initShellChrome(supabaseBrowser);
+        if (roleLookupFailed) {
         messageEl.textContent = '権限の確認に失敗しました。ページを再読み込みしてください。';
-      } else if (myRole !== 'admin') {
+      } else if (role !== 'admin') {
         redirectTo('/dashboard');
       } else {
         const tokenRowsEl = document.getElementById('token-rows')!;
@@ -123,5 +113,6 @@ const title = '依頼トークン管理 | Wild Media CMS';
           console.error(err);
         }
       }
+      }
     </script>
-</PageShell>
+</AdminShell>

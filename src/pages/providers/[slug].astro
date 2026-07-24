@@ -1,0 +1,260 @@
+---
+import Base from '../../layouts/Base.astro';
+import MetaLabel from '../../components/atoms/MetaLabel.astro';
+import SectionHeader from '../../components/molecules/SectionHeader.astro';
+import SocialIcon from '../../components/atoms/SocialIcon.astro';
+import { supabaseServer } from '../../lib/supabase-server';
+import { fetchProviders, fetchProviderBySlug } from '../../lib/content';
+import type { ProviderDetail } from '../../lib/content';
+import { detectSocialPlatform } from '../../lib/social-links';
+
+export async function getStaticPaths() {
+  const providers = await fetchProviders(supabaseServer);
+  const details = await Promise.all(
+    providers.map((p) => fetchProviderBySlug(supabaseServer, p.slug)),
+  );
+  return details
+    .filter((d): d is ProviderDetail => d !== null)
+    .map((provider) => ({ params: { slug: provider.slug }, props: { provider } }));
+}
+
+interface Props {
+  provider: ProviderDetail;
+}
+const { provider } = Astro.props;
+const hasCover = Boolean(provider.coverImageUrl);
+---
+<Base title={`${provider.name} | Wild Media`} padMain={!hasCover}>
+  {/* カバーバナー(未設定なら省略)。上部は古紙色のスクリムで固定ヘッダーの可読性を保つ */}
+  {
+    hasCover && (
+      <div class="relative h-[clamp(180px,30vh,300px)] w-full overflow-hidden">
+        <img
+          src={provider.coverImageUrl}
+          alt=""
+          class="absolute inset-0 h-full w-full object-cover"
+          loading="eager"
+          decoding="async"
+        />
+        <div
+          class="absolute inset-x-0 top-0 h-36"
+          style="background: linear-gradient(to bottom, var(--color-bg) 0%, var(--color-bg) 42%, transparent 100%);"
+        />
+      </div>
+    )
+  }
+
+  <div class="mx-auto max-w-4xl px-6 pb-24">
+    {/* ロゴ(角丸スクエア)。カバーがある時は少し重ねる */}
+    <div class={hasCover ? 'relative z-10 -mt-14' : ''}>
+      <span
+        class="block w-[120px] overflow-hidden rounded-[18px]"
+        style="box-shadow: 0 0 0 5px var(--color-bg); background: var(--color-bg);"
+      >
+        {
+          provider.avatarUrl ? (
+            <img
+              src={provider.avatarUrl}
+              alt={provider.name}
+              width={120}
+              height={120}
+              class="block aspect-square w-full object-cover"
+              loading="eager"
+              decoding="async"
+            />
+          ) : (
+            <span
+              class="border-card text-meta flex aspect-square w-full items-center justify-center border"
+              style="font-family: var(--font-heading); font-size: 44px;"
+            >
+              {provider.name.trim().charAt(0)}
+            </span>
+          )
+        }
+      </span>
+    </div>
+
+    {/* 会社・団体名 + 右上アクション */}
+    <div class="mt-6 flex flex-wrap items-start justify-between gap-x-6 gap-y-5">
+      <div class="min-w-0">
+        <h1
+          style="font-family: var(--font-heading); font-size: clamp(30px, 5vw, 46px); line-height: 1.2;"
+        >
+          {provider.name}
+        </h1>
+        <p class="mt-2">
+          <MetaLabel>
+            @{provider.slug}
+            {(provider.region || provider.location) && (
+              <span> ・ {[provider.region, provider.location].filter(Boolean).join(' ')}</span>
+            )}
+          </MetaLabel>
+        </p>
+      </div>
+
+      {
+        provider.homepageUrl && (
+          <a
+            href={provider.homepageUrl}
+            class="border-card hover:border-ink shrink-0 rounded-full border px-5 py-2.5 transition-colors"
+          >
+            <MetaLabel class="text-ink">ホームページ ↗</MetaLabel>
+          </a>
+        )
+      }
+    </div>
+
+    {provider.bio && <p class="text-meta mt-8 max-w-2xl" style="line-height: 1.9;">{provider.bio}</p>}
+
+    {
+      provider.snsLinks.length > 0 && (
+        <div class="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2">
+          {provider.snsLinks.map((url) => {
+            const social = detectSocialPlatform(url);
+            return social ? (
+              <a
+                href={url}
+                aria-label={social.label}
+                class="bg-ink flex h-9 w-9 items-center justify-center rounded-full transition-opacity hover:opacity-80"
+                style="color: var(--color-bg);"
+              >
+                <SocialIcon platform={social.platform} />
+              </a>
+            ) : (
+              <a
+                href={url}
+                class="text-ink underline underline-offset-4 transition-opacity hover:opacity-60"
+                style="text-decoration-color: var(--color-ink);"
+              >
+                {new URL(url).hostname}
+              </a>
+            );
+          })}
+        </div>
+      )
+    }
+
+    {/* 主要サービス。認定プロバイダーだけが得られる公開枠なので、未入力なら
+        丸ごと出さない(admin の showServiceTab === certified と同じ条件)。 */}
+    {
+      provider.serviceName && (
+        <>
+          <SectionHeader label="Provider's Projects" class="mt-14 pb-6" />
+          <div class="service-card">
+            {provider.serviceImageUrl ? (
+              <img
+                src={provider.serviceImageUrl}
+                alt=""
+                class="service-image"
+                loading="lazy"
+                decoding="async"
+              />
+            ) : (
+              <div class="service-image service-image-empty" />
+            )}
+            <div class="service-body">
+              <h2 class="service-name">{provider.serviceName}</h2>
+              {provider.serviceDescription && <p class="service-desc">{provider.serviceDescription}</p>}
+              {provider.serviceUrl && (
+                <a href={provider.serviceUrl} target="_blank" rel="noopener noreferrer" class="service-cta">
+                  サービス詳細を見る
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M7 17L17 7M7 7h10v10" />
+                  </svg>
+                </a>
+              )}
+            </div>
+          </div>
+        </>
+      )
+    }
+  </div>
+</Base>
+
+<style>
+  .service-card {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 1.6rem;
+    padding: 1.4rem;
+    border-radius: 18px;
+    background-color: var(--color-card);
+    border: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
+  }
+
+  @media (max-width: 620px) {
+    .service-card {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .service-image {
+    aspect-ratio: 1;
+    width: 100%;
+    border-radius: 14px;
+    object-fit: cover;
+  }
+
+  .service-image-empty {
+    background-color: var(--color-panel);
+  }
+
+  .service-name {
+    font-family: var(--font-heading);
+    font-size: 20px;
+    font-weight: 400;
+    margin: 0 0 0.5em;
+  }
+
+  .service-desc {
+    max-width: 46ch;
+    font-size: 13.5px;
+    line-height: 1.85;
+    color: var(--color-meta);
+  }
+
+  .service-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin-top: 1.2rem;
+    padding: 0.65rem 1.4rem;
+    border-radius: 999px;
+    background-color: var(--color-bg);
+    border: 1px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
+    font-size: 13px;
+    transition:
+      background-color 0.25s ease,
+      border-color 0.25s ease,
+      transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.25s ease;
+  }
+
+  .service-cta svg {
+    width: 12px;
+    height: 12px;
+    color: var(--color-accent);
+    transition: transform 0.25s ease;
+  }
+
+  .service-cta:hover,
+  .service-cta:focus-visible {
+    background-color: color-mix(in srgb, var(--color-accent) 16%, var(--color-bg));
+    border-color: var(--color-accent);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px color-mix(in srgb, var(--color-ink) 15%, transparent);
+    outline: none;
+  }
+
+  .service-cta:hover svg,
+  .service-cta:focus-visible svg {
+    transform: translate(2px, -2px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .service-cta,
+    .service-cta svg {
+      transition: none;
+    }
+  }
+</style>

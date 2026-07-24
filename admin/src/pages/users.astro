@@ -1,5 +1,5 @@
 ---
-import PageShell from '../components/templates/PageShell.astro';
+import AdminShell from '../components/templates/AdminShell.astro';
 import Card from '../components/atoms/Card.astro';
 import Button from '../components/atoms/Button.astro';
 import Field from '../components/molecules/Field.astro';
@@ -8,7 +8,7 @@ import Select from '../components/atoms/Select.astro';
 
 const title = 'ユーザー管理 | Wild Media CMS';
 ---
-<PageShell title={title} heading="ユーザー管理" wide>
+<AdminShell title={title} heading="ユーザー管理" wide>
   <div class="space-y-6">
     <Card class="p-6">
       <h2 class="mb-4 text-lg font-semibold tracking-tight">新しいユーザーを招待</h2>
@@ -23,6 +23,10 @@ const title = 'ユーザー管理 | Wild Media CMS';
             <option value="provider">サービスプロバイダー</option>
           </Select>
         </div>
+        <label id="inv-certified-row" hidden class="flex items-center gap-2 text-sm">
+          <input id="inv-certified" type="checkbox" class="h-4 w-4 rounded border-input" />
+          認定事業者として招待する
+        </label>
         <Button type="submit">招待メールを送信</Button>
       </form>
     </Card>
@@ -31,9 +35,9 @@ const title = 'ユーザー管理 | Wild Media CMS';
       <h2 class="mb-4 text-lg font-semibold tracking-tight">ユーザー一覧</h2>
       <table class="admin-table">
         <thead>
-          <tr><th>名前</th><th>スラッグ</th><th>種別</th></tr>
+          <tr><th>名前</th><th>スラッグ</th><th>種別</th><th>認定</th></tr>
         </thead>
-        <tbody id="user-rows"><tr><td colspan="3">読み込み中…</td></tr></tbody>
+        <tbody id="user-rows"><tr><td colspan="4">読み込み中…</td></tr></tbody>
       </table>
     </Card>
 
@@ -44,35 +48,24 @@ const title = 'ユーザー管理 | Wild Media CMS';
       import { supabaseBrowser } from '../lib/supabase-browser';
       import { redirectTo } from '../lib/auth';
       import {
-        fetchMyRole, fetchAllProfiles, updateUserRole,
+        fetchAllProfiles, updateUserRole, updateProviderCertification,
         validateInviteInput, inviteUser, translateInviteError,
       } from '../lib/admin';
+      import { initShellChrome } from '../lib/shell';
 
       const { data: { session } } = await supabaseBrowser.auth.getSession();
-
-      // fetchMyRole が失敗しても(通信エラー等)、ここで例外が投げっぱなしになって
-      // 画面が固まらないよう、先に安全に解決してから分岐する。
-      let myRole: string | null = null;
-      let roleLookupFailed = false;
-      if (session) {
-        try {
-          myRole = await fetchMyRole(supabaseBrowser);
-        } catch (err) {
-          roleLookupFailed = true;
-          console.error(err);
-        }
-      }
-
       if (!session) {
         redirectTo('/login');
-      } else if (roleLookupFailed) {
-        // リダイレクトループを避けるため、ここではリダイレクトしない。
-        document.getElementById('message')!.textContent =
-          '権限の確認に失敗しました。ページを再読み込みしてください。';
-      } else if (myRole !== 'admin') {
-        // UX のためのリダイレクト。実際の防壁は RLS/トリガー。
-        redirectTo('/dashboard');
       } else {
+        const { role, roleLookupFailed } = await initShellChrome(supabaseBrowser);
+        if (roleLookupFailed) {
+          // リダイレクトループを避けるため、ここではリダイレクトしない。
+          document.getElementById('message')!.textContent =
+            '権限の確認に失敗しました。ページを再読み込みしてください。';
+        } else if (role !== 'admin') {
+          // UX のためのリダイレクト。実際の防壁は RLS/トリガー。
+          redirectTo('/dashboard');
+        } else {
         const messageEl = document.getElementById('message')!;
         const tbody = document.getElementById('user-rows')!;
         const $ = (id: string) => document.getElementById(id) as HTMLInputElement & HTMLSelectElement;
@@ -121,9 +114,43 @@ const title = 'ユーザー管理 | Wild Media CMS';
               roleTd.appendChild(sel);
               roleTd.appendChild(btn);
             }
+
+            const certifiedTd = document.createElement('td');
+            if (p.role === 'provider') {
+              const badge = document.createElement('span');
+              badge.className = 'rounded-full bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground';
+              badge.textContent = p.certified ? '認定済み' : '未認定';
+              badge.hidden = !p.certified;
+
+              const toggleBtn = document.createElement('button');
+              toggleBtn.type = 'button';
+              toggleBtn.textContent = p.certified ? '認定を解除' : '認定する';
+              toggleBtn.addEventListener('click', async () => {
+                messageEl.textContent = '';
+                try {
+                  await updateProviderCertification(supabaseBrowser, p.id, !p.certified);
+                } catch (err) {
+                  messageEl.textContent = '認定状態の変更に失敗しました。';
+                  console.error(err);
+                  return;
+                }
+                messageEl.textContent = `${p.name} の認定状態を変更しました。`;
+                try {
+                  await renderRows();
+                } catch (err) {
+                  messageEl.textContent += ' 一覧の再読み込みに失敗しました。ページを再読み込みしてください。';
+                  console.error(err);
+                }
+              });
+
+              certifiedTd.appendChild(badge);
+              certifiedTd.appendChild(toggleBtn);
+            }
+
             tr.appendChild(nameTd);
             tr.appendChild(slugTd);
             tr.appendChild(roleTd);
+            tr.appendChild(certifiedTd);
             tbody.appendChild(tr);
           }
         };
@@ -131,23 +158,34 @@ const title = 'ユーザー管理 | Wild Media CMS';
         try {
           await renderRows();
         } catch (err) {
-          tbody.innerHTML = '<tr><td colspan="3">読み込みに失敗しました。</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="4">読み込みに失敗しました。</td></tr>';
           console.error(err);
         }
 
         const inviteForm = document.getElementById('invite-form') as HTMLFormElement;
         const inviteBtn = inviteForm.querySelector('button[type="submit"]') as HTMLButtonElement;
+        const certifiedRow = document.getElementById('inv-certified-row') as HTMLLabelElement;
         let inviteInFlight = false;
+
+        const syncCertifiedVisibility = () => {
+          const isProvider = $('inv-role').value === 'provider';
+          certifiedRow.hidden = !isProvider;
+          if (!isProvider) $('inv-certified').checked = false;
+        };
+        $('inv-role').addEventListener('change', syncCertifiedVisibility);
+        syncCertifiedVisibility();
 
         inviteForm.addEventListener('submit', async (e) => {
           e.preventDefault();
           if (inviteInFlight) return;
           messageEl.textContent = '';
+          const role = $('inv-role').value as 'writer' | 'provider';
           const input = {
             email: $('inv-email').value.trim(),
             name: $('inv-name').value.trim(),
             slug: $('inv-slug').value.trim(),
-            role: $('inv-role').value as 'writer' | 'provider',
+            role,
+            certified: role === 'provider' ? $('inv-certified').checked : false,
           };
           const validationError = validateInviteInput(input);
           if (validationError) { messageEl.textContent = validationError; return; }
@@ -163,6 +201,7 @@ const title = 'ユーザー管理 | Wild Media CMS';
             }
             messageEl.textContent = `${input.email} に招待メールを送信しました。`;
             inviteForm.reset();
+            syncCertifiedVisibility();
             try {
               await renderRows();
             } catch (err) {
@@ -175,5 +214,6 @@ const title = 'ユーザー管理 | Wild Media CMS';
           }
         });
       }
+      }
     </script>
-</PageShell>
+</AdminShell>

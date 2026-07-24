@@ -1,6 +1,7 @@
 ---
 import type { GetStaticPaths, Page } from 'astro';
 import Base from '../../../layouts/Base.astro';
+import FeaturedStrip from '../../../components/organisms/FeaturedStrip.astro';
 import MasonryGrid from '../../../components/organisms/MasonryGrid.astro';
 import LoadMore from '../../../components/molecules/LoadMore.astro';
 import SectionHeader from '../../../components/molecules/SectionHeader.astro';
@@ -25,6 +26,9 @@ export const getStaticPaths = (async ({ paginate }) => {
   const pageSize = await fetchPageSize(supabaseServer);
   const all = [...featured, ...normal];
   const total = all.length;
+  // FEATURED は地域を問わず同じ顔ぶれをどの地域ページでも出す(home と同じUI)。
+  // そのため地域別グリッド側からは featured 分を除外し、二重掲載を避ける。
+  const featuredIds = new Set(featured.map((a) => a.id));
 
   // 地域ごとに分けつつ、番号は「全作品通し番号」(/ と同じ基準)のまま持ち回る。
   // 地域内の順番で振り直すと同じ記事が / と /areas/xxx で違う番号になる
@@ -32,6 +36,7 @@ export const getStaticPaths = (async ({ paginate }) => {
   const byRegion = new Map<string, RegionItem[]>();
   all.forEach((article, globalIndex) => {
     if (!article.region) return;
+    if (featuredIds.has(article.id)) return;
     const list = byRegion.get(article.region) ?? [];
     list.push({ article, globalIndex });
     byRegion.set(article.region, list);
@@ -41,7 +46,7 @@ export const getStaticPaths = (async ({ paginate }) => {
     paginate(items, {
       pageSize,
       params: { area: regionSlug(region as Region) },
-      props: { region, total },
+      props: { region, total, featured },
     }),
   );
 }) satisfies GetStaticPaths;
@@ -50,9 +55,16 @@ interface Props {
   page: Page<RegionItem>;
   region: string;
   total: number;
+  featured: ArticleSummary[];
 }
-const { page, region, total } = Astro.props;
+const { page, region, total, featured } = Astro.props;
 const area = Astro.params.area as string;
+const isFirstPage = page.currentPage === 1;
+
+// FEATURED は1ページ目にだけ出す(home と同じルール)
+const featuredWorks = isFirstPage
+  ? await Promise.all(featured.map((a, i) => buildGalleryWork(a, i, total - i)))
+  : [];
 
 const works = await Promise.all(
   page.data.map(({ article, globalIndex }) =>
@@ -61,6 +73,7 @@ const works = await Promise.all(
 );
 ---
 <Base title={`${region}の記事 | Wild Media`} activeAreaSlug={area}>
+  {isFirstPage && <FeaturedStrip works={featuredWorks} />}
   <section>
     <SectionHeader label={region} count={page.total} class="mx-6 pb-6" />
     <MasonryGrid works={works} />

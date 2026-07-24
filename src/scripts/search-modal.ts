@@ -3,7 +3,9 @@ import { supabaseBrowser } from '../lib/supabase-browser';
 import { lockPageScroll, unlockPageScroll } from './scroll-lock';
 
 const modal = document.getElementById('search-modal') as HTMLDialogElement | null;
-const openBtn = document.getElementById('search-open');
+// サイドバー(デスクトップ)とモバイルヘッダーの2箇所にトリガーがあるため、
+// id ではなく共有クラスで両方拾う。
+const openBtns = document.querySelectorAll<HTMLButtonElement>('.search-open-trigger');
 const input = document.getElementById('search-input') as HTMLInputElement | null;
 const resultsEl = document.getElementById('search-results') as HTMLUListElement | null;
 const statusEl = document.getElementById('search-status');
@@ -34,14 +36,16 @@ function escapeHtml(s: string): string {
   );
 }
 
-if (modal && openBtn && input && resultsEl && statusEl) {
-  openBtn.addEventListener('click', () => {
-    // 検索トリガーは常設サイドバー(NavDrawer、通常の <aside>)の中にあるが、
-    // NavDrawer 自体はモーダルではないのでここでの開閉を待つ必要はない。
-    lockPageScroll();
-    modal.showModal();
-    statusEl.textContent = HINT;
-    input.focus();
+if (modal && openBtns.length && input && resultsEl && statusEl) {
+  openBtns.forEach((openBtn) => {
+    openBtn.addEventListener('click', () => {
+      // 検索トリガーは常設サイドバー(NavDrawer、通常の <aside>)の中にあるが、
+      // NavDrawer 自体はモーダルではないのでここでの開閉を待つ必要はない。
+      lockPageScroll();
+      modal.showModal();
+      statusEl.textContent = HINT;
+      input.focus();
+    });
   });
 
   // 閉じる経路は4つある(×ボタンの form 送信・Esc・バックドロップ・close())。

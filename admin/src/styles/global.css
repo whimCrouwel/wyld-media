@@ -3,44 +3,33 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --radius: 0.75rem;
+  --background: oklch(0.99 0.002 260);
+  --foreground: oklch(0.18 0.01 260);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --card-foreground: oklch(0.18 0.01 260);
+  --primary: oklch(0.546 0.215 262.9);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.96 0.006 260);
+  --secondary-foreground: oklch(0.24 0.02 260);
+  --muted: oklch(0.96 0.006 260);
+  --muted-foreground: oklch(0.52 0.02 260);
+  --accent: oklch(0.94 0.03 262.9);
+  --accent-foreground: oklch(0.35 0.14 262.9);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-}
-
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --success: oklch(0.62 0.14 155);
+  --success-foreground: oklch(0.985 0 0);
+  --warning: oklch(0.77 0.16 75);
+  --warning-foreground: oklch(0.27 0.08 75);
+  --border: oklch(0.9 0.008 260);
+  --input: oklch(0.9 0.008 260);
+  --ring: oklch(0.623 0.19 262.9);
+  --sidebar: oklch(0.99 0.002 260);
+  --sidebar-foreground: oklch(0.18 0.01 260);
+  --sidebar-accent: oklch(0.94 0.03 262.9);
+  --sidebar-accent-foreground: oklch(0.35 0.14 262.9);
+  --sidebar-border: oklch(0.92 0.008 260);
 }
 
 @theme inline {
@@ -60,9 +49,18 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -87,7 +85,7 @@
 @layer components {
   /* Dashboard: article list */
   .article-list {
-    @apply divide-y divide-border overflow-hidden rounded-lg border bg-card;
+    @apply divide-y divide-border overflow-hidden rounded-xl border bg-card shadow-sm;
   }
   .article-list li {
     @apply flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3;
@@ -105,10 +103,10 @@
     @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium;
   }
   .article-list .article-badge--draft {
-    @apply bg-secondary text-secondary-foreground;
+    @apply bg-warning/15 text-warning-foreground;
   }
   .article-list .article-badge--published {
-    @apply bg-primary/10 text-primary;
+    @apply bg-success/15 text-success;
   }
   .article-list .article-badge--commissioned {
     @apply bg-accent text-accent-foreground;
@@ -128,7 +126,7 @@
 
   /* Commission: writer list & issued-token history */
   .commission-list {
-    @apply divide-y divide-border overflow-hidden rounded-lg border bg-card;
+    @apply divide-y divide-border overflow-hidden rounded-xl border bg-card shadow-sm;
   }
   .commission-list li {
     @apply flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3;
@@ -137,10 +135,10 @@
     @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium;
   }
   .commission-pill--pending {
-    @apply bg-secondary text-secondary-foreground;
+    @apply bg-warning/15 text-warning-foreground;
   }
   .commission-pill--used {
-    @apply bg-primary/10 text-primary;
+    @apply bg-success/15 text-success;
   }
   .commission-pill--revoked {
     @apply bg-destructive/10 text-destructive;
@@ -148,7 +146,7 @@
 
   /* Users: profile table */
   .admin-table {
-    @apply w-full overflow-hidden rounded-lg border text-sm;
+    @apply w-full overflow-hidden rounded-xl border bg-card text-sm shadow-sm;
   }
   .admin-table thead {
     @apply bg-muted/50;

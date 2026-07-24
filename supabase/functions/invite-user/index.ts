@@ -34,20 +34,22 @@ Deno.serve(async (req) => {
   if (callerProfile?.role !== 'admin') return json({ error: 'forbidden' }, 403);
 
   // validate payload
-  let payload: { email?: string; name?: string; slug?: string; role?: string };
+  let payload: { email?: string; name?: string; slug?: string; role?: string; certified?: boolean };
   try {
     payload = await req.json();
   } catch {
     return json({ error: 'invalid json' }, 400);
   }
-  const { email, name, slug, role } = payload;
+  const { email, name, slug, role, certified } = payload;
   if (
     !email || !name || !slug ||
     !['writer', 'provider'].includes(role ?? '') ||
-    !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)
+    !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug) ||
+    (certified !== undefined && typeof certified !== 'boolean') ||
+    (certified && role !== 'provider')
   ) {
     return json(
-      { error: 'email, name, slug, and role (writer|provider) are required' },
+      { error: 'email, name, slug, and role (writer|provider) are required; certified is only valid for provider' },
       400,
     );
   }
@@ -64,6 +66,7 @@ Deno.serve(async (req) => {
     role,
     slug,
     name,
+    certified: role === 'provider' ? !!certified : false,
   });
   if (profileError) {
     await admin.auth.admin.deleteUser(invited.user.id);

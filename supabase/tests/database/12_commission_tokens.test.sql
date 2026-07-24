@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(33);
+select plan(39);
 
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-000000000010', 'tok-writer@test.local'),
@@ -19,10 +19,14 @@ select set_config('request.jwt.claims',
   '{"sub":"00000000-0000-0000-0000-000000000011","role":"authenticated"}', true);
 set local role authenticated;
 
+-- created_at をあえて過去にして発行する: この後同じ provider/writer ペアへ何度か
+-- トークンを発行するテストがあり、commission_interval_days の間隔チェックに引っかからない
+-- ようにするため(間隔チェック自体は下の方で専用にテストする)。
 select lives_ok(
-  $$insert into commission_tokens (id, writer_id)
+  $$insert into commission_tokens (id, writer_id, created_at)
     values ('50000000-0000-0000-0000-000000000001',
-            '00000000-0000-0000-0000-000000000010')$$,
+            '00000000-0000-0000-0000-000000000010',
+            now() - interval '11 days')$$,
   'provider issues a token to a writer');
 
 select matches(
@@ -38,10 +42,11 @@ select is(
   'provider_id is forced to the caller');
 
 select lives_ok(
-  $$insert into commission_tokens (id, writer_id, provider_id)
+  $$insert into commission_tokens (id, writer_id, provider_id, created_at)
     values ('50000000-0000-0000-0000-000000000002',
             '00000000-0000-0000-0000-000000000010',
-            '00000000-0000-0000-0000-000000000013')$$,
+            '00000000-0000-0000-0000-000000000013',
+            now() - interval '11 days')$$,
   'a spoofed provider_id does not error (silently overwritten)');
 select is(
   (select provider_id from commission_tokens
@@ -252,6 +257,52 @@ select ok(
   (select revoked_at from commission_tokens
     where id = '50000000-0000-0000-0000-000000000002') is null,
   'the token is not actually revoked (RLS blocked the row)');
+
+-- 依頼間隔(commission_interval_days、初期値10日)。provider 013 → writer 012 は
+-- ここまで一度もトークンを発行していない、まっさらなペアを使う。
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-000000000013","role":"authenticated"}', true);
+set local role authenticated;
+
+select lives_ok(
+  $$insert into commission_tokens (id, writer_id)
+    values ('50000000-0000-0000-0000-000000000004',
+            '00000000-0000-0000-0000-000000000012')$$,
+  'a provider/writer pair with no prior token can be issued one');
+
+select throws_like(
+  $$insert into commission_tokens (writer_id)
+    values ('00000000-0000-0000-0000-000000000012')$$,
+  '%COMMISSION_INTERVAL_NOT_ELAPSED%',
+  'issuing a second token to the same writer within the interval is rejected');
+
+select lives_ok(
+  $$update commission_tokens set revoked_at = now()
+    where id = '50000000-0000-0000-0000-000000000004'$$,
+  'the still-pending token is revoked');
+
+select lives_ok(
+  $$insert into commission_tokens (writer_id)
+    values ('00000000-0000-0000-0000-000000000012')$$,
+  'after revoking, a new token to the same writer can be issued immediately '
+  '(revoked tokens do not count toward the interval)');
+
+-- 別のペア(provider 011 → writer 012)で、間隔が経過済みの場合は素直に発行できることを確認。
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-000000000011","role":"authenticated"}', true);
+set local role authenticated;
+
+select lives_ok(
+  $$insert into commission_tokens (id, writer_id, created_at)
+    values ('50000000-0000-0000-0000-000000000006',
+            '00000000-0000-0000-0000-000000000012',
+            now() - interval '11 days')$$,
+  'a token issued more than commission_interval_days ago exists for this pair');
+
+select lives_ok(
+  $$insert into commission_tokens (writer_id)
+    values ('00000000-0000-0000-0000-000000000012')$$,
+  'once the interval has elapsed, a new token to the same writer can be issued');
 
 select * from finish();
 rollback;

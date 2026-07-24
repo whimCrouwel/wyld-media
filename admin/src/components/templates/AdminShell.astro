@@ -1,0 +1,133 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import Avatar from '../atoms/Avatar.astro';
+
+interface Props {
+  title: string;
+  heading?: string;
+  /** Wide content area for the article editor and dense tables; narrow (default) for forms. */
+  wide?: boolean;
+}
+
+const { title, heading, wide = false } = Astro.props;
+const path = Astro.url.pathname.replace(/\/$/, '') || '/';
+const isActive = (href: string) => path === href;
+
+const navLink =
+  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground';
+const navLinkActive = 'bg-sidebar-accent text-sidebar-accent-foreground';
+---
+<AdminLayout title={title}>
+  <div class="flex bg-background">
+    <aside
+      class="sticky top-0 hidden h-screen w-64 shrink-0 flex-col overflow-y-auto border-r border-sidebar-border bg-sidebar px-3 py-5 md:flex"
+    >
+      <div class="-mx-3 -mt-5 mb-4 flex h-7 shrink-0 items-center justify-center border-b border-sidebar-border bg-muted/60 text-[10px] font-medium tracking-wide text-sidebar-foreground/50">
+        Wild Media CMS
+      </div>
+
+      <a id="profile-nav" href="/dashboard" hidden class="mb-4 flex shrink-0 items-center gap-2 px-2">
+        <Avatar id="profile-nav-avatar" size={32} />
+        <span id="profile-nav-name" class="truncate text-sm font-semibold text-sidebar-foreground"></span>
+      </a>
+
+      <div
+        id="certified-badge"
+        hidden
+        class="mb-4 flex w-fit shrink-0 items-center gap-1 self-start rounded-full bg-primary px-2 py-1 text-[11px] font-semibold text-primary-foreground shadow-sm"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="h-3 w-3 shrink-0" aria-hidden="true">
+          <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+          <path d="m9 12 2 2 4-4" />
+        </svg>
+        認定事業者
+      </div>
+
+      <nav class="flex flex-col gap-1">
+        <a href="/dashboard" class={`${navLink} ${isActive('/dashboard') ? navLinkActive : ''}`}>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="9" rx="1.5" /><rect x="14" y="3" width="7" height="5" rx="1.5" /><rect x="14" y="12" width="7" height="9" rx="1.5" /><rect x="3" y="16" width="7" height="5" rx="1.5" />
+          </svg>
+          ダッシュボード
+        </a>
+        <a
+          id="nav-profile-basic"
+          href="/profile"
+          class={`${navLink} ${isActive('/profile') ? navLinkActive : ''}`}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0" aria-hidden="true">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+          </svg>
+          基本情報の編集
+        </a>
+        <a id="nav-profile-service" href="/profile?tab=service" hidden class={navLink}>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0" aria-hidden="true">
+            <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+          </svg>
+          主要サービスの編集
+        </a>
+        <a id="nav-profile-pricing" href="/profile?tab=pricing" hidden class={navLink}>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0" aria-hidden="true">
+            <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+          </svg>
+          料金プランの編集
+        </a>
+        <div id="admin-nav" hidden class="flex flex-col gap-1">
+          <a href="/users" class={`${navLink} ${isActive('/users') ? navLinkActive : ''}`}>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0" aria-hidden="true">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            ユーザー管理
+          </a>
+          <a href="/commissions" class={`${navLink} ${isActive('/commissions') ? navLinkActive : ''}`}>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0" aria-hidden="true">
+              <path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h9" /><circle cx="17" cy="17" r="3" /><path d="M17 15v2l1.5 1" />
+            </svg>
+            依頼トークン管理
+          </a>
+          <a href="/settings" class={`${navLink} ${isActive('/settings') ? navLinkActive : ''}`}>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0" aria-hidden="true">
+              <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+            サイト設定
+          </a>
+        </div>
+      </nav>
+
+      <div class="mt-auto flex shrink-0 flex-col gap-1 border-t border-sidebar-border pt-3">
+        <button id="logout" type="button" class={`${navLink} w-full text-left`}>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0" aria-hidden="true">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          ログアウト
+        </button>
+      </div>
+    </aside>
+
+    <div class="flex min-w-0 flex-1 flex-col">
+      <main class:list={['flex-1 px-4 py-8 sm:px-8', wide ? '' : 'mx-auto w-full max-w-2xl']}>
+        {heading && <h1 class="mb-6 text-2xl font-semibold tracking-tight">{heading}</h1>}
+        <slot />
+      </main>
+    </div>
+  </div>
+
+  <script>
+    // /profile は「基本情報の編集」「主要サービスの編集」「料金プランの編集」の
+    // 3つのナビ項目が同じパスを指す(?tab=service / ?tab=pricing のみ違う)ため、
+    // サーバー側のパス一致だけではアクティブ状態を正しく出し分けられない。
+    // ここで location.search を見て補正する。
+    if (location.pathname.replace(/\/$/, '') === '/profile') {
+      const tab = new URLSearchParams(location.search).get('tab');
+      const targetNavId =
+        tab === 'service' ? 'nav-profile-service'
+        : tab === 'pricing' ? 'nav-profile-pricing'
+        : null;
+      if (targetNavId) {
+        const activeClasses = ['bg-sidebar-accent', 'text-sidebar-accent-foreground'];
+        document.getElementById('nav-profile-basic')?.classList.remove(...activeClasses);
+        document.getElementById(targetNavId)?.classList.add(...activeClasses);
+      }
+    }
+  </script>
+</AdminLayout>

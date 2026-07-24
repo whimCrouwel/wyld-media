@@ -17,6 +17,14 @@
 
 - [ ] プロバイダー⇔ライターの依頼トークン制フロー(設計中、`docs/superpowers/specs/` に依頼トークン設計spec予定)で、両者がプロセス(依頼→トークン発行→オフライン交渉→公開時にトークン入力)を理解できるよう説明するポップアップUIが必要。今回のスコープでは見送り、実装は次回。対象になりそうな箇所: プロバイダー側の依頼UI(新規)、`admin/src/pages/articles/new.astro`・`edit.astro` のトークン入力欄まわり。
 
+- [ ] Supabase の DB コンテナが再起動すると、`dev:all` を再起動せずに使い続けているとトップページの WORKS/FEATURED セクションが記事0件のまま表示される(サイドバーの地域件数は正しく出るので、DB自体・`getAreaLinks` は無関係)。おそらくトップページ側の記事取得も同様のモジュールレベルの1回きりメモ化パターンで、DB再起動でその瞬間のクエリが失敗/空振りした結果がプロセス生存中ずっとキャッシュされていると見られる(再現待ち・要確認)。回避策: `npm run dev:all` を再起動すれば直る。
+
+- [ ] `cd admin && npm test` が稀に `tests/dashboard.test.ts` の「hana の記事は5本」assertion で失敗する(単独実行では常に成功) — `tests/commissions.test.ts` の「revoking a used token fails」テストが hana 名義の記事を一時的に insert → delete しており(`admin/tests/commissions.test.ts:70-77`)、vitest がテストファイルを並列実行するため、`dashboard.test.ts` の記事数カウントがそのタイミングと衝突するとズレる。テスト隔離の問題(ファイル単位の並列実行 + 同一の実DBを共有しているのが根本原因)で、今回のスコープでは見送り。対応案: `commissions.test.ts` 側で一時記事を別ユーザー(hana 以外)名義にする、または vitest 側でこの2ファイルを直列化する。
+
+- [ ] ルートの `npm test` が `tests/life-sim.test.ts` の import で失敗する — 対象の `src/lib/life-sim.ts` が既に削除済み(git status で `D` として表示)なのに、テストファイルだけ残っている。テストごと削除するのが自然。
+
+- [ ] プロバイダーの「主要サービス」情報(`profiles.service_name`/`service_description`/`service_url`/`service_image_url`)と認定フラグ(`profiles.certified`)が、CMSで編集・admin管理はできるが公開サイト側にまだ一切表示されていない。認定済みプロバイダーのみサービス情報を公開する、というのが本来の狙い(`ARCHITECTURE.md` 参照)。対象になりそうな箇所: 公開サイトのプロバイダー用ページ(未作成)、または `src/pages/articles/[slug].astro:30` の「提供: {name}」表示の拡張。認定事業者バッジの公開サイト表示もこのタイミングで検討。
+
 ## Done
 
 - [x] 検索機能で記事が返ってこない(以前は動いていた) — 原因: コード側(RPC・`profiles` inner join・Edge Function・`OPENAI_API_KEY`)はすべて正常、`public.post_chunks` が空なのが真因(`scripts/seed.mjs` が記事投入後に検索インデックスを作っていなかった)。修正: `scripts/seed.mjs` が記事投入後、CMSと同じコードパス(Edge Function `chunk-article`、admin としてサインインしたJWTで呼び出し)で `post_chunks` を構築するよう変更。Edge Functions未起動時は明確なエラーで失敗するようにした。`README.md`/`CLAUDE.md` のセットアップ手順も更新済み(`npm run seed` 前に `npm run dev:fn` が必要になった旨)。検証: seed後 `post_chunks` 0→5件、`search-articles` 呼び出しで実際に検索結果が返ることを確認、再実行しても重複しないことを確認(idempotent)。関連: `triggerChunking()` の失敗握りつぶし・バックフィル不在は別問題として上記 Open に起票。

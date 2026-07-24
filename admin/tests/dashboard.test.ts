@@ -30,5 +30,7 @@ describe('fetchMyArticles (requires seeded local Supabase)', () => {
     const slugs = articles.map((a) => a.slug);
     expect(slugs).not.toContain('toshi-no-yachou');
     expect(slugs).toContain('kawabe-kansatsu');
+    // シード記事はどれも審査ホールド対象ではない
+    expect(articles.every((a) => a.moderationHold === false)).toBe(true);
   });
 });

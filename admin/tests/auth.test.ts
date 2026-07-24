@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateLoginInput, translateAuthError } from '../src/lib/auth';
+import { validateLoginInput, validateResetEmail, translateAuthError } from '../src/lib/auth';
 
 describe('validateLoginInput', () => {
   it('returns null for a valid email + non-empty password', () => {
@@ -13,6 +13,18 @@ describe('validateLoginInput', () => {
   });
   it('rejects an empty password', () => {
     expect(validateLoginInput('user@example.com', '')).toMatch(/パスワード/);
+  });
+});
+
+describe('validateResetEmail', () => {
+  it('returns null for a valid email', () => {
+    expect(validateResetEmail('user@example.com')).toBeNull();
+  });
+  it('rejects an empty email', () => {
+    expect(validateResetEmail('')).toMatch(/メール/);
+  });
+  it('rejects a malformed email', () => {
+    expect(validateResetEmail('not-an-email')).toMatch(/メール/);
   });
 });
 
@@ -39,7 +51,7 @@ describe('translateAuthError', () => {
       .toContain('同じパスワード');
   });
   it('セッション切れを日本語にする', () => {
-    expect(translateAuthError(new Error('Auth session missing!'))).toContain('招待リンク');
+    expect(translateAuthError(new Error('Auth session missing!'))).toContain('リンク');
   });
   it('未知のエラーは汎用メッセージ', () => {
     expect(translateAuthError(new Error('boom'))).toContain('エラーが発生しました');

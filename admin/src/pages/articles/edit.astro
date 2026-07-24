@@ -1,5 +1,5 @@
 ---
-import PageShell from '../../components/templates/PageShell.astro';
+import AdminShell from '../../components/templates/AdminShell.astro';
 import Card from '../../components/atoms/Card.astro';
 import Button from '../../components/atoms/Button.astro';
 import Field from '../../components/molecules/Field.astro';
@@ -7,10 +7,20 @@ import { REGIONS } from '../../lib/regions';
 
 const title = '記事の編集 | Wild Media CMS';
 ---
-<PageShell title={title} heading="記事の編集" wide>
+<AdminShell title={title} heading="記事の編集" wide>
   <div class="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
     <p id="status-label" class="font-medium"></p>
     <p id="autosave-label" role="status" class="text-muted-foreground"></p>
+  </div>
+  <div
+    id="hold-notice"
+    role="alert"
+    hidden
+    class="mb-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+  >
+    <p>監査AIが以下の理由により記事を非表示としました。修正が確認出来次第再審査が行われます。</p>
+    <p class="mt-1 font-medium">理由: <span id="hold-reason"></span></p>
+    <p class="mt-1 text-xs opacity-80">非表示日時: <span id="hold-at"></span></p>
   </div>
   <form id="article-form" class="space-y-6">
     <Card class="space-y-4 p-6">
@@ -96,6 +106,7 @@ const title = '記事の編集 | Wild Media CMS';
       <Button type="button" id="publish" variant="secondary">公開する</Button>
       <Button type="button" id="unpublish" variant="outline">下書きに戻す</Button>
       <Button type="button" id="preview-toggle" variant="outline">プレビュー</Button>
+      <Button type="button" id="moderation-toggle" variant="destructive" hidden>審査のため非表示にする</Button>
       <Button type="button" id="delete" variant="destructive" class="ml-auto">削除</Button>
     </div>
   </form>
@@ -110,7 +121,9 @@ const title = '記事の編集 | Wild Media CMS';
   <script>
       import { supabaseBrowser } from '../../lib/supabase-browser';
       import { redirectTo } from '../../lib/auth';
+      import { initShellChrome } from '../../lib/shell';
       import { fetchArticleForEdit, saveArticle, deleteArticle, validateCommissionToken, checkSlugAvailable } from '../../lib/articles';
+      import { setModerationHold } from '../../lib/admin';
       import { translateSaveError, isValidArticleSlug } from '../../lib/editor-helpers';
       import { initCoverWidget } from '../../lib/cover-widget';
       import { fetchImageBaseUrl, translateUploadError } from '../../lib/images';
@@ -131,6 +144,11 @@ const title = '記事の編集 | Wild Media CMS';
       if (!session) {
         redirectTo('/login');
       } else {
+        // UX のためのリダイレクト。実際の防壁は RLS(articles insert/update は writer/admin のみ)。
+        const { role: myRole } = await initShellChrome(supabaseBrowser);
+        if (myRole === 'provider') {
+          redirectTo('/dashboard');
+        } else {
         const id = new URLSearchParams(window.location.search).get('id') ?? '';
         const $ = (elId: string) => document.getElementById(elId) as HTMLInputElement & HTMLTextAreaElement & HTMLSelectElement;
         const messageEl = document.getElementById('message')!;
@@ -152,6 +170,48 @@ const title = '記事の編集 | Wild Media CMS';
           cover.setUrl(article.coverImageUrl);
           $('commission').value = article.commissionTokenInput ?? '';
           statusLabel.textContent = `状態: ${article.status === 'draft' ? '下書き' : '公開中'}`;
+
+          const holdNoticeEl = document.getElementById('hold-notice')!;
+          const holdAtEl = document.getElementById('hold-at')!;
+          const holdReasonEl = document.getElementById('hold-reason')!;
+          const moderationToggleBtn = document.getElementById('moderation-toggle') as HTMLButtonElement;
+          let moderationHold = article.moderationHold;
+
+          const renderModerationState = () => {
+            holdNoticeEl.hidden = !moderationHold;
+            holdReasonEl.textContent = article.moderationHoldReason ?? '';
+            holdAtEl.textContent = article.moderationHoldAt
+              ? new Date(article.moderationHoldAt).toLocaleString('ja-JP')
+              : '';
+            if (myRole === 'admin') {
+              moderationToggleBtn.hidden = false;
+              moderationToggleBtn.textContent = moderationHold ? '審査を解除する' : '審査のため非表示にする';
+            }
+          };
+          renderModerationState();
+
+          if (myRole === 'admin') {
+            moderationToggleBtn.addEventListener('click', async () => {
+              messageEl.textContent = '';
+              let reason: string | undefined;
+              if (!moderationHold) {
+                const input = window.prompt('非表示にする理由を入力してください(ライターに表示されます)');
+                if (input === null) return;
+                if (!input.trim()) { messageEl.textContent = '理由を入力してください。'; return; }
+                reason = input.trim();
+              }
+              try {
+                await setModerationHold(supabaseBrowser, id, !moderationHold, reason);
+                moderationHold = !moderationHold;
+                article.moderationHoldAt = moderationHold ? new Date().toISOString() : null;
+                article.moderationHoldReason = moderationHold ? reason! : null;
+                renderModerationState();
+              } catch (err) {
+                messageEl.textContent = '審査状態の変更に失敗しました。時間をおいて再度お試しください。';
+                console.error(err);
+              }
+            });
+          }
 
           let currentUpdatedAt = article.updatedAt;
           let initialBody = article.body;
@@ -366,6 +426,7 @@ const title = '記事の編集 | Wild Media CMS';
           });
           autosave.start();
         }
+        }
       }
     </script>
-</PageShell>
+</AdminShell>

@@ -1,0 +1,60 @@
+---
+/*
+ * 全ページ共通背景の点グリッド。全面固定・コンテンツ背後・操作を透過。
+ * Base.astro の .app-shell の外(body直下)に置くこと。内側の要素に将来
+ * transform/filter 等を足すと position:fixed の包含ブロックがそちらになり、
+ * スクロールで画面外へ流れてしまう(旧 BgContours と同じ理由)。
+ * マウス位置周辺のドットだけ明るくする「スポットライト」演出は
+ * src/scripts/bg-grid.ts が担当。reduced-motion / タッチ端末では静的表示のまま。
+ */
+---
+
+<div id="bg-grid" aria-hidden="true"></div>
+
+<style>
+  #bg-grid {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image: radial-gradient(
+      circle at 1px 1px,
+      color-mix(in srgb, var(--color-ink) 8%, transparent) 1px,
+      transparent 0
+    );
+    background-size: 24px 24px;
+  }
+
+  /* スポットライト層。ベースと同じ点グリッドを差し色寄りの濃さで重ね、
+     カーソル位置を中心にした円形マスクで切り抜く。座標(--mx/--my、px、
+     viewport基準)は bg-grid.ts が書き込む。 */
+  #bg-grid::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(
+      circle at 1px 1px,
+      color-mix(in srgb, var(--color-accent) 60%, var(--color-ink)) 1px,
+      transparent 0
+    );
+    background-size: 24px 24px;
+    opacity: 0;
+    -webkit-mask-image: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), black 0%, transparent 70%);
+    mask-image: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), black 0%, transparent 70%);
+    transition: opacity 0.4s ease;
+  }
+
+  #bg-grid.is-active::after {
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #bg-grid::after {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  import '../../scripts/bg-grid';
+</script>

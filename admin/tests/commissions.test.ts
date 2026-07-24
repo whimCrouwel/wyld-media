@@ -63,16 +63,23 @@ describe('issueCommissionToken / fetchMyIssuedTokens / fetchAllTokens / revokeCo
   });
 
   it('revoking a used token fails', async () => {
-    const token = await issueCommissionToken(forestClient, hanaId);
-    const mine = await fetchMyIssuedTokens(forestClient);
-    const issued = mine.find((t) => t.token === token)!;
+    // 「使用済みトークンは取消不可」の検証用に発行するトークンはテスト終了後も残り続ける
+    // (取消も削除もできないため)。commission_interval_days の間隔チェックが再実行時に
+    // 邪魔しないよう、あえて間隔経過済みの過去日時で発行する。
+    const { data, error: insertError } = await forestClient
+      .from('commission_tokens')
+      .insert({ writer_id: hanaId, created_at: new Date(Date.now() - 11 * 24 * 60 * 60 * 1000).toISOString() })
+      .select('id, token')
+      .single();
+    if (insertError) throw insertError;
+    const { id: issuedId, token } = data;
 
     const { error } = await hanaClient.from('articles').insert({
       author_id: hanaId, title: 'commissions.test 用', body: [], commission_token_input: token,
     });
     expect(error).toBeNull();
 
-    await expect(revokeCommissionToken(forestClient, issued.id)).rejects.toThrow();
+    await expect(revokeCommissionToken(forestClient, issuedId)).rejects.toThrow();
 
     await hanaClient.from('articles').delete().eq('commission_token_input', token);
   });
@@ -81,6 +88,8 @@ describe('issueCommissionToken / fetchMyIssuedTokens / fetchAllTokens / revokeCo
 describe('translateCommissionError', () => {
   it('known codes map to Japanese messages', () => {
     expect(translateCommissionError(new Error('NOT_A_PROVIDER: x'))).toContain('プロバイダー');
+    expect(translateCommissionError(new Error('COMMISSION_INTERVAL_NOT_ELAPSED: must wait until 2026-08-02T00:00:00Z')))
+      .toContain('間隔');
     expect(translateCommissionError(new Error('boom'))).toContain('失敗');
   });
 });

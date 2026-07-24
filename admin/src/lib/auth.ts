@@ -15,6 +15,13 @@ export function redirectTo(path: string): void {
   window.location.assign(path);
 }
 
+export function validateResetEmail(email: string): string | null {
+  if (!email || !EMAIL_RE.test(email)) {
+    return 'メールアドレスを正しく入力してください';
+  }
+  return null;
+}
+
 // GoTrue の代表的なエラーメッセージを日本語へ。未知のものは汎用文言に落とす。
 export function translateAuthError(err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err ?? '');
@@ -34,7 +41,7 @@ export function translateAuthError(err: unknown): string {
     return '現在と同じパスワードは設定できません。';
   }
   if (msg.includes('Auth session missing')) {
-    return 'セッションが切れています。招待リンクをもう一度開いてください。';
+    return 'セッションが切れています。招待または再設定のメールのリンクをもう一度開いてください。';
   }
   return 'エラーが発生しました。時間をおいて再度お試しください。';
 }
