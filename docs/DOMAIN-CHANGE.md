@@ -119,3 +119,8 @@ CMS:         wyld-media-admin.vercel.app
 新しいドメインに切り替えたら、この 2 行を更新すること。
 
 `PRODUCTION-SECRETS.local.md` の Vercel セクションも同時に書き換える。
+
+### 公開サイトのビルド設定
+
+- `astro.config.mjs` の `SITE` 定数(または `PUBLIC_SITE_URL` 環境変数)を新ドメインに更新
+- `public/robots.txt` の `Sitemap:` 行を新ドメインに更新
