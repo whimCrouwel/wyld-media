@@ -1,12 +1,17 @@
 # Wild Media v2.0
 
-環境系ライターの記事プラットフォーム。まず [ARCHITECTURE.md](ARCHITECTURE.md) を読むこと(全体像・信頼境界・主要ルール)。
+環境系ライターの記事プラットフォーム。
+
+- 全体像・信頼境界・主要ルール → [ARCHITECTURE.md](ARCHITECTURE.md)
+- 本番の仕組み(Vercel + Supabase + R2 がどう繋がってるか)→ [docs/PRODUCTION.md](docs/PRODUCTION.md)
+- 本番ドメインを変えるとき → [docs/DOMAIN-CHANGE.md](docs/DOMAIN-CHANGE.md)(Vercel だけでは足りない — Supabase Auth / R2 CORS / CMS_URL secret も要更新)
 
 ## 絶対に守ること
 
 - **権限・ビジネスルールは DB 層(RLS・トリガー)で強制する。** CMS はブラウザから anon key で Supabase に直結しており、クライアント側のチェックはUX目的でしかない。新ルールはまずマイグレーション+pgTAP テストで書く。
 - **service role key を `admin/` に入れない。** 公開サイトのビルド時(`src/lib/supabase-server.ts`)専用。
 - ホスティングは **Vercel**(Cloudflare Pages ではない)。画像ストレージは Cloudflare R2。
+- **本番の機密値(DB パスワード・API キー等)は `PRODUCTION-SECRETS.local.md` に置く。** リポルートの gitignore 済みファイル(`*.local.md` パターン)。理想は 1Password 等のパスワードマネージャで、そのファイルは deploy 作業中の一時参照用。
 
 ## コマンド
 

@@ -7,6 +7,11 @@ supabase/functions/.env
 .DS_Store
 node_modules/
 
+# Local secrets (production credentials, deploy notes with sensitive values)
+# See PRODUCTION-SECRETS.local.md
+*.local.md
+.credentials/
+
 # Astro / Node
 dist/
 .astro/

@@ -27,4 +27,6 @@
 
 ## Done
 
+- [x] **本番招待メール用に Resend SMTP を Supabase Auth に配線**。`vim@wyld-crd.org` で新規 Resend アカウント作成 → `send.wyld-crd.org` を Squarespace DNS(MX/SPF/DKIM/DMARC)で verify → API key を Supabase Dashboard → Authentication → SMTP Settings に投入(sender: `zine@send.wyld-crd.org`)。Supabase 側は "Successfully updated settings" で確定。実送信テストは別途 CMS から。関連: `supabase/functions/invite-user/index.ts:61`、認証情報は `PRODUCTION-SECRETS.local.md` の Resend セクション。
+
 - [x] 検索機能で記事が返ってこない(以前は動いていた) — 原因: コード側(RPC・`profiles` inner join・Edge Function・`OPENAI_API_KEY`)はすべて正常、`public.post_chunks` が空なのが真因(`scripts/seed.mjs` が記事投入後に検索インデックスを作っていなかった)。修正: `scripts/seed.mjs` が記事投入後、CMSと同じコードパス(Edge Function `chunk-article`、admin としてサインインしたJWTで呼び出し)で `post_chunks` を構築するよう変更。Edge Functions未起動時は明確なエラーで失敗するようにした。`README.md`/`CLAUDE.md` のセットアップ手順も更新済み(`npm run seed` 前に `npm run dev:fn` が必要になった旨)。検証: seed後 `post_chunks` 0→5件、`search-articles` 呼び出しで実際に検索結果が返ることを確認、再実行しても重複しないことを確認(idempotent)。関連: `triggerChunking()` の失敗握りつぶし・バックフィル不在は別問題として上記 Open に起票。
