@@ -3,9 +3,10 @@ import Base from '../../layouts/Base.astro';
 import MetaLabel from '../../components/atoms/MetaLabel.astro';
 import Breadcrumbs from '../../components/molecules/Breadcrumbs.astro';
 import AuthorCard from '../../components/molecules/AuthorCard.astro';
+import RelatedArticles from '../../components/molecules/RelatedArticles.astro';
 import JsonLd from '../../components/JsonLd.astro';
 import { supabaseServer } from '../../lib/supabase-server';
-import { fetchPublishedArticles, fetchArticleBySlug, formatDate } from '../../lib/content';
+import { fetchPublishedArticles, fetchArticleBySlug, fetchRelatedArticles, formatDate } from '../../lib/content';
 import type { ArticleDetail } from '../../lib/content';
 import { articleSchema, breadcrumbListSchema, buildCrumbs } from '../../lib/schema';
 
@@ -23,6 +24,7 @@ interface Props {
   article: ArticleDetail;
 }
 const { article } = Astro.props;
+const relatedArticles = await fetchRelatedArticles(supabaseServer, article, { limit: 6 });
 
 // Validate Astro.site and article data
 if (!Astro.site) throw new Error('articles/[slug]: Astro.site is undefined.');
@@ -93,6 +95,8 @@ const crumbsLd = breadcrumbListSchema(crumbs, siteUrl);
       avatarUrl={article.authorAvatarUrl}
       snsLinks={article.authorSnsLinks}
     />
+
+    <RelatedArticles articles={relatedArticles} />
 
     <p class="mt-16">
       <a href="/" class="transition-opacity hover:opacity-60"><MetaLabel>← Works</MetaLabel></a>

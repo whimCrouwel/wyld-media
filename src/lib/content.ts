@@ -339,3 +339,38 @@ export async function fetchProviderBySlug(
     serviceImageUrl: safeUrl(profile.service_image_url),
   };
 }
+
+// 「関連記事」— 同じ著者 かつ 同じ region を最優先、次に著者一致、次に region 一致、
+// 最後に最新記事。draft/held は常に除外。ソース記事自体も除外。呼び出し側は Article
+// ページからのみ想定(記事詳細を1本立ち上げるコストは既に払っているため)。
+export async function fetchRelatedArticles(
+  db: SupabaseClient,
+  article: ArticleSummary,
+  opts: { limit?: number } = {},
+): Promise<ArticleSummary[]> {
+  const limit = opts.limit ?? 6;
+  // 素直に candidates を広めに取ってきてからJS側で優先度スコアで並べ替える。
+  // article数がスケールしても、上限は「同一region + 同一著者 + 新着」の和なので過大にはならない。
+  const { data, error } = await db
+    .from('articles')
+    .select(ARTICLE_SELECT)
+    .eq('status', 'published')
+    .eq('moderation_hold', false)
+    .neq('id', article.id)
+    .order('published_at', { ascending: false })
+    .limit(60); // 60本まで見れば十分な候補プール
+  if (error) throw error;
+
+  const candidates = (data ?? []).map(toSummary);
+  const score = (c: ArticleSummary) => {
+    let s = 0;
+    if (c.authorSlug === article.authorSlug) s += 2;
+    if (c.region && c.region === article.region) s += 1;
+    return s;
+  };
+  return candidates
+    .map((c) => ({ c, s: score(c) }))
+    .sort((a, b) => b.s - a.s || (a.c.publishedAt < b.c.publishedAt ? 1 : -1))
+    .slice(0, limit)
+    .map(({ c }) => c);
+}

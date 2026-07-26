@@ -1,0 +1,45 @@
+---
+import MetaLabel from '../atoms/MetaLabel.astro';
+import SectionHeader from './SectionHeader.astro';
+import { formatDate } from '../../lib/content';
+import type { ArticleSummary } from '../../lib/content';
+
+export interface Props {
+  articles: ArticleSummary[];
+}
+const { articles } = Astro.props;
+---
+{articles.length > 0 && (
+  <section class="mt-14">
+    <SectionHeader label="Related" count={articles.length} class="pb-5" />
+    <div class="grid gap-4 sm:grid-cols-2">
+      {articles.map((a) => (
+        <a
+          href={`/articles/${a.slug}`}
+          class="border-card hover:border-ink flex items-center gap-4 rounded-[16px] border p-3 transition-colors"
+        >
+          {a.coverImageUrl ? (
+            <img
+              src={a.coverImageUrl}
+              alt=""
+              class="bg-card h-[72px] w-[72px] shrink-0 rounded-[12px] object-cover"
+              loading="lazy"
+              decoding="async"
+            />
+          ) : (
+            <span class="bg-card h-[72px] w-[72px] shrink-0 rounded-[12px]" />
+          )}
+          <span class="min-w-0">
+            <MetaLabel class="block tabular-nums">{formatDate(a.publishedAt)}</MetaLabel>
+            <span
+              class="mt-1 block line-clamp-2"
+              style="font-family: var(--font-heading); font-size: 16px; line-height: 1.4;"
+            >
+              {a.title}
+            </span>
+          </span>
+        </a>
+      ))}
+    </div>
+  </section>
+)}
