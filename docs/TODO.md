@@ -21,15 +21,15 @@
 
 - [ ] `cd admin && npm test` が稀に `tests/dashboard.test.ts` の「hana の記事は5本」assertion で失敗する(単独実行では常に成功) — `tests/commissions.test.ts` の「revoking a used token fails」テストが hana 名義の記事を一時的に insert → delete しており(`admin/tests/commissions.test.ts:70-77`)、vitest がテストファイルを並列実行するため、`dashboard.test.ts` の記事数カウントがそのタイミングと衝突するとズレる。テスト隔離の問題(ファイル単位の並列実行 + 同一の実DBを共有しているのが根本原因)で、今回のスコープでは見送り。対応案: `commissions.test.ts` 側で一時記事を別ユーザー(hana 以外)名義にする、または vitest 側でこの2ファイルを直列化する。
 
-- [ ] ルートの `npm test` が `tests/life-sim.test.ts` の import で失敗する — 対象の `src/lib/life-sim.ts` が既に削除済み(git status で `D` として表示)なのに、テストファイルだけ残っている。テストごと削除するのが自然。
-
 - [ ] プロバイダーの「主要サービス」情報(`profiles.service_name`/`service_description`/`service_url`/`service_image_url`)と認定フラグ(`profiles.certified`)が、CMSで編集・admin管理はできるが公開サイト側にまだ一切表示されていない。認定済みプロバイダーのみサービス情報を公開する、というのが本来の狙い(`ARCHITECTURE.md` 参照)。対象になりそうな箇所: 公開サイトのプロバイダー用ページ(未作成)、または `src/pages/articles/[slug].astro:30` の「提供: {name}」表示の拡張。認定事業者バッジの公開サイト表示もこのタイミングで検討。
 
 - [ ] インタビュー・ブロックの発言テキストが `<p>` で包まれず、`src/styles/global.css` の `.article-body .interview-block .turn p` バブル背景ルールが効かない。`Turn.content` を `'paragraph+'` に変えるか、`packages/blocks-renderer/src/render.ts` の `injectInterviewSpeakers` で turn 内テキストを `<p>` で包む対応が必要。関連: `packages/blocks-renderer/src/extensions.ts` の Turn ノード定義、`src/styles/global.css` の該当 CSS。
 
-- [ ] インタビュー・ダイアログの「自分のプロフィール画像を使う」ボタンが、プロフィール画像URLが `settings.image_base_url` 配下でない場合(例: 外部URL・旧R2ドメイン)にそのままセットしてしまい、保存時に DB トリガーで `IMAGE_HOST_NOT_ALLOWED` が発生する。エラーメッセージは「許可されていない場所の画像は使えません」で、アバターが原因だと分かりにくい。対応案: `admin/src/lib/interview-dialog.ts` の `data-use-profile` ハンドラで、`myProfile.avatarUrl` が `settings.image_base_url` プレフィックスに一致するか事前チェックし、一致しない場合はボタン自体を無効化 or トースト表示。関連: `admin/src/pages/articles/edit.astro`(myProfile を取得している箇所)・`new.astro`。E2Eで発見(2026-07-26)。
-
 ## Done
+
+- [x] **ルートの `npm test` が `tests/life-sim.test.ts` の import で失敗する** — `src/lib/life-sim.ts` は既に削除済みだったのでテスト側も削除して整合。関連commit: (次のcommit)。
+
+- [x] **インタビュー・ダイアログの「自分のプロフィール画像を使う」ボタンが、プロフィール画像URLが `settings.image_base_url` 配下でない場合にそのままセットしてしまう問題** — `admin/src/lib/interview-dialog.ts` に `imageBaseUrl` を渡し、`myProfile.avatarUrl.startsWith(imageBaseUrl)` でチェック。一致しない場合はボタンを `disabled` + `title` 属性で理由を表示、クリックハンドラでも二重チェック。`edit.astro`・`new.astro` ともに既存の `fetchImageBaseUrl` の結果を渡すよう修正。テスト 2 件追加(disable される / enable されて動作する)。E2Eで発見(2026-07-26)、同日修正。
 
 - [x] **本番招待メール用に Resend SMTP を Supabase Auth に配線**。`vim@wyld-crd.org` で新規 Resend アカウント作成 → `send.wyld-crd.org` を Squarespace DNS(MX/SPF/DKIM/DMARC)で verify → API key を Supabase Dashboard → Authentication → SMTP Settings に投入(sender: `zine@send.wyld-crd.org`)。Supabase 側は "Successfully updated settings" で確定。実送信テストは別途 CMS から。関連: `supabase/functions/invite-user/index.ts:61`、認証情報は `PRODUCTION-SECRETS.local.md` の Resend セクション。
 

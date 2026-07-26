@@ -28,6 +28,7 @@ describe('initInterviewDialog', () => {
     const { modalEl, formEl, addBtn, saveBtn, cancelBtn } = setup();
     const dialog = initInterviewDialog(fakeSupabase, {
       modalEl, formEl, addBtn, saveBtn, cancelBtn, myProfile: null,
+      imageBaseUrl: 'https://img.test/',
     });
     const pending = dialog.open();
     expect(modalEl.hidden).toBe(false);
@@ -41,6 +42,7 @@ describe('initInterviewDialog', () => {
     const { modalEl, formEl, addBtn, saveBtn, cancelBtn } = setup();
     const dialog = initInterviewDialog(fakeSupabase, {
       modalEl, formEl, addBtn, saveBtn, cancelBtn, myProfile: null,
+      imageBaseUrl: 'https://img.test/',
     });
     const initial = [
       { key: 'A' as const, name: '米田', role: '聞き手', avatarUrl: 'https://img.test/a.webp' },
@@ -61,6 +63,7 @@ describe('initInterviewDialog', () => {
     const { modalEl, formEl, addBtn, saveBtn, cancelBtn } = setup();
     const dialog = initInterviewDialog(fakeSupabase, {
       modalEl, formEl, addBtn, saveBtn, cancelBtn, myProfile: null,
+      imageBaseUrl: 'https://img.test/',
     });
     dialog.open();
     expect(formEl.querySelectorAll('[data-speaker-card]').length).toBe(2);
@@ -79,10 +82,41 @@ describe('initInterviewDialog', () => {
     expect(formEl.querySelector('[data-remove-speaker]')?.getAttribute('data-remove-speaker')).toBe('C');
   });
 
+  it('disables "use profile" button when profile avatar host is not allowed', () => {
+    const { modalEl, formEl, addBtn, saveBtn, cancelBtn } = setup();
+    const dialog = initInterviewDialog(fakeSupabase, {
+      modalEl, formEl, addBtn, saveBtn, cancelBtn,
+      myProfile: { name: '米田', avatarUrl: 'https://picsum.photos/200' },
+      imageBaseUrl: 'https://img.test/',
+    });
+    dialog.open();
+    const btn = formEl.querySelector('[data-speaker-card="A"] button.speaker-card__link-btn') as HTMLButtonElement;
+    expect(btn).not.toBeNull();
+    expect(btn.disabled).toBe(true);
+    expect(btn.hasAttribute('data-use-profile')).toBe(false);
+  });
+
+  it('enables "use profile" button when profile avatar host matches image_base_url', () => {
+    const { modalEl, formEl, addBtn, saveBtn, cancelBtn } = setup();
+    const dialog = initInterviewDialog(fakeSupabase, {
+      modalEl, formEl, addBtn, saveBtn, cancelBtn,
+      myProfile: { name: '米田', avatarUrl: 'https://img.test/me.webp' },
+      imageBaseUrl: 'https://img.test/',
+    });
+    dialog.open();
+    const btn = formEl.querySelector('[data-speaker-card="A"] [data-use-profile="A"]') as HTMLButtonElement;
+    expect(btn).not.toBeNull();
+    expect(btn.disabled).toBe(false);
+    btn.click();
+    const avatar = formEl.querySelector('[data-speaker-card="A"] img.speaker-card__avatar') as HTMLImageElement;
+    expect(avatar.src).toBe('https://img.test/me.webp');
+  });
+
   it('rejects save with empty name and marks the field', () => {
     const { modalEl, formEl, addBtn, saveBtn, cancelBtn } = setup();
     const dialog = initInterviewDialog(fakeSupabase, {
       modalEl, formEl, addBtn, saveBtn, cancelBtn, myProfile: null,
+      imageBaseUrl: 'https://img.test/',
     });
     dialog.open();
     saveBtn.click();

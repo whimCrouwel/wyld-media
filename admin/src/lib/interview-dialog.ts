@@ -19,6 +19,7 @@ export interface InterviewDialogOptions {
   saveBtn: HTMLButtonElement;
   cancelBtn: HTMLButtonElement;
   myProfile: { name: string; avatarUrl: string | null } | null;
+  imageBaseUrl: string;
 }
 
 const KEYS: Array<'A' | 'B' | 'C' | 'D'> = ['A', 'B', 'C', 'D'];
@@ -39,9 +40,12 @@ export function initInterviewDialog(
   supabase: SupabaseClient,
   opts: InterviewDialogOptions,
 ): InterviewDialogController {
-  const { modalEl, formEl, addBtn, saveBtn, cancelBtn, myProfile } = opts;
+  const { modalEl, formEl, addBtn, saveBtn, cancelBtn, myProfile, imageBaseUrl } = opts;
   let currentResolve: ((v: Speaker[] | null) => void) | null = null;
   let workingSpeakers: Speaker[] = [];
+  // プロフィール画像が settings.image_base_url 配下でないと DB トリガーで IMAGE_HOST_NOT_ALLOWED になる。
+  // ボタンは表示するが disable し、なぜ使えないかを title で伝える(profile を更新すれば直ることが分かるように)。
+  const profileAvatarUsable = !!myProfile?.avatarUrl && myProfile.avatarUrl.startsWith(imageBaseUrl);
 
   function render(): void {
     formEl.replaceChildren();
@@ -69,7 +73,9 @@ export function initInterviewDialog(
               <input type="file" accept="image/*" data-upload-avatar="${s.key}" hidden />
             </label>
             ${myProfile?.avatarUrl
-              ? `<button type="button" data-use-profile="${s.key}" class="speaker-card__link-btn">自分のプロフィール画像を使う</button>`
+              ? (profileAvatarUsable
+                  ? `<button type="button" data-use-profile="${s.key}" class="speaker-card__link-btn">自分のプロフィール画像を使う</button>`
+                  : `<button type="button" class="speaker-card__link-btn" disabled title="プロフィール画像が許可されたホストにないため使えません。プロフィール画面から画像を再アップロードしてください。">自分のプロフィール画像を使う</button>`)
               : ''}
             ${s.avatarUrl ? `<button type="button" data-clear-avatar="${s.key}" class="speaker-card__link-btn">画像を削除</button>` : ''}
           </div>
@@ -151,7 +157,7 @@ export function initInterviewDialog(
         workingSpeakers.splice(idx, 1);
         render();
       }
-    } else if (useProfileKey && myProfile?.avatarUrl) {
+    } else if (useProfileKey && myProfile?.avatarUrl && profileAvatarUsable) {
       readFromDom();
       const idx = workingSpeakers.findIndex((s) => s.key === useProfileKey);
       if (idx >= 0) {
