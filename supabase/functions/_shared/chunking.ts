@@ -15,8 +15,9 @@ export interface Chunk {
   tokenCount: number;
 }
 
-const TEXT_LEAF_TYPES = new Set(['heading', 'paragraph', 'blockquote', 'codeBlock', 'listItem']);
+const TEXT_LEAF_TYPES = new Set(['heading', 'paragraph', 'blockquote', 'codeBlock', 'listItem', 'turn']);
 const LIST_CONTAINER_TYPES = new Set(['bulletList', 'orderedList']);
+const NESTED_CONTAINER_TYPES = new Set(['interview']);
 const FLUSH_FLOOR_TOKENS = 500;
 const FLUSH_CEILING_TOKENS = 800;
 
@@ -42,7 +43,7 @@ function collectTextBlocks(node: ChunkNode, out: ChunkNode[]): void {
     out.push(node);
     return;
   }
-  if (LIST_CONTAINER_TYPES.has(node.type)) {
+  if (LIST_CONTAINER_TYPES.has(node.type) || NESTED_CONTAINER_TYPES.has(node.type)) {
     for (const child of node.content ?? []) collectTextBlocks(child, out);
     return;
   }
