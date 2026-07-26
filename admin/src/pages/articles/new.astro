@@ -122,6 +122,8 @@ const title = '新しい記事 | Wild Media CMS';
       import { createBubbleMenuExtension, initBubbleToolbar } from '../../lib/bubble-toolbar';
       import { insertImageBlock, insertFileBlock, insertImageUrlBlock } from '../../lib/block-uploads';
       import { insertEmbedBlock } from '../../lib/embed-dialog';
+      import { initInterviewDialog } from '../../lib/interview-dialog';
+      import { createInterviewPlugin, insertInterviewBlock } from '../../lib/interview-nodeview';
       import { renderTocPanel } from '../../lib/toc-panel';
       import { renderPreviewHtml } from '../../lib/editor-preview';
       import { initCharCount } from '../../lib/char-count';
@@ -144,19 +146,31 @@ const title = '新しい記事 | Wild Media CMS';
         const cover = initCoverWidget(supabaseBrowser);
 
         // 取材地の初期値は執筆者の活動拠点。あくまで初期値で、記事ごとに変更できる。
+        // name / avatar_url は interview ブロックの「自分のプロフィール画像を使う」用に同じ行から流用する(二重取得を避ける)。
         const { data: me, error: meError } = await supabaseBrowser
           .from('profiles')
-          .select('region')
+          .select('region, name, avatar_url')
           .eq('id', session.user.id)
           .single();
         if (meError) console.error(meError);
         const defaultRegion = me?.region ?? '';
+        const myProfile = me ? { name: me.name, avatarUrl: me.avatar_url ?? null } : null;
         const imageBaseUrl = await fetchImageBaseUrl(supabaseBrowser);
 
         const fileInput = document.getElementById('body-image-file') as HTMLInputElement;
         const fileFileInput = document.getElementById('body-file-file') as HTMLInputElement;
         const uploadStatus = document.getElementById('body-image-status')!;
         const bubbleToolbarEl = document.getElementById('bubble-toolbar') as HTMLElement;
+
+        const interviewDialog = initInterviewDialog(supabaseBrowser, {
+          modalEl: document.getElementById('interview-modal') as HTMLElement,
+          formEl: document.getElementById('interview-form') as HTMLElement,
+          addBtn: document.getElementById('interview-add') as HTMLButtonElement,
+          saveBtn: document.getElementById('interview-save') as HTMLButtonElement,
+          cancelBtn: document.getElementById('interview-cancel') as HTMLButtonElement,
+          myProfile,
+        });
+        const interviewPlugin = createInterviewPlugin(interviewDialog);
 
         const commands: BlockCommand[] = [
           { id: 'heading2', label: '見出し(H2)', run: (ed) => ed.chain().focus().toggleHeading({ level: 2 }).run() },
@@ -179,6 +193,16 @@ const title = '新しい記事 | Wild Media CMS';
               if (!result.ok) uploadStatus.textContent = result.message;
             },
           },
+          {
+            id: 'interview',
+            label: 'インタビュー(会話)',
+            run: (ed) => {
+              (async () => {
+                const speakers = await interviewDialog.open();
+                if (speakers) insertInterviewBlock(ed, speakers);
+              })();
+            },
+          },
         ];
 
         const editor = createBlockEditor({
@@ -186,6 +210,7 @@ const title = '新しい記事 | Wild Media CMS';
           content: [],
           extraExtensions: [
             createSlashCommandsExtension(commands),
+            interviewPlugin.extension,
             createBubbleMenuExtension(bubbleToolbarEl),
             CharacterCount.configure({ limit: null }),
           ],
