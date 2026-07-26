@@ -8,6 +8,8 @@ import SearchModal from '../components/organisms/SearchModal.astro';
 import BgGrid from '../components/organisms/BgGrid.astro';
 import MetaLabel from '../components/atoms/MetaLabel.astro';
 import type { AreaLink } from '../lib/sidebar';
+import { organizationSchema, webSiteSchema } from '../lib/schema';
+import JsonLd from '../components/JsonLd.astro';
 
 export interface Props {
   title: string;
@@ -60,6 +62,14 @@ const {
   areaLinks,
   areaFilterLabel,
 } = Astro.props;
+
+if (!Astro.site) {
+  throw new Error('Base: Astro.site is undefined. Set `site` in astro.config.mjs.');
+}
+const siteUrl = Astro.site.href;
+const siteName = 'Wild Media';
+const orgSchema = organizationSchema({ name: siteName, url: siteUrl });
+const siteSchema = webSiteSchema({ name: siteName, url: siteUrl, inLanguage: 'ja' });
 ---
 <!doctype html>
 <html lang="ja">
@@ -78,6 +88,8 @@ const {
       articleAuthor={articleAuthor}
     />
     <slot name="head" />
+    <JsonLd data={orgSchema} />
+    <JsonLd data={siteSchema} />
     <!-- keep any existing font/style links below this line -->
   </head>
   <body>
