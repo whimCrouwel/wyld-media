@@ -1,9 +1,11 @@
 ---
 import Base from '../../layouts/Base.astro';
 import MetaLabel from '../../components/atoms/MetaLabel.astro';
+import JsonLd from '../../components/JsonLd.astro';
 import { supabaseServer } from '../../lib/supabase-server';
 import { fetchPublishedArticles, fetchArticleBySlug, formatDate } from '../../lib/content';
 import type { ArticleDetail } from '../../lib/content';
+import { articleSchema, breadcrumbListSchema, buildCrumbs } from '../../lib/schema';
 
 export async function getStaticPaths() {
   const { featured, normal } = await fetchPublishedArticles(supabaseServer);
@@ -19,6 +21,28 @@ interface Props {
   article: ArticleDetail;
 }
 const { article } = Astro.props;
+
+// Validate Astro.site and article data
+if (!Astro.site) throw new Error('articles/[slug]: Astro.site is undefined.');
+if (!article.publishedAtISO) throw new Error('articles/[slug]: publishedAtISO missing for published article');
+
+const siteUrl = Astro.site.href;
+const canonical = new URL(`/articles/${article.slug}`, siteUrl).href;
+const crumbs = buildCrumbs.article({ title: article.title, slug: article.slug });
+
+const articleLd = articleSchema({
+  title: article.title,
+  description: article.description,
+  url: canonical,
+  coverUrl: article.coverImageUrl,
+  publishedISO: article.publishedAtISO,
+  updatedISO: article.updatedAtISO,
+  authorName: article.authorName,
+  authorUrl: new URL(`/writers/${article.authorSlug}`, siteUrl).href,
+  siteName: 'Wild Media',
+  siteUrl,
+});
+const crumbsLd = breadcrumbListSchema(crumbs, siteUrl);
 ---
 <Base
   title={`${article.title} | Wild Media`}
@@ -30,6 +54,10 @@ const { article } = Astro.props;
   articleModifiedTime={article.updatedAtISO}
   articleAuthor={article.authorName}
 >
+  <Fragment slot="head">
+    <JsonLd data={articleLd} />
+    <JsonLd data={crumbsLd} />
+  </Fragment>
   <article class="mx-auto max-w-4xl px-6 pb-24">
     <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
       <a href={`/writers/${article.authorSlug}`} class="transition-opacity hover:opacity-60">
