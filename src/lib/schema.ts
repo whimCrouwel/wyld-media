@@ -3,6 +3,25 @@ export interface Crumb {
   url: string;
 }
 
+/**
+ * Serialize data for embedding in a `<script type="application/ld+json">` tag.
+ *
+ * `JSON.stringify` alone does NOT escape `<`, so a user-editable string field
+ * (e.g. a writer's bio) containing `</script>` would terminate the tag early
+ * and allow injected markup/script to execute (stored XSS). Encoding `<` as
+ * its JSON unicode escape is safe — browsers decode it when parsing the JSON
+ * — and blocks the exploit. U+2028/U+2029 are also escaped as a belt-and-
+ * suspenders measure: they are valid in JSON strings but break JS string
+ * literals, which matters if this output is ever consumed as JS instead of
+ * JSON.
+ */
+export function encodeJsonLd(data: unknown): string {
+  return JSON.stringify(data)
+    .replace(/</g, '\\u003c')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+}
+
 interface ArticleSchemaInput {
   title: string;
   description: string;

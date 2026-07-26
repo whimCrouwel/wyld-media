@@ -1,7 +1,13 @@
 ---
+import { encodeJsonLd } from '../lib/schema';
+
 export interface Props {
   data: Record<string, unknown>;
 }
 const { data } = Astro.props;
+// Prevent HTML injection: `</script>` inside string values would terminate the
+// tag. encodeJsonLd escapes `<` (and U+2028/U+2029) so the browser still
+// parses valid JSON but the HTML parser never sees a closing `</script>` tag.
+const safeJson = encodeJsonLd(data);
 ---
-<script type="application/ld+json" set:html={JSON.stringify(data)} />
+<script type="application/ld+json" set:html={safeJson} />

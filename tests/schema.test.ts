@@ -6,6 +6,7 @@ import {
   webSiteSchema,
   breadcrumbListSchema,
   buildCrumbs,
+  encodeJsonLd,
 } from '../src/lib/schema';
 
 const SITE = 'https://example.com';
@@ -171,5 +172,37 @@ describe('buildCrumbs', () => {
       { name: 'Works', url: '/' },
       { name: '関東', url: '/areas/kanto' },
     ]);
+  });
+});
+
+describe('encodeJsonLd', () => {
+  it('escapes </script> in string values', () => {
+    const out = encodeJsonLd({ name: 'foo</script><script>alert(1)</script>' });
+    expect(out).not.toContain('</script>');
+    expect(out).toContain('\\u003c/script>');
+  });
+
+  it('escapes U+2028 line separator', () => {
+    const out = encodeJsonLd({ name: 'a b' });
+    expect(out).not.toContain(' ');
+    expect(out).toContain('\\u2028');
+  });
+
+  it('escapes U+2029 paragraph separator', () => {
+    const out = encodeJsonLd({ name: 'a b' });
+    expect(out).not.toContain(' ');
+    expect(out).toContain('\\u2029');
+  });
+
+  it('leaves normal content unchanged and valid JSON', () => {
+    const out = encodeJsonLd({ '@type': 'Person', name: 'はな' });
+    expect(
+      JSON.parse(
+        out
+          .replace(/\\u003c/g, '<')
+          .replace(/\\u2028/g, ' ')
+          .replace(/\\u2029/g, ' '),
+      ),
+    ).toEqual({ '@type': 'Person', name: 'はな' });
   });
 });
