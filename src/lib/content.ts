@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { renderBlocksToHtml } from '@wild-media/blocks-renderer';
+import { fallbackDescription } from './description';
 
 export interface ArticleSummary {
   id: string;
@@ -12,6 +13,7 @@ export interface ArticleSummary {
   authorAvatarUrl: string | null;
   commissionedByName: string | null;
   region: string | null;
+  description: string; // Never null — see fallbackDescription when DB value is null/empty.
 }
 
 export interface ArticleDetail extends ArticleSummary {
@@ -80,7 +82,7 @@ export function formatDate(iso: string): string {
 
 // articles は profiles への FK を2本持つため、埋め込みは FK 名で曖昧性解消する
 const ARTICLE_SELECT =
-  'id, slug, title, cover_image_url, published_at, commissioned_by, region, ' +
+  'id, slug, title, cover_image_url, published_at, commissioned_by, region, description, ' +
   'author:profiles!articles_author_id_fkey(name, slug, avatar_url), ' +
   'commissioned:profiles!articles_commissioned_by_fkey(name)';
 
@@ -104,6 +106,11 @@ function toSummary(row: any): ArticleSummary {
     authorAvatarUrl: safeUrl(author?.avatar_url),
     commissionedByName: commissioned?.name ?? null,
     region: row.region ?? null,
+    // 一覧系の呼び出し元は本文HTMLを持たないため、descriptionが空ならここでは
+    // 空文字のまま返す(記事詳細側は fetchArticleBySlug 内で body由来のフォール
+    // バックに差し替える。一覧ページ自体は Task 6 で listing 独自の description
+    // を使う想定)。
+    description: (row.description ?? '').trim(),
   };
 }
 
@@ -177,9 +184,14 @@ export async function fetchArticleBySlug(
   if (error) throw error;
   if (!data) return null;
   const imageBaseUrl = await fetchImageBaseUrl(db);
+  const summary = toSummary(data);
+  const bodyHtml = await renderBlocksToHtml({ type: 'doc', content: (data as any).body }, imageBaseUrl);
   return {
-    ...toSummary(data),
-    bodyHtml: await renderBlocksToHtml({ type: 'doc', content: (data as any).body }, imageBaseUrl),
+    ...summary,
+    bodyHtml,
+    // 記事詳細は本文HTMLを持つので、DB側のdescriptionが空なら本文由来の
+    // フォールバックに差し替える(toSummaryの時点では空文字のまま)。
+    description: summary.description || fallbackDescription(bodyHtml),
   };
 }
 

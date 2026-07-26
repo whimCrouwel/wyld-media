@@ -47,6 +47,7 @@ erDiagram
         text slug UK "公開時のみ必須"
         text title
         jsonb body "Tiptapブロック配列"
+        text description "nullable、SEO用の要約。nullなら本文からの抜粋にフォールバック"
         text cover_image_url
         text region "取材地(12区分、公開時必須)"
         article_status status "draft / published"
