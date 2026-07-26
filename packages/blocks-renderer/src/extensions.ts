@@ -1,7 +1,8 @@
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import TextAlign from '@tiptap/extension-text-align';
-import { Node } from '@tiptap/core';
+import { Node, Extension } from '@tiptap/core';
+import { Plugin, PluginKey } from '@tiptap/pm/state';
 
 const Image = Node.create({
   name: 'image',
@@ -161,6 +162,27 @@ const Turn = Node.create({
   },
 });
 
+// doc の末尾が paragraph 以外のブロック(image / embed / interview 等)だと、
+// カーソルをそのブロックの「外」に出せず、後ろに文章を追加できない。
+// 常に空 paragraph で終わるよう保証する。
+// 公開サイト側の render.ts は末尾の空 paragraph を trim して <p></p> の出力を防ぐ。
+const TrailingNode = Extension.create({
+  name: 'trailingNode',
+  addProseMirrorPlugins() {
+    return [new Plugin({
+      key: new PluginKey('trailingNode'),
+      appendTransaction(_transactions, _oldState, newState) {
+        const { doc, schema, tr } = newState;
+        const last = doc.lastChild;
+        if (last && last.type.name !== 'paragraph') {
+          return tr.insert(doc.content.size, schema.nodes.paragraph.create());
+        }
+        return null;
+      },
+    })];
+  },
+});
+
 // 要件通りH1は無効化(見出しはH2/H3のみ、記事タイトルがH1を兼ねる)。
 // コードフェンスの自動変換とH1変換は StarterKit の既定を上書きしない
 // (StarterKit標準のCodeBlockはそのまま使う。H1のみ levels で除外)。
@@ -176,4 +198,5 @@ export const blockExtensions = [
   Toc,
   Interview,
   Turn,
+  TrailingNode,
 ];

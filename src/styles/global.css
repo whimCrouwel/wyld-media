@@ -204,85 +204,114 @@ a {
 }
 
 /* ===== インタビュー(会話)ブロック =====
-   packages/blocks-renderer が吐く <section class="interview-block"> と <div class="turn turn--X"> を
-   左右交互レイアウトで表示する。A(先頭話者=聞き手)は左、B/C/D は右。
-   アバター画像 (.turn__avatar) と名前/役職 (.turn__who) は renderBlocksToHtml の
-   post-process (injectInterviewSpeakers) が data-speakers JSON から各 turn 内に注入する。 */
+   packages/blocks-renderer が吐く構造:
+     <section class="interview-block">
+       <div class="turn turn--A [turn--cont]">
+         <img class="turn__avatar" />       (連続発言時は省略)
+         <div class="turn__who">…</div>     (連続発言時は省略)
+         <div class="turn__bubble">…</div>
+       </div>
+     </section>
+   A は左、B/C/D は右。連続同話者(turn--cont)はアバター/名前を省略し bubble のみ。 */
 
 .article-body .interview-block {
   margin: 2.5em 0;
   display: flex;
   flex-direction: column;
-  gap: 1.2em;
+  gap: 1.1em;
 }
 
 .article-body .interview-block .turn {
   display: grid;
-  grid-template-columns: 64px 1fr;
-  gap: 12px;
-  align-items: start;
+  grid-template-columns: 56px 1fr;
+  column-gap: 14px;
+  align-items: end;
 }
 
 .article-body .interview-block .turn--B,
 .article-body .interview-block .turn--C,
 .article-body .interview-block .turn--D {
-  grid-template-columns: 1fr 64px;
-  text-align: right;
-}
-
-.article-body .interview-block .turn p {
-  margin: 0;
-  padding: 8px 12px;
-  background-color: var(--color-card);
-  border-radius: 12px;
-  line-height: 1.75;
-}
-
-.article-body .interview-block .turn--B p,
-.article-body .interview-block .turn--C p,
-.article-body .interview-block .turn--D p {
-  grid-column: 1;
+  grid-template-columns: 1fr 56px;
 }
 
 .article-body .interview-block .turn__avatar {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;    /* 円形ではなく角丸スクエア */
   object-fit: cover;
   grid-row: 1 / span 2;
-  border: 1px solid var(--color-card);
+  grid-column: 1;
+  box-shadow: inset 0 0 0 1px rgba(20, 20, 19, 0.06);
   background-color: var(--color-card);
-  margin: 0;  /* .article-body img のデフォルト margin/border-radius を上書き */
+  border: 0;
+  margin: 0;              /* .article-body img のデフォルトを上書き */
 }
-
-.article-body .interview-block .turn__who {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding-top: 6px;
-}
-
-.article-body .interview-block .turn__name {
-  font-weight: 600;
-  font-size: 14px;
-}
-
-.article-body .interview-block .turn__role {
-  font-size: 12px;
-  color: var(--color-meta);
-}
-
 .article-body .interview-block .turn--B .turn__avatar,
 .article-body .interview-block .turn--C .turn__avatar,
 .article-body .interview-block .turn--D .turn__avatar {
   grid-column: 2;
 }
 
+.article-body .interview-block .turn__who {
+  grid-column: 2;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 6px;
+  padding-left: 4px;
+}
 .article-body .interview-block .turn--B .turn__who,
 .article-body .interview-block .turn--C .turn__who,
 .article-body .interview-block .turn--D .turn__who {
   grid-column: 1;
-  align-items: flex-end;
+  justify-content: flex-end;
+  padding-left: 0;
+  padding-right: 4px;
+}
+
+.article-body .interview-block .turn__name {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--color-accent);
+  letter-spacing: 0.02em;
+}
+
+.article-body .interview-block .turn__role {
+  font-family: var(--font-accent);
+  font-size: 11px;
+  color: var(--color-meta);
+  letter-spacing: 0.04em;
+}
+
+.article-body .interview-block .turn__bubble {
+  grid-column: 2;
+  background-color: var(--color-card);
+  padding: 14px 18px;
+  border-radius: 4px 16px 16px 16px;  /* tail 左上 */
+  line-height: 1.85;
+  font-size: 15.5px;
+  max-width: 62ch;
+}
+.article-body .interview-block .turn--B .turn__bubble,
+.article-body .interview-block .turn--C .turn__bubble,
+.article-body .interview-block .turn--D .turn__bubble {
+  grid-column: 1;
+  justify-self: end;
+  background-color: var(--color-panel);
+  border-radius: 16px 4px 16px 16px;  /* tail 右上 */
+}
+
+/* 連続同話者: アバター/名前を隠して bubble のみ、間隔を詰める。
+   非連続時の border-radius は tail 付き。連続時は tail なしのフル角丸に。 */
+.article-body .interview-block .turn.turn--cont {
+  margin-top: -6px;
+}
+.article-body .interview-block .turn.turn--cont .turn__avatar,
+.article-body .interview-block .turn.turn--cont .turn__who {
+  display: none;
+}
+.article-body .interview-block .turn.turn--cont .turn__bubble {
+  border-radius: 16px;
 }
 
 @media (max-width: 640px) {
@@ -290,20 +319,27 @@ a {
   .article-body .interview-block .turn--B,
   .article-body .interview-block .turn--C,
   .article-body .interview-block .turn--D {
-    grid-template-columns: 48px 1fr;
-    text-align: left;
+    grid-template-columns: 40px 1fr;
   }
-
-  .article-body .interview-block .turn--B .turn__avatar,
-  .article-body .interview-block .turn--C .turn__avatar,
-  .article-body .interview-block .turn--D .turn__avatar {
+  .article-body .interview-block .turn__avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
     grid-column: 1;
   }
-
-  .article-body .interview-block .turn--B .turn__who,
-  .article-body .interview-block .turn--C .turn__who,
-  .article-body .interview-block .turn--D .turn__who {
+  .article-body .interview-block .turn__who {
     grid-column: 2;
-    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 0;
+  }
+  .article-body .interview-block .turn__bubble {
+    grid-column: 2;
+    justify-self: start;
+    max-width: none;
+    background-color: var(--color-card);
+    border-radius: 4px 14px 14px 14px;
+  }
+  .article-body .interview-block .turn.turn--cont .turn__bubble {
+    border-radius: 14px;
   }
 }

@@ -96,22 +96,50 @@ function injectInterviewSpeakers(html: string): string {
         return `<section${sectionAttrs}>${inner}</section>`;
       }
       const byKey = new Map(speakers.map((s) => [s.key, s]));
+      // 直前の turn と同じ話者なら「連続発言」として class="turn--cont" を追記し、
+      // アバター/名前の再注入は省略する(CSS 側で bubble のみ表示するよう畳む)。
+      // Turn.content は inline* なので inner に <div> は入らない → 非貪欲 <\/div> で安全に閉じられる。
+      let prevKey: string | null = null;
       const rewritten = inner.replace(
-        /<div([^>]*data-block="turn"[^>]*data-speaker="([^"]+)"[^>]*)>/g,
-        (_full, divAttrs: string, key: string) => {
+        /<div([^>]*data-block="turn"[^>]*data-speaker="([^"]+)"[^>]*)>([\s\S]*?)<\/div>/g,
+        (_full, divAttrs: string, key: string, turnInner: string) => {
           const s = byKey.get(key);
-          if (!s) return `<div${divAttrs}>`;
+          const isCont = prevKey === key;
+          prevKey = key;
+          const attrs = isCont
+            ? divAttrs.replace(/class="([^"]*)"/, (_m, cls) => `class="${cls} turn--cont"`)
+            : divAttrs;
+          const bubble = `<div class="turn__bubble">${turnInner}</div>`;
+          if (!s || isCont) return `<div${attrs}>${bubble}</div>`;
           const roleHtml = s.role ? `<span class="turn__role">${escapeHtml(s.role)}</span>` : '';
           return (
-            `<div${divAttrs}>` +
+            `<div${attrs}>` +
             `<img class="turn__avatar" src="${escapeAttr(s.avatarUrl)}" alt="${escapeAttr(s.name)}" />` +
-            `<div class="turn__who"><span class="turn__name">${escapeHtml(s.name)}</span>${roleHtml}</div>`
+            `<div class="turn__who"><span class="turn__name">${escapeHtml(s.name)}</span>${roleHtml}</div>` +
+            bubble +
+            `</div>`
           );
         },
       );
       return `<section${sectionAttrs}>${rewritten}</section>`;
     },
   );
+}
+
+// TrailingNode 拡張が doc の末尾に必ず空 paragraph を挿入するので、公開HTML側では
+// 末尾の空 paragraph だけを取り除く(スタイル上の余白ノイズを防ぐため)。
+// 途中の空段落はユーザーが意図的に入れた区切りかもしれないので触らない。
+function trimTrailingEmptyParagraphs(content: JSONContent[]): JSONContent[] {
+  const out = [...content];
+  while (out.length > 0) {
+    const last = out[out.length - 1];
+    if (last.type === 'paragraph' && (!last.content || last.content.length === 0)) {
+      out.pop();
+    } else {
+      break;
+    }
+  }
+  return out;
 }
 
 function escapeHtml(s: string): string {
@@ -125,7 +153,9 @@ export async function renderBlocksToHtml(doc: JSONContent, imageBaseUrl: string)
   await ensureDomGlobals();
   const filtered: JSONContent = {
     type: 'doc',
-    content: (doc.content ?? []).map((n) => dropDisallowedAssets(n, imageBaseUrl)).filter((n): n is JSONContent => n !== null),
+    content: trimTrailingEmptyParagraphs(
+      (doc.content ?? []).map((n) => dropDisallowedAssets(n, imageBaseUrl)).filter((n): n is JSONContent => n !== null),
+    ),
   };
   const raw = generateHTML(filtered, blockExtensions);
   const withIds = addHeadingIds(raw);

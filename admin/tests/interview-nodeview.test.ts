@@ -29,7 +29,7 @@ describe('interview-nodeview', () => {
     editor.destroy();
   });
 
-  it('renders speaker cards and add-turn buttons as decorations over interview blocks', () => {
+  it('renders speaker toolbar (pills + edit button) and add-turn button over an interview block', () => {
     const el = document.createElement('div');
     document.body.appendChild(el);
     const editor = new Editor({
@@ -53,8 +53,56 @@ describe('interview-nodeview', () => {
     });
     const dom = el.querySelector('.interview-block');
     expect(dom).not.toBeNull();
-    expect(dom!.querySelectorAll('[data-speaker-card]')).toHaveLength(2);
+    // ピル型ツールバー: 話者チップ 2 個 + 「話者を編集」ボタン
+    expect(dom!.querySelectorAll('[data-speaker-chip]')).toHaveLength(2);
+    expect(dom!.querySelectorAll('.speakers-edit-btn')).toHaveLength(1);
+    // ＋発言を追加
     expect(dom!.querySelectorAll('[data-add-turn]').length).toBeGreaterThanOrEqual(1);
+    editor.destroy();
+  });
+
+  it('renders each turn as a chat bubble via NodeView (avatar + who + bubble)', () => {
+    const el = document.createElement('div');
+    document.body.appendChild(el);
+    const editor = new Editor({
+      element: el,
+      extensions: [...blockExtensions, createInterviewPlugin(fakeDialog).extension],
+      content: {
+        type: 'doc',
+        content: [{
+          type: 'interview',
+          attrs: {
+            speakers: [
+              { key: 'A', name: '米田', role: '聞き手', avatarUrl: 'https://img.test/a.webp' },
+              { key: 'B', name: '川崎', role: 'Kaeru', avatarUrl: 'https://img.test/b.webp' },
+            ],
+          },
+          content: [
+            { type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'text', text: 'first-a' }] },
+            { type: 'turn', attrs: { speaker: 'B' }, content: [{ type: 'text', text: 'first-b' }] },
+            { type: 'turn', attrs: { speaker: 'B' }, content: [{ type: 'text', text: 'second-b' }] },
+          ],
+        }],
+      },
+    });
+    const turns = el.querySelectorAll('[data-block="turn"]');
+    expect(turns).toHaveLength(3);
+    // 各 turn に avatar / who / bubble が揃っている (NodeView 描画)
+    turns.forEach((t) => {
+      expect(t.querySelector('.turn__avatar')).not.toBeNull();
+      expect(t.querySelector('.turn__who')).not.toBeNull();
+      expect(t.querySelector('.turn__bubble')).not.toBeNull();
+    });
+    // 話者 A の 1 発言目には avatar src が入る (親 speakers から解決)
+    const firstA = turns[0] as HTMLElement;
+    expect((firstA.querySelector('.turn__avatar') as HTMLImageElement).src).toContain('a.webp');
+    expect(firstA.querySelector('.turn__name')?.textContent).toBe('米田');
+    // 話者 B の連続発言 2 個目に turn--cont クラスが付く (decorator)
+    const secondB = turns[2] as HTMLElement;
+    expect(secondB.classList.contains('turn--cont')).toBe(true);
+    // 連続 1 個目 (話者切替後の B 最初) は cont ではない
+    const firstB = turns[1] as HTMLElement;
+    expect(firstB.classList.contains('turn--cont')).toBe(false);
     editor.destroy();
   });
 });

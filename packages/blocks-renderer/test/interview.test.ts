@@ -97,6 +97,74 @@ describe('renderBlocksToHtml — interview', () => {
     expect(html).toContain('Kaeru 代表');
   });
 
+  it('wraps each turn text in a bubble div for chat-style styling', async () => {
+    const html = await renderBlocksToHtml(sampleDoc, 'https://img.test');
+    expect(html).toContain('class="turn__bubble"');
+    // 発話テキストが bubble の中にある
+    expect(html).toMatch(/class="turn__bubble">\s*こんにちは\s*<\/div>/);
+    expect(html).toMatch(/class="turn__bubble">\s*よろしく\s*<\/div>/);
+  });
+
+  it('marks consecutive same-speaker turns with turn--cont and skips avatar/name reinjection', async () => {
+    const doc = {
+      type: 'doc',
+      content: [{
+        type: 'interview',
+        attrs: {
+          speakers: [
+            { key: 'A', name: '米田', role: '聞き手', avatarUrl: 'https://img.test/a.webp' },
+            { key: 'B', name: '川崎', role: 'Kaeru', avatarUrl: 'https://img.test/b.webp' },
+          ],
+        },
+        content: [
+          { type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'text', text: 'first-a' }] },
+          { type: 'turn', attrs: { speaker: 'B' }, content: [{ type: 'text', text: 'first-b' }] },
+          { type: 'turn', attrs: { speaker: 'B' }, content: [{ type: 'text', text: 'second-b' }] },
+          { type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'text', text: 'back-to-a' }] },
+        ],
+      }],
+    };
+    const html = await renderBlocksToHtml(doc, 'https://img.test');
+    // 連続する 2 発言目の B に turn--cont が付く
+    expect(html).toMatch(/class="turn turn--B turn--cont"/);
+    // 連続 B の 2 発言目には avatar / who を再注入しない
+    // (bubble 内の 'second-b' 直前に turn__avatar が入っていないことを確認)
+    const secondBIndex = html.indexOf('second-b');
+    const firstBIndex = html.indexOf('first-b');
+    const avatarBIndex = html.indexOf('src="https://img.test/b.webp"');
+    expect(avatarBIndex).toBeGreaterThan(-1);
+    expect(avatarBIndex).toBeLessThan(firstBIndex);        // B の avatar は 1 発言目の側にのみ
+    expect(html.indexOf('src="https://img.test/b.webp"', firstBIndex + 1)).toBe(-1);
+    // 話者が変わった A の 3 発言目 (back-to-a) は cont ではない
+    expect(html).not.toMatch(/class="turn turn--A turn--cont"/);
+    // ちゃんと bubble には全発言のテキスト
+    expect(html).toContain('second-b');
+    expect(html).toContain('back-to-a');
+    expect(secondBIndex).toBeGreaterThan(-1);
+  });
+
+  it('trims a trailing empty paragraph so the published HTML has no stray <p></p>', async () => {
+    const doc = {
+      type: 'doc',
+      content: [
+        {
+          type: 'interview',
+          attrs: {
+            speakers: [
+              { key: 'A', name: '米田', role: '聞き手', avatarUrl: 'https://img.test/a.webp' },
+              { key: 'B', name: '川崎', role: 'Kaeru', avatarUrl: 'https://img.test/b.webp' },
+            ],
+          },
+          content: [{ type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'text', text: 'hi' }] }],
+        },
+        { type: 'paragraph' },  // TrailingNode がエディタで足す空段落
+      ],
+    };
+    const html = await renderBlocksToHtml(doc, 'https://img.test');
+    expect(html).not.toMatch(/<p><\/p>\s*$/);
+    expect(html.trimEnd().endsWith('</section>')).toBe(true);
+  });
+
   it('handles speakers with <, >, & and " characters in names/roles', async () => {
     const doc = {
       type: 'doc',
