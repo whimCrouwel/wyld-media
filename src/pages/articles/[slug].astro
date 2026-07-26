@@ -1,6 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
 import MetaLabel from '../../components/atoms/MetaLabel.astro';
+import Breadcrumbs from '../../components/molecules/Breadcrumbs.astro';
 import JsonLd from '../../components/JsonLd.astro';
 import { supabaseServer } from '../../lib/supabase-server';
 import { fetchPublishedArticles, fetchArticleBySlug, formatDate } from '../../lib/content';
@@ -59,6 +60,7 @@ const crumbsLd = breadcrumbListSchema(crumbs, siteUrl);
     <JsonLd data={crumbsLd} />
   </Fragment>
   <article class="mx-auto max-w-4xl px-6 pb-24">
+    <Breadcrumbs crumbs={crumbs} class="mb-6" />
     <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
       <a href={`/writers/${article.authorSlug}`} class="transition-opacity hover:opacity-60">
         <MetaLabel class="text-ink">{article.authorName}</MetaLabel>

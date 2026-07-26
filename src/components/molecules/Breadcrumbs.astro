@@ -1,0 +1,29 @@
+---
+import MetaLabel from '../atoms/MetaLabel.astro';
+import type { Crumb } from '../../lib/schema';
+
+export interface Props {
+  crumbs: Crumb[];
+  class?: string;
+}
+const { crumbs, class: className } = Astro.props;
+---
+<nav aria-label="Breadcrumb" class={className}>
+  <ol class="flex flex-wrap items-center gap-x-2 gap-y-1">
+    {crumbs.map((crumb, i) => {
+      const isLast = i === crumbs.length - 1;
+      return (
+        <li class="flex items-center gap-x-2">
+          {isLast ? (
+            <MetaLabel aria-current="page">{crumb.name}</MetaLabel>
+          ) : (
+            <a href={crumb.url} class="transition-opacity hover:opacity-60">
+              <MetaLabel class="text-ink">{crumb.name}</MetaLabel>
+            </a>
+          )}
+          {!isLast && <MetaLabel aria-hidden="true">/</MetaLabel>}
+        </li>
+      );
+    })}
+  </ol>
+</nav>

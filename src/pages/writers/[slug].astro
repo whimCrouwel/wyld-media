@@ -3,6 +3,7 @@ import Base from '../../layouts/Base.astro';
 import MetaLabel from '../../components/atoms/MetaLabel.astro';
 import SectionHeader from '../../components/molecules/SectionHeader.astro';
 import SocialIcon from '../../components/atoms/SocialIcon.astro';
+import Breadcrumbs from '../../components/molecules/Breadcrumbs.astro';
 import JsonLd from '../../components/JsonLd.astro';
 import { supabaseServer } from '../../lib/supabase-server';
 import { fetchWriters, fetchWriterBySlug, formatDate } from '../../lib/content';
@@ -36,10 +37,8 @@ const personLd = personSchema({
   avatarUrl: writer.avatarUrl,
   snsLinks: writer.snsLinks,
 });
-const crumbsLd = breadcrumbListSchema(
-  buildCrumbs.writer({ name: writer.name, slug: writer.slug }),
-  siteUrl,
-);
+const crumbs = buildCrumbs.writer({ name: writer.name, slug: writer.slug });
+const crumbsLd = breadcrumbListSchema(crumbs, siteUrl);
 ---
 <Base
   title={`${writer.name} | Wild Media`}
@@ -74,6 +73,7 @@ const crumbsLd = breadcrumbListSchema(
   }
 
   <div class="mx-auto max-w-4xl px-6 pb-24">
+    <Breadcrumbs crumbs={crumbs} class="mb-6" />
     {/* アバター(角丸スクエア)。カバーがある時は少し重ねる */}
     <div class={hasCover ? 'relative z-10 -mt-14' : ''}>
       <span
