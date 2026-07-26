@@ -258,4 +258,59 @@
   #media-grid img {
     @apply aspect-square w-full cursor-pointer rounded-md border object-cover transition hover:ring-2 hover:ring-ring;
   }
+
+  /* Editor: interview speaker registration modal (interview-dialog.ts が中身を描画) */
+  #interview-modal:not([hidden]) {
+    @apply fixed inset-0 z-50 flex flex-col gap-4 overflow-auto bg-background/95 p-6 backdrop-blur-sm;
+  }
+  #interview-modal > div {
+    @apply mx-auto w-full max-w-xl space-y-4 rounded-xl border bg-card p-6 text-card-foreground shadow-sm;
+  }
+  #interview-form {
+    @apply grid gap-4;
+  }
+  .speaker-card {
+    @apply space-y-3 rounded-md border p-4;
+  }
+  .speaker-card__header {
+    @apply flex items-center justify-between;
+  }
+  .speaker-card__key {
+    @apply text-sm font-medium;
+  }
+  .speaker-card__badge {
+    @apply text-xs text-muted-foreground;
+  }
+  .speaker-card__remove {
+    @apply text-xs text-destructive hover:underline;
+  }
+  .speaker-card__avatar-row {
+    @apply flex items-center gap-3;
+  }
+  .speaker-card__avatar {
+    @apply h-16 w-16 rounded-full border object-cover;
+  }
+  .speaker-card__avatar--placeholder {
+    @apply flex items-center justify-center text-xs text-muted-foreground;
+  }
+  .speaker-card__avatar-actions {
+    @apply flex flex-col items-start gap-1 text-xs;
+  }
+  .speaker-card__upload {
+    @apply cursor-pointer text-primary hover:underline;
+  }
+  .speaker-card__link-btn {
+    @apply text-muted-foreground hover:underline;
+  }
+  .speaker-card__field {
+    @apply block space-y-1 text-sm;
+  }
+  .speaker-card__input {
+    @apply flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm
+      placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2
+      focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+  .speaker-card__input[aria-invalid='true'] {
+    @apply border-destructive ring-2 ring-destructive/40;
+  }
 }

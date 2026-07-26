@@ -77,6 +77,20 @@ const title = '新しい記事 | Wild Media CMS';
           </div>
           <div id="media-grid"></div>
         </div>
+
+        <div id="interview-modal" role="dialog" aria-labelledby="interview-modal-title" hidden>
+          <div>
+            <h2 id="interview-modal-title" class="text-lg font-semibold">話者を登録</h2>
+            <div id="interview-form"></div>
+            <div class="flex items-center justify-between pt-2">
+              <Button type="button" id="interview-add" variant="outline" size="sm">＋話者を追加</Button>
+              <div class="flex gap-2">
+                <Button type="button" id="interview-cancel" variant="outline" size="sm">キャンセル</Button>
+                <Button type="button" id="interview-save" size="sm">決定</Button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
