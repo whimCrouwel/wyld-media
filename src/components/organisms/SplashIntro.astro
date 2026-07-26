@@ -1,17 +1,16 @@
 ---
 /*
- * 起動スプラッシュのオーバーレイ。古紙色でページ全体を覆い、その上で
- * three.js の粒子が「Wild Media」を結像 → 弾けて散り、フェードアウトする。
- * 実処理は src/scripts/splash.ts。reduced-motion / JS無効時は表示しない。
+ * 起動スプラッシュ。SEO・AI クローラ対策のため、初期 HTML には div を出さない。
+ * JS が DOMContentLoaded 後にオーバーレイを注入する(実処理は src/scripts/splash.ts)。
+ * JS 無効環境ではオーバーレイは一切現れない(コンテンツが即座に見える)。
  */
 ---
 
-<div id="splash" aria-hidden="true">
-  <span class="splash-word">Wild Media</span>
-</div>
-<noscript><style>#splash { display: none !important; }</style></noscript>
+<script>
+  import '../../scripts/splash';
+</script>
 
-<style>
+<style is:global>
   #splash {
     position: fixed;
     inset: 0;
@@ -44,7 +43,3 @@
     }
   }
 </style>
-
-<script>
-  import '../../scripts/splash';
-</script>

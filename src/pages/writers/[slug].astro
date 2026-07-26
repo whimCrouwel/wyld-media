@@ -59,7 +59,7 @@ const crumbsLd = breadcrumbListSchema(crumbs, siteUrl);
       <div class="relative h-[clamp(180px,30vh,300px)] w-full overflow-hidden">
         <img
           src={writer.coverImageUrl}
-          alt=""
+          alt={`${writer.name}のカバー画像`}
           class="absolute inset-0 h-full w-full object-cover"
           loading="eager"
           decoding="async"

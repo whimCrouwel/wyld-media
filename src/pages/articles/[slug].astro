@@ -78,7 +78,7 @@ const crumbsLd = breadcrumbListSchema(crumbs, siteUrl);
     {
       article.coverImageUrl && (
         <div class="mt-10 overflow-hidden rounded-[12px]">
-          <img src={article.coverImageUrl} alt="" class="w-full" decoding="async" />
+          <img src={article.coverImageUrl} alt={`${article.title}のカバー画像`} class="w-full" decoding="async" />
         </div>
       )
     }

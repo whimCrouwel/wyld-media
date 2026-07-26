@@ -35,7 +35,6 @@ function markSeen() {
   }
 }
 
-const host = document.getElementById(HOST_ID);
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 let signalled = false;
@@ -57,13 +56,29 @@ function webglSupported(): boolean {
   }
 }
 
-if (!host || reduced || alreadySeen() || !webglSupported()) {
-  host?.remove();
+// SEO・AI クローラ対策で #splash は初期 HTML に存在しない。
+// ガード判定を先に済ませ、実際に演出する時だけ ensureSplashDom() で注入する
+// (無駄な DOM 生成・script.js 読み込み後の一瞬のチラつきを避ける)。
+function ensureSplashDom(): HTMLElement {
+  let el = document.getElementById(HOST_ID);
+  if (el) return el;
+  el = document.createElement('div');
+  el.id = HOST_ID;
+  el.setAttribute('aria-hidden', 'true');
+  const span = document.createElement('span');
+  span.className = 'splash-word';
+  span.textContent = 'Wild Media';
+  el.appendChild(span);
+  document.body.appendChild(el);
+  return el;
+}
+
+if (reduced || alreadySeen() || !webglSupported()) {
   signalDone();
 } else {
-  const el = host;
   // 実際に走らせる時点で「見た」ことにする。途中でリロードしても再生しない。
   markSeen();
+  const el = ensureSplashDom();
   // 万一途中で落ちてもグリッドが出るよう保険をかける
   window.setTimeout(signalDone, 6000);
   loadLandMask(MASK_SRC)

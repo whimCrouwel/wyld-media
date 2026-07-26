@@ -58,7 +58,7 @@ const crumbsLd = breadcrumbListSchema(crumbs, siteUrl);
       <div class="relative h-[clamp(180px,30vh,300px)] w-full overflow-hidden">
         <img
           src={provider.coverImageUrl}
-          alt=""
+          alt={`${provider.name}のカバー画像`}
           class="absolute inset-0 h-full w-full object-cover"
           loading="eager"
           decoding="async"
@@ -172,7 +172,7 @@ const crumbsLd = breadcrumbListSchema(crumbs, siteUrl);
             {provider.serviceImageUrl ? (
               <img
                 src={provider.serviceImageUrl}
-                alt=""
+                alt={provider.serviceName ?? provider.name}
                 class="service-image"
                 loading="lazy"
                 decoding="async"
