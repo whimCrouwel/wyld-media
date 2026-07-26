@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { renderBlocksToHtml } from '@wild-media/blocks-renderer';
 import { fallbackDescription } from './description';
+import { toIsoDate } from './seo';
 
 export interface ArticleSummary {
   id: string;
@@ -14,6 +15,8 @@ export interface ArticleSummary {
   commissionedByName: string | null;
   region: string | null;
   description: string; // Never null — see fallbackDescription when DB value is null/empty.
+  publishedAtISO: string | null;
+  updatedAtISO: string | null;
 }
 
 export interface ArticleDetail extends ArticleSummary {
@@ -82,7 +85,7 @@ export function formatDate(iso: string): string {
 
 // articles は profiles への FK を2本持つため、埋め込みは FK 名で曖昧性解消する
 const ARTICLE_SELECT =
-  'id, slug, title, cover_image_url, published_at, commissioned_by, region, description, ' +
+  'id, slug, title, cover_image_url, published_at, updated_at, commissioned_by, region, description, ' +
   'author:profiles!articles_author_id_fkey(name, slug, avatar_url), ' +
   'commissioned:profiles!articles_commissioned_by_fkey(name)';
 
@@ -101,6 +104,8 @@ function toSummary(row: any): ArticleSummary {
     title: row.title,
     coverImageUrl: row.cover_image_url ?? null,
     publishedAt: row.published_at,
+    publishedAtISO: toIsoDate(row.published_at),
+    updatedAtISO: toIsoDate(row.updated_at),
     authorName: author?.name ?? '',
     authorSlug: author?.slug ?? '',
     authorAvatarUrl: safeUrl(author?.avatar_url),
