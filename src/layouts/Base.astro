@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import SEO from '../components/SEO.astro';
 import SiteHeader from '../components/organisms/SiteHeader.astro';
 import NavDrawer from '../components/organisms/NavDrawer.astro';
 import MobileTabBar from '../components/organisms/MobileTabBar.astro';
@@ -8,8 +9,16 @@ import BgGrid from '../components/organisms/BgGrid.astro';
 import MetaLabel from '../components/atoms/MetaLabel.astro';
 import type { AreaLink } from '../lib/sidebar';
 
-interface Props {
+export interface Props {
   title: string;
+  description?: string;
+  canonicalPath?: string;
+  ogImage?: string;
+  ogType?: 'website' | 'article' | 'profile';
+  noindex?: boolean;
+  articlePublishedTime?: string | null;
+  articleModifiedTime?: string | null;
+  articleAuthor?: string;
   activeAreaSlug?: string;
   padMain?: boolean;
   /* サイドバーの地図を「このページ内の絞り込み」として使うページ(ライター
@@ -37,6 +46,14 @@ interface Props {
 // 本文は常に全幅の1カラム。
 const {
   title,
+  description,
+  canonicalPath,
+  ogImage,
+  ogType = 'website',
+  noindex = false,
+  articlePublishedTime,
+  articleModifiedTime,
+  articleAuthor,
   activeAreaSlug,
   padMain = !Astro.slots.has('full'),
   areaMode,
@@ -49,7 +66,19 @@ const {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title}</title>
+    <SEO
+      title={title}
+      description={description}
+      canonicalPath={canonicalPath}
+      ogImage={ogImage}
+      ogType={ogType}
+      noindex={noindex}
+      articlePublishedTime={articlePublishedTime}
+      articleModifiedTime={articleModifiedTime}
+      articleAuthor={articleAuthor}
+    />
+    <slot name="head" />
+    <!-- keep any existing font/style links below this line -->
   </head>
   <body>
     {/* #bg-grid は .app-shell の外(body直下)に置くこと。将来 .app-shell や
