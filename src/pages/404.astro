@@ -1,0 +1,31 @@
+---
+import Base from '../layouts/Base.astro';
+import MetaLabel from '../components/atoms/MetaLabel.astro';
+---
+
+<Base
+  title="ページが見つかりません | Wild Media"
+  description="お探しのページは見つかりませんでした。トップまたは記事一覧からお探しください。"
+  noindex={true}
+>
+  <main class="mx-auto max-w-2xl px-6 py-24 text-center">
+    <MetaLabel>404</MetaLabel>
+    <h1
+      class="mt-4"
+      style="font-family: var(--font-heading); font-size: clamp(32px, 5vw, 48px); line-height: 1.2;"
+    >
+      ページが見つかりません
+    </h1>
+    <p class="text-meta mt-6" style="line-height: 1.9;">
+      お探しのページは削除されたか、URL が変更された可能性があります。
+    </p>
+    <div class="mt-10 flex flex-wrap justify-center gap-4">
+      <a href="/" class="border-card hover:border-ink rounded-full border px-6 py-3 transition-colors">
+        <MetaLabel class="text-ink">トップへ</MetaLabel>
+      </a>
+      <a href="/writers" class="border-card hover:border-ink rounded-full border px-6 py-3 transition-colors">
+        <MetaLabel class="text-ink">ライターを見る</MetaLabel>
+      </a>
+    </div>
+  </main>
+</Base>
