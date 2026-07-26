@@ -111,11 +111,22 @@ const Interview = Node.create({
   },
   renderHTML({ node }) {
     const speakers = node.attrs.speakers ?? [];
+    // <, >, & を JSON の \uXXXX エスケープに変換してから属性値に埋め込む。
+    // これにより data-speakers の属性値の中に literal な <, >, & が
+    // 一切現れなくなるので、render.ts の regex ベース post-processor
+    // (injectInterviewSpeakers) が属性値中の < で誤って section タグの
+    // 終端と誤認したり、名前中の & が二重エスケープされたりする問題を防ぐ。
+    // JSON.parse は \uXXXX を通常のエスケープとして解釈するので、
+    // parseHTML 側は変更不要 (JSON.parse でそのまま元の文字に戻る)。
+    const safeJson = JSON.stringify(speakers).replace(
+      /[<>&]/g,
+      (c) => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'),
+    );
     return [
       'section',
       {
         'data-block': 'interview',
-        'data-speakers': JSON.stringify(speakers),
+        'data-speakers': safeJson,
         class: 'interview-block',
       },
       0,

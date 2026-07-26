@@ -96,4 +96,35 @@ describe('renderBlocksToHtml — interview', () => {
     expect(html).toContain('聞き手');
     expect(html).toContain('Kaeru 代表');
   });
+
+  it('handles speakers with <, >, & and " characters in names/roles', async () => {
+    const doc = {
+      type: 'doc',
+      content: [{
+        type: 'interview',
+        attrs: {
+          speakers: [
+            { key: 'A', name: 'A <b>bold</b>', role: 'R & D', avatarUrl: 'https://img.test/a.webp' },
+            { key: 'B', name: 'B "quote"', role: 'a>b', avatarUrl: 'https://img.test/b.webp' },
+          ],
+        },
+        content: [
+          { type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'text', text: 'hi' }] },
+          { type: 'turn', attrs: { speaker: 'B' }, content: [{ type: 'text', text: 'hey' }] },
+        ],
+      }],
+    };
+    const html = await renderBlocksToHtml(doc, 'https://img.test');
+    // Avatar injection ran (regex not broken by < > & " in names)
+    expect(html).toContain('class="turn__avatar"');
+    expect(html).toMatch(/src="https:\/\/img\.test\/a\.webp"/);
+    expect(html).toMatch(/src="https:\/\/img\.test\/b\.webp"/);
+    // Names appear escaped in the visible HTML (not as literal tags)
+    expect(html).toContain('A &lt;b&gt;bold&lt;/b&gt;');
+    expect(html).toContain('R &amp; D');
+    expect(html).toContain('B &quot;quote&quot;');
+    expect(html).toContain('a&gt;b');
+    // No unescaped injection
+    expect(html).not.toContain('<b>bold</b>');
+  });
 });

@@ -75,6 +75,13 @@ function addHeadingIds(html: string): string {
 // 先頭子要素として注入する。sanitize 前(=まだタグがストリップされていない生HTML)
 // に対して実行する必要がある — 注入した <img>/<span>/<div> も sanitize allowlist の
 // 対象になるため、sanitize 後に実行すると意味がない。
+//
+// この regex の [^>]* は data-speakers 属性値の中身をまたいで走査するため、
+// 属性値に literal な `<`/`>` が含まれると section タグの終端と誤認して壊れる。
+// これは Interview.renderHTML (packages/blocks-renderer/src/extensions.ts) 側で
+// speakers JSON の <, >, & を \uXXXX にエスケープしていることで担保している。
+// Tiptap の generateHTML は " を &quot; に escape するがそれ以外の文字は
+// escape しないので、以下では &quot; のみ decode すれば十分。
 function injectInterviewSpeakers(html: string): string {
   return html.replace(
     /<section([^>]*data-block="interview"[^>]*)>([\s\S]*?)<\/section>/g,
