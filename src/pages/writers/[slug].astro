@@ -24,7 +24,14 @@ interface Props {
 const { writer } = Astro.props;
 const hasCover = Boolean(writer.coverImageUrl);
 ---
-<Base title={`${writer.name} | Wild Media`} padMain={!hasCover}>
+<Base
+  title={`${writer.name} | Wild Media`}
+  description={writer.bio ? writer.bio.slice(0, 160) : `${writer.name}の記事一覧 — Wild Media`}
+  canonicalPath={`/writers/${writer.slug}`}
+  ogImage={writer.avatarUrl ?? undefined}
+  ogType="profile"
+  padMain={!hasCover}
+>
   {/* カバーバナー(未設定なら省略)。上部は古紙色のスクリムで固定ヘッダーの可読性を保つ */}
   {
     hasCover && (

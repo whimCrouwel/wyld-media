@@ -72,7 +72,16 @@ const works = await Promise.all(
   ),
 );
 ---
-<Base title={`${region}の記事 | Wild Media`} activeAreaSlug={area}>
+<Base
+  title={
+    isFirstPage
+      ? `${region}の記事 | Wild Media`
+      : `${region}の記事 — ${page.currentPage}ページ目 | Wild Media`
+  }
+  description={`${region}に関する記事の一覧 — Wild Media`}
+  canonicalPath={isFirstPage ? `/areas/${area}` : `/areas/${area}/${page.currentPage}`}
+  activeAreaSlug={area}
+>
   {isFirstPage && <FeaturedStrip works={featuredWorks} />}
   <section>
     <SectionHeader label={region} count={page.total} class="mx-6 pb-6" />

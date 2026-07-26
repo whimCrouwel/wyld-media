@@ -24,7 +24,14 @@ interface Props {
 const { provider } = Astro.props;
 const hasCover = Boolean(provider.coverImageUrl);
 ---
-<Base title={`${provider.name} | Wild Media`} padMain={!hasCover}>
+<Base
+  title={`${provider.name} | Wild Media`}
+  description={provider.bio ? provider.bio.slice(0, 160) : `${provider.name} — Wild Media 認定プロバイダー`}
+  canonicalPath={`/providers/${provider.slug}`}
+  ogImage={provider.coverImageUrl ?? undefined}
+  ogType="profile"
+  padMain={!hasCover}
+>
   {/* カバーバナー(未設定なら省略)。上部は古紙色のスクリムで固定ヘッダーの可読性を保つ */}
   {
     hasCover && (

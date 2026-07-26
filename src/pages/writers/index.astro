@@ -13,7 +13,13 @@ const writers = await fetchWriters(supabaseServer);
 // 件数は記事ではなくライターの居住地域でカウントし直す。
 const writerAreas = buildAreaLinks(writers.map((w) => w.region));
 ---
-<Base title="ライター一覧 | Wild Media" areaMode="filter" areaLinks={writerAreas}>
+<Base
+  title="ライター一覧 | Wild Media"
+  description="Wild Media に寄稿するライターの一覧。それぞれの視点と専門から、環境と暮らしを書く。"
+  canonicalPath="/writers"
+  areaMode="filter"
+  areaLinks={writerAreas}
+>
   <div class="px-6 pb-24">
     <SectionHeader
       label="Writers"
