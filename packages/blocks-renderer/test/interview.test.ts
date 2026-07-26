@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { generateHTML, generateJSON } from '@tiptap/html';
 import { Editor } from '@tiptap/core';
 import { blockExtensions } from '../src/extensions';
+import { renderBlocksToHtml } from '../src/render';
 
 const sampleDoc = {
   type: 'doc',
@@ -64,5 +65,35 @@ describe('interview node', () => {
     });
     expect(contentError).not.toBeNull();  // schema rejected the top-level turn
     editor.destroy();
+  });
+});
+
+describe('renderBlocksToHtml — interview', () => {
+  it('preserves section/turn wrappers and data attributes after sanitize', async () => {
+    const html = await renderBlocksToHtml(sampleDoc, 'https://img.test');
+    expect(html).toContain('<section');
+    expect(html).toContain('class="interview-block"');
+    expect(html).toContain('data-block="interview"');
+    expect(html).toContain('data-block="turn"');
+    expect(html).toContain('data-speaker="A"');
+    expect(html).toContain('data-speaker="B"');
+    expect(html).toContain('こんにちは');
+  });
+
+  it('preserves avatar URLs inside data-speakers JSON attribute', async () => {
+    const html = await renderBlocksToHtml(sampleDoc, 'https://img.test');
+    expect(html).toMatch(/data-speakers=['"]?\[.*avatarUrl.*\]/);
+  });
+
+  it('injects avatar img and name/role spans inside each turn', async () => {
+    const html = await renderBlocksToHtml(sampleDoc, 'https://img.test');
+    expect(html).toContain('class="turn__avatar"');
+    expect(html).toContain('src="https://img.test/a.webp"');
+    expect(html).toContain('alt="米田"');
+    expect(html).toContain('class="turn__name"');
+    expect(html).toContain('米田');
+    expect(html).toContain('川崎');
+    expect(html).toContain('聞き手');
+    expect(html).toContain('Kaeru 代表');
   });
 });

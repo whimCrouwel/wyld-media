@@ -70,6 +70,50 @@ function addHeadingIds(html: string): string {
   });
 }
 
+// <section data-block="interview" data-speakers='[...json...]'>...</section> を検出し、
+// 内部の <div data-block="turn" data-speaker="X"> にアバター画像+名前/役職の span を
+// 先頭子要素として注入する。sanitize 前(=まだタグがストリップされていない生HTML)
+// に対して実行する必要がある — 注入した <img>/<span>/<div> も sanitize allowlist の
+// 対象になるため、sanitize 後に実行すると意味がない。
+function injectInterviewSpeakers(html: string): string {
+  return html.replace(
+    /<section([^>]*data-block="interview"[^>]*)>([\s\S]*?)<\/section>/g,
+    (_, sectionAttrs: string, inner: string) => {
+      const match = sectionAttrs.match(/data-speakers=(?:"([^"]*)"|'([^']*)')/);
+      if (!match) return `<section${sectionAttrs}>${inner}</section>`;
+      const raw = match[1] ?? match[2] ?? '[]';
+      let speakers: Array<{ key: string; name: string; role: string; avatarUrl: string }> = [];
+      try {
+        speakers = JSON.parse(raw.replace(/&quot;/g, '"'));
+      } catch {
+        return `<section${sectionAttrs}>${inner}</section>`;
+      }
+      const byKey = new Map(speakers.map((s) => [s.key, s]));
+      const rewritten = inner.replace(
+        /<div([^>]*data-block="turn"[^>]*data-speaker="([^"]+)"[^>]*)>/g,
+        (_full, divAttrs: string, key: string) => {
+          const s = byKey.get(key);
+          if (!s) return `<div${divAttrs}>`;
+          const roleHtml = s.role ? `<span class="turn__role">${escapeHtml(s.role)}</span>` : '';
+          return (
+            `<div${divAttrs}>` +
+            `<img class="turn__avatar" src="${escapeAttr(s.avatarUrl)}" alt="${escapeAttr(s.name)}" />` +
+            `<div class="turn__who"><span class="turn__name">${escapeHtml(s.name)}</span>${roleHtml}</div>`
+          );
+        },
+      );
+      return `<section${sectionAttrs}>${rewritten}</section>`;
+    },
+  );
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function escapeAttr(s: string): string {
+  return escapeHtml(s);
+}
+
 export async function renderBlocksToHtml(doc: JSONContent, imageBaseUrl: string): Promise<string> {
   await ensureDomGlobals();
   const filtered: JSONContent = {
@@ -78,14 +122,20 @@ export async function renderBlocksToHtml(doc: JSONContent, imageBaseUrl: string)
   };
   const raw = generateHTML(filtered, blockExtensions);
   const withIds = addHeadingIds(raw);
-  return sanitizeHtml(withIds, {
-    allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'h3', 'iframe']),
+  // sanitize 前に interview セクションのアバター/名前を注入する(sanitize 前で
+  // ないと、注入した img/span/div が allowlist を通らず消えてしまう)。
+  const withInterview = injectInterviewSpeakers(withIds);
+  return sanitizeHtml(withInterview, {
+    allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'h3', 'iframe', 'section']),
     allowedAttributes: {
       ...sanitizeHtml.defaults.allowedAttributes,
       h2: ['id'], h3: ['id'],
-      img: ['src', 'alt'],
+      img: ['src', 'alt', 'class'],
       a: ['href', 'download', 'target', 'rel'],
       iframe: ['src', 'sandbox', 'referrerpolicy', 'loading'],
+      section: ['class', 'data-block', 'data-speakers'],
+      div: ['class', 'data-block', 'data-speaker'],  // turn / turn__who 用
+      span: ['class'],
     },
   });
 }
