@@ -7,6 +7,7 @@ import { supabaseServer } from '../../lib/supabase-server';
 import { fetchWriters, fetchWriterBySlug, formatDate } from '../../lib/content';
 import type { WriterDetail } from '../../lib/content';
 import { detectSocialPlatform } from '../../lib/social-links';
+import { fallbackDescription } from '../../lib/description';
 
 export async function getStaticPaths() {
   const writers = await fetchWriters(supabaseServer);
@@ -26,7 +27,7 @@ const hasCover = Boolean(writer.coverImageUrl);
 ---
 <Base
   title={`${writer.name} | Wild Media`}
-  description={writer.bio ? writer.bio.slice(0, 160) : `${writer.name}の記事一覧 — Wild Media`}
+  description={writer.bio ? fallbackDescription(writer.bio) : `${writer.name}の記事一覧 — Wild Media`}
   canonicalPath={`/writers/${writer.slug}`}
   ogImage={writer.avatarUrl ?? undefined}
   ogType="profile"

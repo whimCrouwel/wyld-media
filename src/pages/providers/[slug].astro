@@ -7,6 +7,7 @@ import { supabaseServer } from '../../lib/supabase-server';
 import { fetchProviders, fetchProviderBySlug } from '../../lib/content';
 import type { ProviderDetail } from '../../lib/content';
 import { detectSocialPlatform } from '../../lib/social-links';
+import { fallbackDescription } from '../../lib/description';
 
 export async function getStaticPaths() {
   const providers = await fetchProviders(supabaseServer);
@@ -26,7 +27,7 @@ const hasCover = Boolean(provider.coverImageUrl);
 ---
 <Base
   title={`${provider.name} | Wild Media`}
-  description={provider.bio ? provider.bio.slice(0, 160) : `${provider.name} — Wild Media 認定プロバイダー`}
+  description={provider.bio ? fallbackDescription(provider.bio) : `${provider.name} — Wild Media 認定プロバイダー`}
   canonicalPath={`/providers/${provider.slug}`}
   ogImage={provider.coverImageUrl ?? undefined}
   ogType="profile"
