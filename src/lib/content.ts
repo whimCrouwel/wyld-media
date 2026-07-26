@@ -12,6 +12,8 @@ export interface ArticleSummary {
   authorName: string;
   authorSlug: string;
   authorAvatarUrl: string | null;
+  authorBio: string;
+  authorSnsLinks: string[];
   commissionedByName: string | null;
   region: string | null;
   description: string; // Never null — see fallbackDescription when DB value is null/empty.
@@ -86,7 +88,7 @@ export function formatDate(iso: string): string {
 // articles は profiles への FK を2本持つため、埋め込みは FK 名で曖昧性解消する
 const ARTICLE_SELECT =
   'id, slug, title, cover_image_url, published_at, updated_at, commissioned_by, region, description, ' +
-  'author:profiles!articles_author_id_fkey(name, slug, avatar_url), ' +
+  'author:profiles!articles_author_id_fkey(name, slug, avatar_url, bio, sns_links), ' +
   'commissioned:profiles!articles_commissioned_by_fkey(name)';
 
 // PostgREST の to-one 埋め込みは環境により object / array 両方があり得るので吸収する
@@ -96,7 +98,9 @@ function one<T>(value: T | T[] | null | undefined): T | null {
 }
 
 function toSummary(row: any): ArticleSummary {
-  const author = one<{ name: string; slug: string; avatar_url?: string | null }>(row.author);
+  const author = one<{ name: string; slug: string; avatar_url?: string | null; bio?: string | null; sns_links?: unknown }>(
+    row.author,
+  );
   const commissioned = one<{ name: string }>(row.commissioned);
   return {
     id: row.id,
@@ -109,6 +113,10 @@ function toSummary(row: any): ArticleSummary {
     authorName: author?.name ?? '',
     authorSlug: author?.slug ?? '',
     authorAvatarUrl: safeUrl(author?.avatar_url),
+    authorBio: (author?.bio ?? '') as string,
+    authorSnsLinks: Array.isArray((author as any)?.sns_links)
+      ? (author as any).sns_links.map(safeUrl).filter((u: unknown): u is string => u !== null)
+      : [],
     commissionedByName: commissioned?.name ?? null,
     region: row.region ?? null,
     // 一覧系の呼び出し元は本文HTMLを持たないため、descriptionが空ならここでは

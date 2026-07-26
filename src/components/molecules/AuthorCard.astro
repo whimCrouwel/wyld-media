@@ -1,0 +1,69 @@
+---
+import MetaLabel from '../atoms/MetaLabel.astro';
+import SocialIcon from '../atoms/SocialIcon.astro';
+import { detectSocialPlatform } from '../../lib/social-links';
+
+export interface Props {
+  name: string;
+  slug: string;
+  bio: string;
+  avatarUrl: string | null;
+  snsLinks: string[];
+}
+const { name, slug, bio, avatarUrl, snsLinks } = Astro.props;
+---
+<aside class="border-card mt-16 rounded-[18px] border p-6" aria-label={`著者: ${name}`}>
+  <div class="flex flex-wrap items-start gap-5">
+    <a
+      href={`/writers/${slug}`}
+      class="block h-20 w-20 shrink-0 overflow-hidden rounded-[14px] transition-opacity hover:opacity-80"
+      style="background: var(--color-card);"
+    >
+      {avatarUrl ? (
+        <img src={avatarUrl} alt={name} class="h-full w-full object-cover" loading="lazy" decoding="async" />
+      ) : (
+        <span class="flex h-full w-full items-center justify-center" style="font-family: var(--font-heading); font-size: 32px;">
+          {name.trim().charAt(0)}
+        </span>
+      )}
+    </a>
+    <div class="min-w-0 flex-1">
+      <MetaLabel>Author</MetaLabel>
+      <a
+        href={`/writers/${slug}`}
+        class="mt-1 block transition-opacity hover:opacity-70"
+        style="font-family: var(--font-heading); font-size: 22px; line-height: 1.3;"
+      >
+        {name}
+      </a>
+      {bio && <p class="text-meta mt-3" style="line-height: 1.85;">{bio}</p>}
+      {snsLinks.length > 0 && (
+        <div class="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+          {snsLinks.map((url) => {
+            const social = detectSocialPlatform(url);
+            return social ? (
+              <a
+                href={url}
+                aria-label={social.label}
+                rel="me"
+                class="bg-ink flex h-8 w-8 items-center justify-center rounded-full transition-opacity hover:opacity-80"
+                style="color: var(--color-bg);"
+              >
+                <SocialIcon platform={social.platform} />
+              </a>
+            ) : (
+              <a href={url} rel="me" class="text-ink underline underline-offset-4 transition-opacity hover:opacity-60">
+                {new URL(url).hostname}
+              </a>
+            );
+          })}
+        </div>
+      )}
+      <p class="mt-5">
+        <a href={`/writers/${slug}`} class="transition-opacity hover:opacity-60">
+          <MetaLabel class="text-ink">著者の他の記事を見る →</MetaLabel>
+        </a>
+      </p>
+    </div>
+  </div>
+</aside>
