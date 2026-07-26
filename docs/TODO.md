@@ -27,6 +27,8 @@
 
 - [ ] インタビュー・ブロックの発言テキストが `<p>` で包まれず、`src/styles/global.css` の `.article-body .interview-block .turn p` バブル背景ルールが効かない。`Turn.content` を `'paragraph+'` に変えるか、`packages/blocks-renderer/src/render.ts` の `injectInterviewSpeakers` で turn 内テキストを `<p>` で包む対応が必要。関連: `packages/blocks-renderer/src/extensions.ts` の Turn ノード定義、`src/styles/global.css` の該当 CSS。
 
+- [ ] インタビュー・ダイアログの「自分のプロフィール画像を使う」ボタンが、プロフィール画像URLが `settings.image_base_url` 配下でない場合(例: 外部URL・旧R2ドメイン)にそのままセットしてしまい、保存時に DB トリガーで `IMAGE_HOST_NOT_ALLOWED` が発生する。エラーメッセージは「許可されていない場所の画像は使えません」で、アバターが原因だと分かりにくい。対応案: `admin/src/lib/interview-dialog.ts` の `data-use-profile` ハンドラで、`myProfile.avatarUrl` が `settings.image_base_url` プレフィックスに一致するか事前チェックし、一致しない場合はボタン自体を無効化 or トースト表示。関連: `admin/src/pages/articles/edit.astro`(myProfile を取得している箇所)・`new.astro`。E2Eで発見(2026-07-26)。
+
 ## Done
 
 - [x] **本番招待メール用に Resend SMTP を Supabase Auth に配線**。`vim@wyld-crd.org` で新規 Resend アカウント作成 → `send.wyld-crd.org` を Squarespace DNS(MX/SPF/DKIM/DMARC)で verify → API key を Supabase Dashboard → Authentication → SMTP Settings に投入(sender: `zine@send.wyld-crd.org`)。Supabase 側は "Successfully updated settings" で確定。実送信テストは別途 CMS から。関連: `supabase/functions/invite-user/index.ts:61`、認証情報は `PRODUCTION-SECRETS.local.md` の Resend セクション。
