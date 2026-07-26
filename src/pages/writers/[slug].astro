@@ -3,11 +3,13 @@ import Base from '../../layouts/Base.astro';
 import MetaLabel from '../../components/atoms/MetaLabel.astro';
 import SectionHeader from '../../components/molecules/SectionHeader.astro';
 import SocialIcon from '../../components/atoms/SocialIcon.astro';
+import JsonLd from '../../components/JsonLd.astro';
 import { supabaseServer } from '../../lib/supabase-server';
 import { fetchWriters, fetchWriterBySlug, formatDate } from '../../lib/content';
 import type { WriterDetail } from '../../lib/content';
 import { detectSocialPlatform } from '../../lib/social-links';
 import { fallbackDescription } from '../../lib/description';
+import { personSchema, breadcrumbListSchema, buildCrumbs } from '../../lib/schema';
 
 export async function getStaticPaths() {
   const writers = await fetchWriters(supabaseServer);
@@ -24,6 +26,20 @@ interface Props {
 }
 const { writer } = Astro.props;
 const hasCover = Boolean(writer.coverImageUrl);
+
+if (!Astro.site) throw new Error('writers/[slug]: Astro.site is undefined.');
+const siteUrl = Astro.site.href;
+const personLd = personSchema({
+  name: writer.name,
+  url: new URL(`/writers/${writer.slug}`, siteUrl).href,
+  bio: writer.bio ?? '',
+  avatarUrl: writer.avatarUrl,
+  snsLinks: writer.snsLinks,
+});
+const crumbsLd = breadcrumbListSchema(
+  buildCrumbs.writer({ name: writer.name, slug: writer.slug }),
+  siteUrl,
+);
 ---
 <Base
   title={`${writer.name} | Wild Media`}
@@ -33,6 +49,11 @@ const hasCover = Boolean(writer.coverImageUrl);
   ogType="profile"
   padMain={!hasCover}
 >
+  <Fragment slot="head">
+    <JsonLd data={personLd} />
+    <JsonLd data={crumbsLd} />
+  </Fragment>
+
   {/* カバーバナー(未設定なら省略)。上部は古紙色のスクリムで固定ヘッダーの可読性を保つ */}
   {
     hasCover && (

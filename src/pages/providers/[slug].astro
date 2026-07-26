@@ -3,11 +3,13 @@ import Base from '../../layouts/Base.astro';
 import MetaLabel from '../../components/atoms/MetaLabel.astro';
 import SectionHeader from '../../components/molecules/SectionHeader.astro';
 import SocialIcon from '../../components/atoms/SocialIcon.astro';
+import JsonLd from '../../components/JsonLd.astro';
 import { supabaseServer } from '../../lib/supabase-server';
 import { fetchProviders, fetchProviderBySlug } from '../../lib/content';
 import type { ProviderDetail } from '../../lib/content';
 import { detectSocialPlatform } from '../../lib/social-links';
 import { fallbackDescription } from '../../lib/description';
+import { organizationSchema, breadcrumbListSchema, buildCrumbs } from '../../lib/schema';
 
 export async function getStaticPaths() {
   const providers = await fetchProviders(supabaseServer);
@@ -24,6 +26,19 @@ interface Props {
 }
 const { provider } = Astro.props;
 const hasCover = Boolean(provider.coverImageUrl);
+
+if (!Astro.site) throw new Error('providers/[slug]: Astro.site is undefined.');
+const siteUrl = Astro.site.href;
+const orgLd = organizationSchema({
+  name: provider.name,
+  url: new URL(`/providers/${provider.slug}`, siteUrl).href,
+  description: provider.bio || undefined,
+  sameAs: provider.snsLinks.length > 0 ? provider.snsLinks : undefined,
+});
+const crumbsLd = breadcrumbListSchema(
+  buildCrumbs.provider({ name: provider.name, slug: provider.slug }),
+  siteUrl,
+);
 ---
 <Base
   title={`${provider.name} | Wild Media`}
@@ -33,6 +48,11 @@ const hasCover = Boolean(provider.coverImageUrl);
   ogType="profile"
   padMain={!hasCover}
 >
+  <Fragment slot="head">
+    <JsonLd data={orgLd} />
+    <JsonLd data={crumbsLd} />
+  </Fragment>
+
   {/* カバーバナー(未設定なら省略)。上部は古紙色のスクリムで固定ヘッダーの可読性を保つ */}
   {
     hasCover && (
