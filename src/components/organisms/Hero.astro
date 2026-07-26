@@ -1,22 +1,22 @@
 ---
-import MetaLabel from '../atoms/MetaLabel.astro';
 ---
 
 <section class="px-6 pt-36 pb-20">
-  <h1
-    id="hero-statement"
+  {/*
+    見た目の主役は英語コピー(大)、SEO 上の h1 は日本語(小)。
+    サイズと視覚的優位は独立に決められる — Google は h1 のフォントサイズは見ない。
+  */}
+  <p
     class="reveal max-w-4xl"
     style="font-family: var(--font-display); font-weight: 400; font-size: clamp(36px, 5vw, 72px); line-height: 1.15; letter-spacing: 0.01em;"
   >
-    環境と生き方を書く、ライターのメディア
-  </h1>
-  <p
+    Writings for your well beings
+  </p>
+  <h1
+    id="hero-statement"
     class="reveal mt-4"
     style="font-family: var(--font-display); font-weight: 400; font-size: 20px; line-height: 1.15; letter-spacing: 0.01em; color: var(--color-meta);"
   >
-    Writings for your well beings
-  </p>
-  <p id="hero-caption" class="reveal mt-6">
-    <MetaLabel>Wild Media — 人と自然のインターフェース</MetaLabel>
-  </p>
+    自然と暮らす、環境のメディア。
+  </h1>
 </section>

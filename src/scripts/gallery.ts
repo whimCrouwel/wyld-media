@@ -72,7 +72,6 @@ if (lastCount !== 3) redistribute();
 // ---- Entrance sequence: hero first, then the grid settles into place ------
 
 const HERO_DELAY = 100;
-const CAPTION_DELAY = 300;
 const GRID_START = 500;
 const STAGGER = 80;
 const ENTRANCE_BASE = 150; // グリッド登場の基準遅延(ヒーローを少し先行させる)
@@ -109,7 +108,6 @@ function enterNow(el: Element, delay = 0) {
 }
 
 const hero = document.getElementById('hero-statement');
-const caption = document.getElementById('hero-caption');
 const featuredCards = [...document.querySelectorAll<HTMLElement>('[data-featured-card]')];
 
 // 初期表示圏内のカードは登場カスケード対象として控えておき(まだ隠したまま)、
@@ -154,7 +152,6 @@ function observeReveals(nodes: Iterable<Element>) {
 
 function runEntrance() {
   if (hero) revealNow(hero, reducedMotion ? 0 : HERO_DELAY);
-  if (caption) revealNow(caption, reducedMotion ? 0 : CAPTION_DELAY);
   featuredCards.forEach((card, i) => revealNow(card, reducedMotion ? 0 : GRID_START + i * STAGGER));
   entrancePlan.forEach(({ card, delay }) => enterNow(card, delay));
 

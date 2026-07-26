@@ -33,7 +33,7 @@ export const GET: APIRoute = async ({ site }) => {
   lines.push('# Wild Media');
   lines.push('');
   lines.push(
-    '> 環境と生き方を書く、日本のライターによるメディア。森・山・海・街から、書き手それぞれの視点で綴る記事を毎週公開。',
+    '> 自然と暮らす、環境のメディア。森・山・海・街から、書き手それぞれの視点で綴る記事を毎週公開。',
   );
   lines.push('');
   lines.push('## Articles');
