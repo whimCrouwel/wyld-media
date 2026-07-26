@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(12);
+select plan(15);
 
 -- 前提: image_base_url を固定
 update settings set image_base_url = 'https://img.test' where id = 1;
@@ -138,6 +138,21 @@ select throws_ok(
   'P0001', 'INTERVIEW_EMPTY_TURNS', 'turn 0件は拒否'
 );
 
+-- 異常系: interview.content に turn 以外が混入
+select throws_ok(
+  $$insert into articles (author_id, title, slug, body, status)
+    values ('00000000-0000-0000-0000-0000000000c1', 't', 'iv-ng-child', $j$[
+      {"type":"interview","attrs":{"speakers":[
+        {"key":"A","name":"A","role":"","avatarUrl":"https://img.test/a.webp"},
+        {"key":"B","name":"B","role":"","avatarUrl":"https://img.test/b.webp"}
+      ]},"content":[
+        {"type":"turn","attrs":{"speaker":"A"},"content":[{"type":"text","text":"x"}]},
+        {"type":"paragraph","content":[{"type":"text","text":"stray"}]}
+      ]}
+    ]$j$::jsonb, 'draft')$$,
+  'P0001', 'INTERVIEW_INVALID_CHILD', 'interview 直下の非 turn ノードは拒否'
+);
+
 -- 異常系: アバターURLが image_base_url 外
 select throws_ok(
   $$insert into articles (author_id, title, slug, body, status)
@@ -150,6 +165,39 @@ select throws_ok(
       ]}
     ]$j$::jsonb, 'draft')$$,
   'P0001', 'IMAGE_HOST_NOT_ALLOWED', 'アバターURLの非許可ホストは拒否'
+);
+
+-- 異常系: nested interview (blockquote 内) の構造違反も検出
+-- interview は group='block' なので Tiptap 上 blockquote/listItem の子になれる。
+-- トップレベルだけを走査する初期実装ではこれを見逃していた (task-2 review 指摘)。
+select throws_ok(
+  $$insert into articles (author_id, title, slug, body, status)
+    values ('00000000-0000-0000-0000-0000000000c1', 't', 'iv-ng-nested', $j$[
+      {"type":"blockquote","content":[
+        {"type":"interview","attrs":{"speakers":[
+          {"key":"A","name":"A","role":"","avatarUrl":"https://img.test/a.webp"}
+        ]},"content":[
+          {"type":"turn","attrs":{"speaker":"A"},"content":[{"type":"text","text":"x"}]}
+        ]}
+      ]}
+    ]$j$::jsonb, 'draft')$$,
+  'P0001', 'INTERVIEW_SPEAKER_COUNT', 'blockquote 内にネストされた不正 interview も拒否'
+);
+
+-- 異常系: nested interview の合法パターンは通る
+select lives_ok(
+  $$insert into articles (author_id, title, slug, body, status)
+    values ('00000000-0000-0000-0000-0000000000c1', 't', 'iv-ok-nested', $j$[
+      {"type":"blockquote","content":[
+        {"type":"interview","attrs":{"speakers":[
+          {"key":"A","name":"A","role":"","avatarUrl":"https://img.test/a.webp"},
+          {"key":"B","name":"B","role":"","avatarUrl":"https://img.test/b.webp"}
+        ]},"content":[
+          {"type":"turn","attrs":{"speaker":"A"},"content":[{"type":"text","text":"x"}]}
+        ]}
+      ]}
+    ]$j$::jsonb, 'draft')$$,
+  'blockquote 内にネストされた合法 interview は通る (再帰スキャンの正常系)'
 );
 
 -- 検証: body_asset_urls('image') が interview 内のアバターも返す
