@@ -125,7 +125,8 @@ const Interview = Node.create({
 
 const Turn = Node.create({
   name: 'turn',
-  group: 'block',
+  // 意図的にグループ指定なし: doc の 'block+' から漏れ出ないようにする。
+  // Interview.content = 'turn+' が型名で直接参照するため、これでも問題ない。
   content: 'inline*',
   defining: true,
   addAttributes() {

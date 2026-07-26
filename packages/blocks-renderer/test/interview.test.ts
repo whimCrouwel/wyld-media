@@ -1,5 +1,7 @@
+// @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
 import { generateHTML, generateJSON } from '@tiptap/html';
+import { Editor } from '@tiptap/core';
 import { blockExtensions } from '../src/extensions';
 
 const sampleDoc = {
@@ -46,13 +48,21 @@ describe('interview node', () => {
     expect(firstTurn?.attrs?.speaker).toBe('A');
   });
 
-  it('rejects a turn placed outside of an interview (schema check)', () => {
-    const badDoc = {
-      type: 'doc',
-      content: [{ type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'text', text: 'x' }] }],
-    };
-    // generateHTML wraps in a strict schema; a top-level turn should not render as a turn wrapper.
-    const html = generateHTML(badDoc, blockExtensions);
-    expect(html).not.toContain('data-speaker="A"');
+  it('rejects a top-level turn (schema disallows outside of interview)', () => {
+    const el = document.createElement('div');
+    document.body.appendChild(el);
+    let contentError: Error | null = null;
+    const editor = new Editor({
+      element: el,
+      extensions: blockExtensions,
+      enableContentCheck: true,
+      onContentError: ({ error }) => { contentError = error; },
+      content: {
+        type: 'doc',
+        content: [{ type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'text', text: 'x' }] }],
+      },
+    });
+    expect(contentError).not.toBeNull();  // schema rejected the top-level turn
+    editor.destroy();
   });
 });
