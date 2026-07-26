@@ -15,7 +15,7 @@
 - 検索インデックス(`post_chunks`)へのターン本文の反映
 
 **スコープ外(今回はやらない — YAGNI)**:
-- 3人以上の座談会(2人固定でスタート)
+- 5人以上の対談・座談会(2〜4人までを今回スコープ)
 - 発言内のブロック(画像・埋め込み)。インライン装飾(太字・リンク等)は許可
 - 既存 `profiles` テーブルとの自動リンク(話者が登録済み provider/writer の場合の紐付け)
 - 話者ごとの色テーマカスタマイズ
@@ -25,9 +25,9 @@
 
 ブレスト時のオープン質問への決定。実装フェーズで参照する。
 
-- **話者数**: 1記事につき **2人固定**(key: `A`, `B`)。3人以上への拡張は将来課題。
+- **話者数**: 1記事につき **2〜4人**(key: `A`, `B`, `C`, `D` の連番)。基本は 2人(1対1インタビュー)、必要なら最大 4人まで拡張して座談会形式に。5人以上は将来課題。
 - **アバター**: **新規アップロード** を基本にしつつ、話者が現在のログインユーザー本人の場合は「自分のプロフィール画像を使う」ワンクリック挿入をオプション提供。それ以外の話者(取材相手)は毎回アップロード(取材相手が Wild Media アカウントを持つとは限らないため)。
-- **公開サイトのレイアウト**: 話者A(聞き手)は常に **左**、話者B(話し手)は常に **右**。モバイル(<640px)は全ターン左寄せ。
+- **公開サイトのレイアウト**: **話者 A**(先頭に登録された話者=聞き手)は常に **左**。**B / C / D**(話し手側)は常に **右**。3〜4人の座談会は「聞き手1人・話し手複数」の構図で表示され、B/C/D はアバターと名前で識別する(左右位置ではなく)。モバイル(<640px)は全ターン左寄せ。
 - **1発言の中身**: テキスト + インラインマーク(bold / italic / strike / link)のみ。ブロックレベル要素(画像・埋め込み等)は入れない。
 
 ## アーキテクチャ
@@ -45,6 +45,8 @@
 
 ### Tiptap ノード スキーマ
 
+2人インタビューの例:
+
 ```json
 {
   "type": "interview",
@@ -61,21 +63,23 @@
 }
 ```
 
+4人座談会の場合は `speakers` を A〜D の 4件に拡張し、`turn.speaker` にも `"C"` `"D"` が使えるようになる。key は必ず A から連番(A / AB / ABC / ABCD のいずれか)で、飛び番は禁止。
+
 ### `InterviewNode` 定義
 
 - `group: 'block'`
 - `content: 'turn+'`(最低1ターン。0ターンの空 interview は禁止)
 - `defining: true`(削除時に子だけ残らない)
 - `attrs.speakers`:
-  - 型: `Array<{ key: 'A' | 'B'; name: string; role: string; avatarUrl: string }>`
-  - 検証: 長さちょうど2、`key` が `'A'` と `'B'` の1回ずつ、`name` は空文字禁止、`role` は空許可、`avatarUrl` はホワイトリスト(下記トリガー参照)
+  - 型: `Array<{ key: 'A' | 'B' | 'C' | 'D'; name: string; role: string; avatarUrl: string }>`
+  - 検証: 長さ 2〜4、`key` は先頭から `'A'` の連番(A / AB / ABC / ABCD のいずれかの並び。飛び番・重複禁止)、`name` は空文字禁止、`role` は空許可、`avatarUrl` はホワイトリスト(下記トリガー参照)
   - `parseHTML` / `renderHTML`: 詳細は「7. HTML表現」
 
 ### `TurnNode` 定義
 
 - `group: 'block'` だが `content: 'inline*'` で子はインラインのみ
 - `defining: true`
-- `attrs.speaker`: `'A' | 'B'` のいずれか(デフォルト `'A'`)
+- `attrs.speaker`: `'A' | 'B' | 'C' | 'D'` のいずれか(デフォルト `'A'`)。ただし親 `interview.attrs.speakers` に登録された key に必ず含まれること — 参照整合は DB トリガー(下記)で強制
 - **ドキュメントスキーマ制約**: `TurnNode` は `interview` の内部でのみ有効(トップレベルへの drop・pasteは禁止)。ProseMirror のスキーマの `content` 表現でこれを表現できないため、Tiptap の `addProseMirrorPlugins` で「turn がトップレベルに来たら wrap or reject」する plugin を用意する
 
 ### 許容インラインマーク(turn内)
@@ -130,10 +134,10 @@ $$;
 
 `articles` の BEFORE INSERT / UPDATE で `body` を走査し、`interview` ノードごとに以下を検証:
 
-- `speakers` は配列で長さちょうど 2
-- `speakers[*].key` が `'A'` と `'B'` の1回ずつ(順不同)
+- `speakers` は配列で長さ 2〜4
+- `speakers[*].key` は `'A'` から始まる連番(登録順に `A`, `AB`, `ABC`, `ABCD` のいずれかの並び)。飛び番・重複禁止
 - `speakers[*].name` が空でない
-- `content` の各 `turn.attrs.speaker` が `'A'` または `'B'` のいずれか
+- `content` の各 `turn.attrs.speaker` が **その interview の `speakers[*].key` のいずれかに存在** すること(未登録話者への参照は拒否)
 - `content` の長さが最低1
 
 違反時は `RAISE EXCEPTION` で拒否。マイグレーション: `20260726120100_enforce_interview_structure.sql`。
@@ -164,8 +168,10 @@ $$;
 
 - 話者A: サムネイル(アップロード/プロフィール画像から選択/削除)・名前(必須)・肩書(任意)
 - 話者B: 同上
+- **＋話者を追加** ボタン(3人目 C、4人目 D を追加。最大4人まで)
+- 話者 C / D は **✕ 削除** ボタンあり(A / B は必須なので削除不可)
 
-「決定」で `insertContent({ type: 'interview', attrs: { speakers: [...] }, content: [{ type: 'turn', attrs: { speaker: 'A' }, content: [] }] })`。**初期状態は空の A ターン1件** を含めた状態で挿入する(空 interview は DB トリガーで弾かれるため)。
+「決定」で `insertContent({ type: 'interview', attrs: { speakers: [...] }, content: [{ type: 'turn', attrs: { speaker: 'A' }, content: [] }] })`。**初期状態は空の A ターン1件** を含めた状態で挿入する(空 interview は DB トリガーで弾かれるため)。話者の順番は登録した順に key を A から採番するため、モーダル上で並べ替え不可(削除も末尾から)。
 
 サムネイルアップロードは既存 `uploadAndRecord()` (`admin/src/lib/body-image.ts`)を再利用 ── R2 → `media` 挿入 → URL返却。
 
@@ -173,12 +179,14 @@ $$;
 
 Tiptap の NodeView として `interview` ノードの見た目を描画する。中身:
 
-- **上部**: 話者カード x2(サムネ・名前・肩書表示 + クリックで再編集モーダル)
+- **上部**: 話者カード 2〜4枚(サムネ・名前・肩書表示 + クリックで再編集モーダル)。話者の追加/削除もここから
 - **中央**: ターン一覧
-  - 各 `turn` 行: 話者ミニアバター・話者名(クリックでA/Bトグル)・本文編集エリア(Tiptap の子エディタとしてバインド)・ドラッグハンドル・削除
-- **下部/間**: `＋ 発言を追加` ボタン(hover で行間に出現、末尾は常時表示)。クリックで A/B 選択ポップオーバーを開き、選択後に該当話者のターンを空で挿入
+  - 各 `turn` 行: 話者ミニアバター・話者名(クリックで **話者選択ポップオーバー** を開き、登録された 2〜4人から選ぶ)・本文編集エリア(Tiptap の子エディタとしてバインド)・ドラッグハンドル・削除
+- **下部/間**: `＋ 発言を追加` ボタン(hover で行間に出現、末尾は常時表示)。クリックで **話者選択ポップオーバー**(登録された全話者 2〜4人)を開き、選択後に該当話者のターンを空で挿入
 
-**A/Bトグル**: `updateAttributes({ speaker: 'A' | 'B' })` で属性のみ更新。
+**話者切替**: `updateAttributes({ speaker: 'A' | 'B' | 'C' | 'D' })` で属性のみ更新。UI 上、話者数=2 のときは A/B トグルのシンプル UI、3〜4のときは選択メニュー UI に自動で切り替える(操作数を最小化)。
+
+**話者削除時の整合**: 話者カードから C / D を削除しようとすると、その話者に紐づく既存 turn がある場合は確認ダイアログ(「この話者の発言 N件も削除しますか?」)を挟む。削除確定で該当 turn ノードも同時に消す ── これにより DB トリガーの「未登録話者への参照禁止」に抵触しない。
 
 **並べ替え**: SortableJS のようなライブラリを追加せず、Tiptap の drag handle と ProseMirror の transaction で実装(既存プロジェクトに sortable 系ライブラリが入っていないため、依存を増やさない)。ドラッグ範囲は同一 `interview` 内のみに制約する。
 
@@ -202,13 +210,15 @@ Tiptap の NodeView として `interview` ノードの見た目を描画する�
     <div class="turn__body"><p>…</p></div>
   </div>
   <div class="turn turn--B">…</div>
+  <div class="turn turn--C">…</div>
+  <div class="turn turn--D">…</div>
 </section>
 ```
 
 **CSS**(公開サイト側スタイルに追加):
 
 - `.turn` は grid で `72px 1fr` レイアウト(アバター|本文)
-- `.turn--B` は `1fr 72px` に反転しテキスト右寄せ
+- `.turn--B`, `.turn--C`, `.turn--D` は `1fr 72px` に反転しテキスト右寄せ(話者 A = 聞き手側=左、それ以外=話し手側=右)
 - 話者連続時もアバター・名前を毎回表示(参考ページと同挙動)
 - モバイル `<640px` は全ターンを左寄せに揃え、アバター 56px
 
@@ -241,8 +251,13 @@ Tiptap の NodeView として `interview` ノードの見た目を描画する�
 ## テスト計画
 
 - **pgTAP** (`supabase/tests/`):
-  - `enforce_interview_structure`: 話者数≠2、`key` 重複、`speaker` 不正値、空 turn、空 speakers → いずれも拒否
-  - `body_asset_urls('image')`: `interview.speakers[*].avatarUrl` が返ってくる
+  - `enforce_interview_structure`:
+    - 話者数が 1 または 5 以上 → 拒否
+    - `key` が飛び番(例: A + C)や重複、A から始まらない → 拒否
+    - `turn.attrs.speaker` が `speakers[*].key` に存在しない値 → 拒否
+    - 空 turn(0件)、空 speakers → 拒否
+    - 正常系: 2人・3人・4人それぞれの合法パターンが通る
+  - `body_asset_urls('image')`: `interview.speakers[*].avatarUrl` が返ってくる(2〜4人分すべて)
   - `enforce_body_image_rules`: 非許可ホストのアバターURLは拒否
   - `block_media_in_use`: interview で参照中の `media` 行は DELETE 不可
 - **Vitest** (`admin/test/` 相当):
@@ -253,14 +268,16 @@ Tiptap の NodeView として `interview` ノードの見た目を描画する�
 - **手動確認**(`dev:all` で):
   1. スラッシュメニューから挿入 → モーダル → 話者2人登録 → 空ターンがA話者で1件できる
   2. ＋で B のターン追加、テキスト入力、Enter で改行 → 新ターンにならず HardBreak になる
-  3. A/B トグル、話者カード再編集、ドラッグ並べ替え、行削除
-  4. 保存 → リロード → 復元
-  5. 公開プレビュー: 左右交互レイアウト、モバイル(<640px)は左寄せ
-  6. 話者アバターの `media` を削除 → ブロック中は削除不可、interview を消してから削除可
+  3. 話者切替(A/B トグル)、話者カード再編集、ドラッグ並べ替え、行削除
+  4. **座談会シナリオ**: 話者を C, D まで追加(合計4人) → ＋ボタンが選択メニュー UI に変わる → C/D の発言も混ぜて追加 → 公開プレビューで A のみ左・B/C/D は右、アバター/名前で判別できる
+  5. **話者削除の整合**: C を発言つきで削除しようとすると確認ダイアログ、確定で該当 turn も消える。DB 側 `enforce_interview_structure` が通る
+  6. 保存 → リロード → 復元
+  7. 公開プレビュー: 話者Aは左・それ以外は右のレイアウト、モバイル(<640px)は左寄せ
+  8. 話者アバターの `media` を削除 → ブロック中は削除不可、interview を消してから削除可
 
 ## 将来課題(YAGNI — 今回はやらない)
 
-- 3人以上の座談会形式(`speakers` 長さの緩和 + turn.speaker のキー拡張)
+- 5人以上の対談・座談会(`speakers` 長さの緩和 + turn.speaker のキー拡張)
 - 発言内の画像・埋め込み(turn を block content 許可に変更)
 - `profiles` テーブルとの自動リンク(取材相手が provider/writer として登録済みの場合の紐付け)
 - 話者ごとの色テーマカスタマイズ
