@@ -86,6 +86,69 @@ const Toc = Node.create({
   },
 });
 
+const Interview = Node.create({
+  name: 'interview',
+  group: 'block',
+  content: 'turn+',
+  defining: true,
+  addAttributes() {
+    return {
+      speakers: { default: null },
+    };
+  },
+  parseHTML() {
+    return [{
+      tag: 'section[data-block="interview"]',
+      getAttrs: (el) => {
+        const raw = (el as HTMLElement).getAttribute('data-speakers');
+        try {
+          return { speakers: raw ? JSON.parse(raw) : null };
+        } catch {
+          return { speakers: null };
+        }
+      },
+    }];
+  },
+  renderHTML({ node }) {
+    const speakers = node.attrs.speakers ?? [];
+    return [
+      'section',
+      {
+        'data-block': 'interview',
+        'data-speakers': JSON.stringify(speakers),
+        class: 'interview-block',
+      },
+      0,
+    ];
+  },
+});
+
+const Turn = Node.create({
+  name: 'turn',
+  group: 'block',
+  content: 'inline*',
+  defining: true,
+  addAttributes() {
+    return {
+      speaker: { default: 'A' },
+    };
+  },
+  parseHTML() {
+    return [{
+      tag: 'div[data-block="turn"]',
+      getAttrs: (el) => ({ speaker: (el as HTMLElement).getAttribute('data-speaker') ?? 'A' }),
+    }];
+  },
+  renderHTML({ node }) {
+    const speaker = node.attrs.speaker ?? 'A';
+    return [
+      'div',
+      { 'data-block': 'turn', 'data-speaker': speaker, class: `turn turn--${speaker}` },
+      0,
+    ];
+  },
+});
+
 // 要件通りH1は無効化(見出しはH2/H3のみ、記事タイトルがH1を兼ねる)。
 // コードフェンスの自動変換とH1変換は StarterKit の既定を上書きしない
 // (StarterKit標準のCodeBlockはそのまま使う。H1のみ levels で除外)。
@@ -99,4 +162,6 @@ export const blockExtensions = [
   Embed,
   FileBlock,
   Toc,
+  Interview,
+  Turn,
 ];
