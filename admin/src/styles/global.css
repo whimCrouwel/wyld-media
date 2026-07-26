@@ -313,4 +313,43 @@
   .speaker-card__input[aria-invalid='true'] {
     @apply border-destructive ring-2 ring-destructive/40;
   }
+
+  /* Editor: interview block decorations (interview-nodeview.ts が Decoration.widget で挿入) */
+  .interview-block__speakers {
+    @apply mb-3 flex flex-wrap gap-3 border-b border-dashed border-border pb-3;
+  }
+  .speaker-card-inline {
+    @apply flex cursor-pointer items-center gap-2 rounded-md border bg-card px-2.5 py-1.5 text-left;
+  }
+  .speaker-card-inline img,
+  .speaker-card-inline .avatar-placeholder {
+    @apply h-8 w-8 rounded-full object-cover;
+  }
+  .speaker-card-inline .avatar-placeholder {
+    @apply flex items-center justify-center bg-muted text-xs text-muted-foreground;
+  }
+  .speaker-card-inline__name {
+    @apply block text-sm font-medium;
+  }
+  .speaker-card-inline__role {
+    @apply block text-xs text-muted-foreground;
+  }
+  .turn__header {
+    @apply mt-2 text-xs text-muted-foreground;
+  }
+  .turn__header button {
+    @apply cursor-pointer border-none bg-transparent p-0 text-inherit underline decoration-dotted;
+  }
+  .turn__speaker-menu {
+    @apply z-50 rounded-md border bg-card p-1 shadow-sm;
+  }
+  .turn__speaker-menu button {
+    @apply block w-full cursor-pointer rounded px-2 py-1 text-left text-sm hover:bg-accent hover:text-accent-foreground;
+  }
+  .interview-block__add-turn {
+    @apply mt-2 flex items-center gap-2 text-xs text-muted-foreground;
+  }
+  .interview-block__add-turn button {
+    @apply cursor-pointer rounded-md border border-dashed border-muted-foreground/50 bg-card px-2 py-1;
+  }
 }
