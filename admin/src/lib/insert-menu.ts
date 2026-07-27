@@ -2,6 +2,17 @@ import { Extension, type Editor } from '@tiptap/core';
 import Suggestion, {
   type SuggestionKeyDownProps, type SuggestionProps,
 } from '@tiptap/suggestion';
+import type { EditorState } from '@tiptap/pm/state';
+
+// interview は自己完結ブロック: 中で他のブロックを挿入する導線を持たない。
+// スラッシュメニューを発火させない(見出し・画像・目次などの誤挿入を防ぐ)。
+export function isInsideInterview(state: EditorState): boolean {
+  const { $from } = state.selection;
+  for (let d = $from.depth; d > 0; d--) {
+    if ($from.node(d).type.name === 'interview') return true;
+  }
+  return false;
+}
 
 export interface BlockCommand {
   id: string;
@@ -136,6 +147,7 @@ export function createSlashCommandsExtension(commands: BlockCommand[]): Extensio
             editor.chain().focus().deleteRange(range).run();
             props.run(editor);
           },
+          allow: ({ state }: { state: EditorState }) => !isInsideInterview(state),
           render: createSlashMenuRenderer,
         },
       };
@@ -165,7 +177,8 @@ export function initInsertButton(editor: Editor, wrapperEl: HTMLElement): void {
   const updateVisibility = () => {
     const { $from } = editor.state.selection;
     const isEmptyTextBlock = $from.parent.isTextblock && $from.parent.content.size === 0;
-    button.hidden = !isEmptyTextBlock;
+    // interview 内の空 turn では出さない(スラッシュメニューが発火しないので押しても何も起きない)。
+    button.hidden = !isEmptyTextBlock || isInsideInterview(editor.state);
   };
 
   editor.on('selectionUpdate', updateVisibility);

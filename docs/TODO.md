@@ -27,6 +27,8 @@
 
 ## Done
 
+- [x] **インタビュー・ブロックを自己完結にし、発言/ブロック単位の削除UIを追加** — (1) 中で `/` を押してもスラッシュメニューを発火させない(`admin/src/lib/insert-menu.ts` に `isInsideInterview` 述語を追加し `Suggestion.allow` で除外+`initInsertButton` の `＋` も interview 内では非表示)、(2) 各発言(turn)の右上に×ボタン(hover表示)、`turn--only` decoration + CSS で最後の 1 発言では隠す・実行時ガード付き、(3) 話者ツールバーに「ブロックを削除」ボタン(`window.confirm` 付き)。テスト 5 件追加(admin/tests/insert-menu.test.ts, admin/tests/interview-nodeview.test.ts)。E2Eで動作確認済み(2026-07-27)。
+
 - [x] **ルートの `npm test` が `tests/life-sim.test.ts` の import で失敗する** — `src/lib/life-sim.ts` は既に削除済みだったのでテスト側も削除して整合。関連commit: (次のcommit)。
 
 - [x] **インタビュー・ダイアログの「自分のプロフィール画像を使う」ボタンが、プロフィール画像URLが `settings.image_base_url` 配下でない場合にそのままセットしてしまう問題** — `admin/src/lib/interview-dialog.ts` に `imageBaseUrl` を渡し、`myProfile.avatarUrl.startsWith(imageBaseUrl)` でチェック。一致しない場合はボタンを `disabled` + `title` 属性で理由を表示、クリックハンドラでも二重チェック。`edit.astro`・`new.astro` ともに既存の `fetchImageBaseUrl` の結果を渡すよう修正。テスト 2 件追加(disable される / enable されて動作する)。E2Eで発見(2026-07-26)、同日修正。

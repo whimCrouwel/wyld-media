@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest';
 import {
-  filterCommands, initInsertButton, createSlashCommandsExtension, type BlockCommand,
+  filterCommands, initInsertButton, createSlashCommandsExtension, isInsideInterview,
+  type BlockCommand,
 } from '../src/lib/insert-menu';
 import { createBlockEditor } from '../src/lib/block-editor';
 
@@ -162,6 +163,62 @@ describe('createSlashCommandsExtension popup', () => {
     expect(runSpies.image).not.toHaveBeenCalled();
     expect(runSpies.quote).not.toHaveBeenCalled();
 
+    editor.destroy();
+  });
+
+  it('does NOT open the popup when "/" is typed inside an interview turn', async () => {
+    const runSpies = { heading: vi.fn(), image: vi.fn(), quote: vi.fn() };
+    const el = document.createElement('div');
+    document.body.append(el);
+    const testCommands: BlockCommand[] = [
+      { id: 'heading', label: '見出し', run: runSpies.heading },
+    ];
+    const editor = createBlockEditor({
+      element: el,
+      content: [{
+        type: 'interview',
+        attrs: { speakers: [{ key: 'A', name: '米田', role: '', avatarUrl: null }] },
+        content: [{ type: 'turn', attrs: { speaker: 'A' }, content: [] }],
+      }],
+      extraExtensions: [createSlashCommandsExtension(testCommands)],
+    });
+
+    // Move the caret inside the (empty) turn's inline content (pos 2 = inside turn).
+    editor.commands.setTextSelection(2);
+    editor.commands.insertContent('/');
+    await flushMicrotasks();
+
+    expect(document.querySelector('.slash-menu-popup')).toBeNull();
+    editor.destroy();
+  });
+});
+
+describe('isInsideInterview', () => {
+  it('returns true when the caret is inside a turn', () => {
+    const el = document.createElement('div');
+    const editor = createBlockEditor({
+      element: el,
+      content: [{
+        type: 'interview',
+        attrs: { speakers: [{ key: 'A', name: 'X', role: '', avatarUrl: null }] },
+        content: [{ type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'text', text: 'hi' }] }],
+      }],
+      extraExtensions: [],
+    });
+    editor.commands.setTextSelection(3);  // 中の text の中
+    expect(isInsideInterview(editor.state)).toBe(true);
+    editor.destroy();
+  });
+
+  it('returns false when the caret is in a plain paragraph', () => {
+    const el = document.createElement('div');
+    const editor = createBlockEditor({
+      element: el,
+      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'hi' }] }],
+      extraExtensions: [],
+    });
+    editor.commands.setTextSelection(2);
+    expect(isInsideInterview(editor.state)).toBe(false);
     editor.destroy();
   });
 });

@@ -61,6 +61,95 @@ describe('interview-nodeview', () => {
     editor.destroy();
   });
 
+  it('renders a per-turn delete button and clicking it removes just that turn', () => {
+    const el = document.createElement('div');
+    document.body.appendChild(el);
+    const editor = new Editor({
+      element: el,
+      extensions: [...blockExtensions, createInterviewPlugin(fakeDialog).extension],
+      content: {
+        type: 'doc',
+        content: [{
+          type: 'interview',
+          attrs: {
+            speakers: [
+              { key: 'A', name: '米田', role: '', avatarUrl: 'https://img.test/a.webp' },
+              { key: 'B', name: '川崎', role: '', avatarUrl: 'https://img.test/b.webp' },
+            ],
+          },
+          content: [
+            { type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'text', text: 'first-a' }] },
+            { type: 'turn', attrs: { speaker: 'B' }, content: [{ type: 'text', text: 'first-b' }] },
+          ],
+        }],
+      },
+    });
+    const turnsBefore = el.querySelectorAll('[data-block="turn"]');
+    expect(turnsBefore).toHaveLength(2);
+    turnsBefore.forEach((t) => expect(t.querySelector('.turn__delete')).not.toBeNull());
+    // 1 個目 (米田) の × を mousedown で発火
+    const firstDelete = turnsBefore[0].querySelector('.turn__delete') as HTMLButtonElement;
+    firstDelete.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    const turnsAfter = el.querySelectorAll('[data-block="turn"]');
+    expect(turnsAfter).toHaveLength(1);
+    expect(turnsAfter[0].getAttribute('data-speaker')).toBe('B');
+    editor.destroy();
+  });
+
+  it('marks the sole remaining turn with turn--only and its delete is a no-op', () => {
+    const el = document.createElement('div');
+    document.body.appendChild(el);
+    const editor = new Editor({
+      element: el,
+      extensions: [...blockExtensions, createInterviewPlugin(fakeDialog).extension],
+      content: {
+        type: 'doc',
+        content: [{
+          type: 'interview',
+          attrs: { speakers: [{ key: 'A', name: '米田', role: '', avatarUrl: null }] },
+          content: [{ type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'text', text: 'x' }] }],
+        }],
+      },
+    });
+    const only = el.querySelector('[data-block="turn"]') as HTMLElement;
+    expect(only.classList.contains('turn--only')).toBe(true);
+    const btn = only.querySelector('.turn__delete') as HTMLButtonElement;
+    btn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+    expect(el.querySelectorAll('[data-block="turn"]')).toHaveLength(1);
+    editor.destroy();
+  });
+
+  it('renders a block-delete button; clicking it (with confirm=true) removes the whole interview', () => {
+    const el = document.createElement('div');
+    document.body.appendChild(el);
+    const editor = new Editor({
+      element: el,
+      extensions: [...blockExtensions, createInterviewPlugin(fakeDialog).extension],
+      content: {
+        type: 'doc',
+        content: [{
+          type: 'interview',
+          attrs: { speakers: [{ key: 'A', name: '米田', role: '', avatarUrl: null }] },
+          content: [{ type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'text', text: 'x' }] }],
+        }],
+      },
+    });
+    expect(el.querySelector('[data-block="interview"]')).not.toBeNull();
+    const deleteBtn = el.querySelector('[data-interview-delete]') as HTMLButtonElement;
+    expect(deleteBtn).not.toBeNull();
+
+    const origConfirm = window.confirm;
+    window.confirm = () => false;
+    deleteBtn.click();
+    expect(el.querySelector('[data-block="interview"]')).not.toBeNull();
+
+    window.confirm = () => true;
+    deleteBtn.click();
+    expect(el.querySelector('[data-block="interview"]')).toBeNull();
+    window.confirm = origConfirm;
+    editor.destroy();
+  });
+
   it('renders each turn as a chat bubble via NodeView (avatar + who + bubble)', () => {
     const el = document.createElement('div');
     document.body.appendChild(el);

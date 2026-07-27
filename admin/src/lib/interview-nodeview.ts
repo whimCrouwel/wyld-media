@@ -53,15 +53,22 @@ export function createInterviewPlugin(dialog: InterviewDialogController): Interv
                   ),
                 );
 
-                // 連続同話者 turn に turn--cont を付ける
+                // 連続同話者 turn に turn--cont を付ける + 唯一 turn に turn--only を付ける
+                // (turn--only は CSS で削除ボタンを隠す — 最後の 1 発言は消せない)
+                const onlyTurn = node.childCount === 1;
                 let cursor = offset + 1;
                 let prevKey: string | null = null;
                 node.forEach((turn) => {
                   const turnPos = cursor;
-                  if (turn.type.name === 'turn' && turn.attrs.speaker === prevKey) {
-                    decos.push(Decoration.node(turnPos, turnPos + turn.nodeSize, { class: 'turn--cont' }));
+                  if (turn.type.name === 'turn') {
+                    if (turn.attrs.speaker === prevKey) {
+                      decos.push(Decoration.node(turnPos, turnPos + turn.nodeSize, { class: 'turn--cont' }));
+                    }
+                    if (onlyTurn) {
+                      decos.push(Decoration.node(turnPos, turnPos + turn.nodeSize, { class: 'turn--only' }));
+                    }
+                    prevKey = turn.attrs.speaker;
                   }
-                  if (turn.type.name === 'turn') prevKey = turn.attrs.speaker;
                   cursor += turn.nodeSize;
                 });
               });
@@ -85,6 +92,7 @@ class TurnNodeView implements NodeView {
   private speakerKey: string;
   private avatarEl: HTMLImageElement;
   private whoEl: HTMLElement;
+  private deleteBtn: HTMLButtonElement;
 
   constructor(node: PMNode, _view: EditorView, getPos: () => number | undefined, editor: Editor) {
     this.editor = editor;
@@ -107,12 +115,22 @@ class TurnNodeView implements NodeView {
     const bubble = document.createElement('div');
     bubble.className = 'turn__bubble';
 
-    this.dom.append(this.avatarEl, this.whoEl, bubble);
+    this.deleteBtn = document.createElement('button');
+    this.deleteBtn.type = 'button';
+    this.deleteBtn.className = 'turn__delete';
+    this.deleteBtn.setAttribute('aria-label', 'この発言を削除');
+    this.deleteBtn.setAttribute('data-turn-delete', '1');
+    this.deleteBtn.title = 'この発言を削除';
+    this.deleteBtn.textContent = '×';
+    this.deleteBtn.contentEditable = 'false';
+
+    this.dom.append(this.avatarEl, this.whoEl, bubble, this.deleteBtn);
     this.contentDOM = bubble;
 
     this.render();
 
     this.whoEl.addEventListener('mousedown', (e) => this.onWhoMousedown(e));
+    this.deleteBtn.addEventListener('mousedown', (e) => this.onDeleteMousedown(e));
   }
 
   // 親の interview から speakers を取り、自分の speakerKey に対応する Speaker を返す。
@@ -161,6 +179,23 @@ class TurnNodeView implements NodeView {
     // 親 interview の speakers が変わった場合も反映するため常に再描画。
     this.render();
     return true;
+  }
+
+  // 最後の 1 発言は削除させない (ブロックごと消すには「ブロックを削除」を使わせる)。
+  // 表示側は decorations() が turn--only クラスをつけて CSS で隠す。
+  // ここは実行時の防衛線として parent.childCount を再確認する。
+  private onDeleteMousedown(e: MouseEvent): void {
+    e.preventDefault();
+    e.stopPropagation();
+    const pos = this.getPos();
+    if (pos == null) return;
+    const doc = this.editor.state.doc;
+    const node = doc.nodeAt(pos);
+    if (!node || node.type.name !== 'turn') return;
+    const parent = doc.resolve(pos).parent;
+    if (parent.type.name !== 'interview' || parent.childCount <= 1) return;
+    const tr = this.editor.state.tr.delete(pos, pos + node.nodeSize);
+    this.editor.view.dispatch(tr);
   }
 
   private onWhoMousedown(e: MouseEvent): void {
@@ -304,6 +339,23 @@ function buildSpeakerToolbar(
     editor.view.dispatch(tr);
   });
   wrap.appendChild(editBtn);
+
+  // ブロックまるごと削除
+  const deleteBlockBtn = document.createElement('button');
+  deleteBlockBtn.type = 'button';
+  deleteBlockBtn.className = 'interview-delete-btn';
+  deleteBlockBtn.setAttribute('data-interview-delete', '1');
+  deleteBlockBtn.textContent = 'ブロックを削除';
+  deleteBlockBtn.title = 'このインタビューブロックを削除';
+  deleteBlockBtn.addEventListener('click', () => {
+    const node = editor.state.doc.nodeAt(interviewPos);
+    if (!node || node.type.name !== 'interview') return;
+    const ok = window.confirm('このインタビューブロックをまるごと削除します。よろしいですか?');
+    if (!ok) return;
+    const tr = editor.state.tr.delete(interviewPos, interviewPos + node.nodeSize);
+    editor.view.dispatch(tr);
+  });
+  wrap.appendChild(deleteBlockBtn);
 
   return wrap;
 }
