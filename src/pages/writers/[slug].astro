@@ -93,7 +93,7 @@ const crumbsLd = breadcrumbListSchema(crumbs, siteUrl);
             />
           ) : (
             <span
-              class="border-card text-meta flex aspect-square w-full items-center justify-center border"
+              class="bg-card border-hairline text-meta flex aspect-square w-full items-center justify-center border"
               style="font-family: var(--font-heading); font-size: 44px;"
             >
               {writer.name.trim().charAt(0)}
@@ -216,7 +216,7 @@ const crumbsLd = breadcrumbListSchema(crumbs, siteUrl);
     {/* 料金プラン(pricing_items) */}
     {
       writer.pricingItems.length > 0 && (
-        <div class="border-card mt-6 rounded-[16px] border px-6 py-5">
+        <div class="bg-card border-hairline mt-6 rounded-[16px] border px-6 py-5">
           <div class="mb-3 flex items-baseline justify-between gap-3">
             <MetaLabel>料金プラン</MetaLabel>
             <MetaLabel>ライターが自由に設定</MetaLabel>

@@ -25,7 +25,7 @@ const { src, name, size = 64 } = Astro.props;
       />
     ) : (
       <span
-        class="border-card text-meta flex h-full w-full items-center justify-center rounded-full border"
+        class="bg-card border-hairline text-meta flex h-full w-full items-center justify-center rounded-full border"
         style={`font-family: var(--font-heading); font-size: ${Math.round(size * 0.4)}px;`}
       >
         {name.trim().charAt(0)}

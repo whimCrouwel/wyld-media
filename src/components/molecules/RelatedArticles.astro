@@ -16,7 +16,7 @@ const { articles } = Astro.props;
       {articles.map((a) => (
         <a
           href={`/articles/${a.slug}`}
-          class="border-card hover:border-ink flex items-center gap-4 rounded-[16px] border p-3 transition-colors"
+          class="bg-card border-hairline hover:border-ink flex items-center gap-4 rounded-[16px] border p-3 transition-colors"
         >
           {a.coverImageUrl ? (
             <img

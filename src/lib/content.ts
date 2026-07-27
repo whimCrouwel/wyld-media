@@ -21,8 +21,14 @@ export interface ArticleSummary {
   updatedAtISO: string | null;
 }
 
+export interface ArticleHeading {
+  id: string;
+  text: string;
+}
+
 export interface ArticleDetail extends ArticleSummary {
   bodyHtml: string;
+  headings: ArticleHeading[];
 }
 
 export interface WriterSummary {
@@ -67,6 +73,37 @@ export interface ProviderDetail extends ProviderSummary {
   snsLinks: string[];
   serviceDescription: string | null;
   serviceUrl: string | null;
+}
+
+// packages/blocks-renderer が h2/h3 に付与する id はエンティティ化された見出し
+// テキストそのもの(addHeadingIds 参照)。目次のリンク先(href)と実際の id を
+// 一致させるため、双方に同じデコードをかけて生テキストに揃える。
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(Number(dec)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&amp;/g, '&'); // 最後に処理(先にやると "&amp;lt;" → "&lt;" → "<" と二重デコードしてしまう)
+}
+
+// 目次表示用に本文HTML中の見出し(h2のみ — h3はネストが複雑になるため対象外)を
+// 抽出する。bodyHtml は既に addHeadingIds/sanitize-html を通っており id 属性を
+// 持つので、そこから直接読み取る(JSONを別途辿って独自にid生成し直すと、
+// レンダラー側のロジック変更時にズレる恐れがあるため)。
+export function extractHeadings(bodyHtml: string): ArticleHeading[] {
+  const headings: ArticleHeading[] = [];
+  const re = /<h2 id="([^"]*)">([\s\S]*?)<\/h2>/g;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(bodyHtml))) {
+    headings.push({
+      id: decodeHtmlEntities(match[1]),
+      text: decodeHtmlEntities(match[2].replace(/<[^>]+>/g, '')),
+    });
+  }
+  return headings;
 }
 
 // http(s) 以外のスキーム(javascript: 等)を弾き、書式不正な文字列も null にする
@@ -202,6 +239,7 @@ export async function fetchArticleBySlug(
   return {
     ...summary,
     bodyHtml,
+    headings: extractHeadings(bodyHtml),
     // 記事詳細は本文HTMLを持つので、DB側のdescriptionが空なら本文由来の
     // フォールバックに差し替える(toSummaryの時点では空文字のまま)。
     description: summary.description || fallbackDescription(bodyHtml),

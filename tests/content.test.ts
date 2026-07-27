@@ -8,6 +8,7 @@ import {
   fetchWriterBySlug,
   fetchPageSize,
   safeUrl,
+  extractHeadings,
 } from '../src/lib/content';
 
 const db = createClient(
@@ -44,6 +45,38 @@ describe('article rendering via renderBlocksToHtml', () => {
   it('imageBaseUrl が空なら画像を落とす', async () => {
     const doc = { type: 'doc', content: [{ type: 'image', attrs: { url: `${BASE}/x.webp`, alt: '', caption: '' } }] };
     expect(await renderBlocksToHtml(doc, '')).not.toContain('<img');
+  });
+});
+
+describe('extractHeadings', () => {
+  it('extracts h2 headings in order', () => {
+    const html = '<p>intro</p><h2 id="はじめに">はじめに</h2><p>body</p><h2 id="まとめ">まとめ</h2>';
+    expect(extractHeadings(html)).toEqual([
+      { id: 'はじめに', text: 'はじめに' },
+      { id: 'まとめ', text: 'まとめ' },
+    ]);
+  });
+
+  it('ignores h3 (front-end TOC is h2-only)', () => {
+    const html = '<h2 id="A">A</h2><h3 id="A-1">A-1</h3>';
+    expect(extractHeadings(html)).toEqual([{ id: 'A', text: 'A' }]);
+  });
+
+  it('strips inline marks from the display text', () => {
+    const html = '<h2 id="太字を含む見出し">太字を<strong>含む</strong>見出し</h2>';
+    expect(extractHeadings(html)).toEqual([{ id: '太字を含む見出し', text: '太字を含む見出し' }]);
+  });
+
+  it('decodes HTML entities consistently between id and text', () => {
+    // render.ts の実出力形状: id 属性は "&"/'"' 双方をエンティティ化するが、
+    // テキストノードは "&" のみエンティティ化し引用符はそのまま出す。
+    // デコード後は id/text とも同じ生テキストに揃うはず。
+    const html = '<h2 id="AT&amp;T &quot;plan&quot;">AT&amp;T "plan"</h2>';
+    expect(extractHeadings(html)).toEqual([{ id: 'AT&T "plan"', text: 'AT&T "plan"' }]);
+  });
+
+  it('returns an empty array when there are no headings', () => {
+    expect(extractHeadings('<p>no headings here</p>')).toEqual([]);
   });
 });
 
@@ -85,6 +118,7 @@ describe('content data layer (requires seeded local Supabase)', () => {
     expect(article!.authorSlug).toBe('tanaka-hana');
     expect(article!.bodyHtml).toContain('<h2 id="川辺にて">');
     expect(article!.bodyHtml).not.toContain('<script');
+    expect(article!.headings).toEqual(expect.arrayContaining([{ id: '川辺にて', text: '川辺にて' }]));
   });
 
   it('returns null for unknown slug', async () => {

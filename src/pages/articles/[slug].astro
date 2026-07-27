@@ -4,6 +4,7 @@ import MetaLabel from '../../components/atoms/MetaLabel.astro';
 import Breadcrumbs from '../../components/molecules/Breadcrumbs.astro';
 import AuthorCard from '../../components/molecules/AuthorCard.astro';
 import RelatedArticles from '../../components/molecules/RelatedArticles.astro';
+import TableOfContents from '../../components/molecules/TableOfContents.astro';
 import JsonLd from '../../components/JsonLd.astro';
 import { supabaseServer } from '../../lib/supabase-server';
 import { fetchPublishedArticles, fetchArticleBySlug, fetchRelatedArticles, formatDate } from '../../lib/content';
@@ -64,39 +65,55 @@ const crumbsLd = breadcrumbListSchema(crumbs, siteUrl);
   </Fragment>
   <article class="mx-auto max-w-4xl px-6 pb-24">
     <Breadcrumbs crumbs={crumbs} class="mb-6" />
-    <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-      <a href={`/writers/${article.authorSlug}`} class="transition-opacity hover:opacity-60">
-        <MetaLabel class="text-ink">{article.authorName}</MetaLabel>
-      </a>
-      <MetaLabel>{formatDate(article.publishedAt)}</MetaLabel>
-      {article.commissionedByName && <MetaLabel>提供: {article.commissionedByName}</MetaLabel>}
+
+    {/* 記事本体を1枚の面にまとめる器。個々のカード(目次)が bg-card を持つ
+        ようになった結果、地の点グリッドの上に浮き輪のように散らばって見え
+        記事としてのまとまりが失われたため、タイトルから本文まで丸ごと
+        bg-bg の1枚に収める(パンくず/戻るリンクはページの案内なので器の
+        外に残す)。 */}
+    <div class="bg-bg border-hairline rounded-[28px] border p-6 sm:p-10">
+      <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+        <a href={`/writers/${article.authorSlug}`} class="transition-opacity hover:opacity-60">
+          <MetaLabel class="text-ink">{article.authorName}</MetaLabel>
+        </a>
+        <MetaLabel>{formatDate(article.publishedAt)}</MetaLabel>
+        {article.commissionedByName && <MetaLabel>提供: {article.commissionedByName}</MetaLabel>}
+      </div>
+      <h1
+        class="mt-4"
+        style="font-family: var(--font-heading); font-size: clamp(28px, 4vw, 40px); line-height: 1.3;"
+      >
+        {article.title}
+      </h1>
+
+      {
+        article.coverImageUrl && (
+          <div class="mt-10 overflow-hidden rounded-[12px]">
+            <img src={article.coverImageUrl} alt={`${article.title}のカバー画像`} class="w-full" decoding="async" />
+          </div>
+        )
+      }
+
+      {article.headings.length >= 2 && <TableOfContents headings={article.headings} />}
+
+      <div class="article-body mt-12" set:html={article.bodyHtml} />
     </div>
-    <h1
-      class="mt-4"
-      style="font-family: var(--font-heading); font-size: clamp(28px, 4vw, 40px); line-height: 1.3;"
-    >
-      {article.title}
-    </h1>
 
-    {
-      article.coverImageUrl && (
-        <div class="mt-10 overflow-hidden rounded-[12px]">
-          <img src={article.coverImageUrl} alt={`${article.title}のカバー画像`} class="w-full" decoding="async" />
-        </div>
-      )
-    }
+    {/* 記事本体とは別の器: 「この記事にまつわる付随情報」(著者・関連記事)を
+        まとめる。1つの器に全部入れると本文と同格に見えてしまうため、
+        意味のまとまりごとに器を分ける。 */}
+    <div class="bg-bg border-hairline mt-8 rounded-[28px] border p-6 sm:p-10">
+      <AuthorCard
+        name={article.authorName}
+        slug={article.authorSlug}
+        bio={article.authorBio}
+        avatarUrl={article.authorAvatarUrl}
+        snsLinks={article.authorSnsLinks}
+        class=""
+      />
 
-    <div class="article-body mt-12" set:html={article.bodyHtml} />
-
-    <AuthorCard
-      name={article.authorName}
-      slug={article.authorSlug}
-      bio={article.authorBio}
-      avatarUrl={article.authorAvatarUrl}
-      snsLinks={article.authorSnsLinks}
-    />
-
-    <RelatedArticles articles={relatedArticles} />
+      <RelatedArticles articles={relatedArticles} />
+    </div>
 
     <p class="mt-16">
       <a href="/" class="transition-opacity hover:opacity-60"><MetaLabel>← Works</MetaLabel></a>

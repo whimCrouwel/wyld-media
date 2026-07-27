@@ -21,6 +21,11 @@
   /* 差し色。リンクや選択状態など、ここぞという1箇所にだけ使う */
   --color-accent: #d97757;
   --color-accent-hover: #c6613f;
+  /* カードの縁線。--color-card を境界線色に使うと bg-card の面と同色になり
+     線が消えるため、墨(--color-ink)をごく薄く滲ませた別トーンにする
+     (もとは src/components/molecules/SpecimenCard.astro が個別に持っていた
+     値。カードを増やすたびに再発明しないよう theme token 化した)。 */
+  --color-hairline: color-mix(in srgb, var(--color-ink) 8%, transparent);
   /* 本文: 日本語はゼンカクゴシック、欧文もそのまま同書体で統一 */
   --font-sans: 'Zen Kaku Gothic New', -apple-system, BlinkMacSystemFont, sans-serif;
   /* 見出し: 文芸的なしっぽり明朝(和欧とも) */
@@ -34,6 +39,13 @@
 
 html {
   background-color: var(--color-bg);
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }
 
 /* 常設サイドバー(NavDrawer)の幅。#page-shift は flex の兄弟として実際に
@@ -161,6 +173,9 @@ a {
   font-family: var(--font-heading);
   font-size: 1.2em;
   font-weight: 400;
+  /* 固定ヘッダー(pt-32 = 128px)の下に見出しが隠れないよう、目次からの
+     アンカージャンプ時の着地位置をヘッダー分+余白ぶんずらす */
+  scroll-margin-top: 148px;
 }
 
 .article-body a {
@@ -214,8 +229,14 @@ a {
      </section>
    A は左、B/C/D は右。連続同話者(turn--cont)はアバター/名前を省略し bubble のみ。 */
 
+/* インタビュー全体を 1 つの「会話カード」として囲む(CMS エディタの見た目と揃える)。
+   淡い背景 + ヘアライン枠で、ここがインタビューであることを本文から視覚的に区別する。 */
 .article-body .interview-block {
   margin: 2.5em 0;
+  padding: 1.5em 1.25em;
+  background-color: var(--color-card);
+  border: 1px solid var(--color-hairline);
+  border-radius: 20px;
   display: flex;
   flex-direction: column;
   gap: 1.1em;
@@ -285,7 +306,7 @@ a {
 
 .article-body .interview-block .turn__bubble {
   grid-column: 2;
-  background-color: var(--color-card);
+  background-color: #fff; /* カード背景(card の淡い版)と同化しないよう白 */
   padding: 14px 18px;
   border-radius: 4px 16px 16px 16px;  /* tail 左上 */
   line-height: 1.85;
@@ -315,6 +336,10 @@ a {
 }
 
 @media (max-width: 640px) {
+  .article-body .interview-block {
+    padding: 1.1em 0.85em;
+    border-radius: 16px;
+  }
   .article-body .interview-block .turn,
   .article-body .interview-block .turn--B,
   .article-body .interview-block .turn--C,
@@ -336,7 +361,7 @@ a {
     grid-column: 2;
     justify-self: start;
     max-width: none;
-    background-color: var(--color-card);
+    background-color: #fff;
     border-radius: 4px 14px 14px 14px;
   }
   .article-body .interview-block .turn.turn--cont .turn__bubble {

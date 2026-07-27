@@ -23,7 +23,11 @@
 
 - [ ] プロバイダーの「主要サービス」情報(`profiles.service_name`/`service_description`/`service_url`/`service_image_url`)と認定フラグ(`profiles.certified`)が、CMSで編集・admin管理はできるが公開サイト側にまだ一切表示されていない。認定済みプロバイダーのみサービス情報を公開する、というのが本来の狙い(`ARCHITECTURE.md` 参照)。対象になりそうな箇所: 公開サイトのプロバイダー用ページ(未作成)、または `src/pages/articles/[slug].astro:30` の「提供: {name}」表示の拡張。認定事業者バッジの公開サイト表示もこのタイミングで検討。
 
+- [ ] 記事編集画面にネイティブダイアログ(`window.prompt`/`window.confirm`)がまだ残っている — 削除確認は `ConfirmDialog` に移行済みだが、(1) 審査理由の入力 `admin/src/pages/articles/edit.astro:214`、(2) 埋め込みURLの入力(同ファイルの embed コマンド)、(3) 下書きバックアップ復元の確認(同 `:235` 付近)、(4) インタビューブロック削除の確認(`admin/src/lib/interview-nodeview.ts` 側)がネイティブのまま。入力を伴う (1)(2) は `ConfirmDialog` にテキスト入力欄を足した派生コンポーネントが必要。
+
 - [ ] インタビュー・ブロックの発言テキストが `<p>` で包まれず、`src/styles/global.css` の `.article-body .interview-block .turn p` バブル背景ルールが効かない。`Turn.content` を `'paragraph+'` に変えるか、`packages/blocks-renderer/src/render.ts` の `injectInterviewSpeakers` で turn 内テキストを `<p>` で包む対応が必要。関連: `packages/blocks-renderer/src/extensions.ts` の Turn ノード定義、`src/styles/global.css` の該当 CSS。
+
+- [ ] **【要調査・データ破損】** ローカルDBの本物の記事5件すべての `body` が、同一のテスト用インタビューブロック内容(話者「米田」「川崎」、発言「プラスチックを拾ったきっかけは?…」)に上書きされている: `kaigan-seisou`・`kigyou-no-mori`・`kawabe-kansatsu`・`koke-no-mori`・`toshi-no-yachou`(2026-07-28、Chrome実機確認+DB直接クエリで確認)。決め手は `updated_at`: `kaigan-seisou`/`kigyou-no-mori`/`kawabe-kansatsu` の3件がミリ秒まで完全一致(`2026-07-26 07:20:30.343902`)しており、個別編集ではあり得ないため、インタビューブロック機能(`admin/src/pages/articles/edit.astro`・`admin/src/lib/interview-nodeview.ts`、当時未コミットで変更中だった)の保存処理に、複数記事へ同一ペイロードを書き込んでしまうバグがあった可能性が高い。`interview-e2e-test` 記事(2026-07-27作成)を使ったテスト中に発生したと推測されるが、リポジトリ内に該当する自動テスト/スクリプトは見当たらず、原因未特定。このため `tests/content.test.ts` の DB 依存テスト3件も失敗する。`supabase db reset` はローカルルールで禁止されているため未対応 — **他の並行作業が完全に終わったのを確認してから**、(1) 原因(保存処理のどこが複数記事に書き込んでいるか)を特定、(2) 安全なタイミングで `npm run seed` によるリセットを検討。目次カード機能(2026-07-28)の `extractHeadings` 関連ユニットテストはこの影響を受けず5件とも成功している。
 
 ## Done
 

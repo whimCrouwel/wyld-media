@@ -9,10 +9,11 @@ export interface Props {
   bio: string;
   avatarUrl: string | null;
   snsLinks: string[];
+  class?: string;
 }
-const { name, slug, bio, avatarUrl, snsLinks } = Astro.props;
+const { name, slug, bio, avatarUrl, snsLinks, class: className = 'mt-16' } = Astro.props;
 ---
-<aside class="border-card mt-16 rounded-[18px] border p-6" aria-label={`著者: ${name}`}>
+<aside class:list={['bg-card border-hairline rounded-[18px] border p-6', className]} aria-label={`著者: ${name}`}>
   <div class="flex flex-wrap items-start gap-5">
     <a
       href={`/writers/${slug}`}

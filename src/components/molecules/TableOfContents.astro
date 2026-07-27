@@ -1,0 +1,27 @@
+---
+import MetaLabel from '../atoms/MetaLabel.astro';
+import type { ArticleHeading } from '../../lib/content';
+
+export interface Props {
+  headings: ArticleHeading[];
+}
+const { headings } = Astro.props;
+---
+<nav class="bg-card border-hairline mt-10 rounded-[18px] border p-5" aria-label="目次">
+  <MetaLabel>目次</MetaLabel>
+  <ol class="mt-3 space-y-2">
+    {
+      headings.map((h) => (
+        <li>
+          <a
+            href={`#${h.id}`}
+            class="text-meta block leading-relaxed transition-opacity hover:opacity-70 hover:underline"
+            style="font-size: 13px;"
+          >
+            {h.text}
+          </a>
+        </li>
+      ))
+    }
+  </ol>
+</nav>
