@@ -316,6 +316,13 @@
 
   /* Editor: interview block — chat 風レイアウト (interview-nodeview.ts の NodeView + decorations) */
 
+  /* インタビュー全体を 1 つの「会話カード」として囲む。パディング + 淡い背景 + 枠で、
+     本文の他ブロックとの境界をはっきりさせる。角丸は speaker toolbar / add-turn の
+     角に合わせてやや大きめ。 */
+  .ProseMirror [data-block="interview"] {
+    @apply my-4 rounded-2xl border border-border bg-muted/40 px-4 py-3;
+  }
+
   /* コンパクトなピル型話者ツールバー: 話者一覧チップ + 「話者を編集」ボタン */
   .interview-block__speakers {
     @apply mb-3 flex flex-wrap items-center gap-2 border-b border-dashed border-border pb-3;
