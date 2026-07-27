@@ -115,21 +115,19 @@ const title = '記事の編集 | Wild Media CMS';
       </div>
     </div>
 
-    <div class="flex flex-wrap gap-3 border-t pt-4">
-      <Button type="button" id="save-draft">下書き保存</Button>
-      <Button type="button" id="publish" variant="secondary">公開する</Button>
-      <Button type="button" id="unpublish" variant="outline">下書きに戻す</Button>
-      <Button type="button" id="preview-toggle" variant="outline">プレビュー</Button>
+    <div class="flex flex-wrap items-center gap-3 border-t pt-4">
+      <Button type="button" id="save-draft" variant="secondary">下書き保存</Button>
+      <Button type="button" id="publish">公開する</Button>
+      <Button type="button" id="unpublish" variant="outline" hidden>下書きに戻す</Button>
       <Button type="button" id="moderation-toggle" variant="destructive" hidden>審査のため非表示にする</Button>
-      <Button type="button" id="delete" variant="destructive" class="ml-auto">削除</Button>
+      <Button
+        type="button"
+        id="delete"
+        variant="outline"
+        class="ml-auto border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+      >削除</Button>
     </div>
   </form>
-  <div id="preview-modal" role="dialog" aria-label="プレビュー" hidden>
-    <div class="flex justify-end">
-      <Button type="button" id="preview-close" variant="outline" size="sm">閉じる</Button>
-    </div>
-    <div id="preview-body" class="mx-auto max-w-2xl"></div>
-  </div>
   <p id="message" role="alert" class="mt-4 text-sm text-destructive"></p>
 
   <script>
@@ -150,9 +148,10 @@ const title = '記事の編集 | Wild Media CMS';
       import { initInterviewDialog } from '../../lib/interview-dialog';
       import { createInterviewPlugin, insertInterviewBlock } from '../../lib/interview-nodeview';
       import { renderTocPanel } from '../../lib/toc-panel';
-      import { renderPreviewHtml } from '../../lib/editor-preview';
       import { initCharCount } from '../../lib/char-count';
       import { createAutosave, saveDraftBackup, loadDraftBackup, clearDraftBackup } from '../../lib/autosave';
+      import { initConfirmDialog } from '../../lib/confirm-dialog';
+      import { setButtonVariant } from '../../lib/button-variants';
       import { triggerChunking } from '../../lib/search-index';
       import CharacterCount from '@tiptap/extension-character-count';
 
@@ -185,7 +184,21 @@ const title = '記事の編集 | Wild Media CMS';
           const cover = initCoverWidget(supabaseBrowser);
           cover.setUrl(article.coverImageUrl);
           $('commission').value = article.commissionTokenInput ?? '';
-          statusLabel.textContent = `状態: ${article.status === 'draft' ? '下書き' : '公開中'}`;
+
+          const saveDraftBtn = document.getElementById('save-draft') as HTMLButtonElement;
+          const publishBtn = document.getElementById('publish') as HTMLButtonElement;
+          const unpublishBtn = document.getElementById('unpublish') as HTMLButtonElement;
+          // 状態で見せるボタンを絞る: 下書き中は「公開する」が主役、公開中は
+          // 「変更を保存」(公開のまま上書き)が主役で「下書きに戻す」を出す。
+          const renderStatusUI = (status: string) => {
+            const isDraft = status === 'draft';
+            statusLabel.textContent = `状態: ${isDraft ? '下書き' : '公開中'}`;
+            publishBtn.hidden = !isDraft;
+            unpublishBtn.hidden = isDraft;
+            saveDraftBtn.textContent = isDraft ? '下書き保存' : '変更を保存';
+            setButtonVariant(saveDraftBtn, isDraft ? 'secondary' : 'default');
+          };
+          renderStatusUI(article.status);
 
           const holdNoticeEl = document.getElementById('hold-notice')!;
           const holdAtEl = document.getElementById('hold-at')!;
@@ -376,7 +389,7 @@ const title = '記事の編集 | Wild Media CMS';
               clearDraftBackup(id);
               messageEl.textContent = publish ? '公開しました。' : '保存しました。';
               const fresh = await fetchArticleForEdit(supabaseBrowser, id);
-              if (fresh) statusLabel.textContent = `状態: ${fresh.status === 'draft' ? '下書き' : '公開中'}`;
+              if (fresh) renderStatusUI(fresh.status);
             } catch (err) {
               if (err instanceof Error && err.message === 'CONFLICT') {
                 messageEl.textContent = '他の場所でこの記事が更新されています。ページを再読み込みしてください。';
@@ -405,32 +418,24 @@ const title = '記事の編集 | Wild Media CMS';
               if (data) currentUpdatedAt = data.updated_at as string;
               clearDraftBackup(id);
               messageEl.textContent = '下書きに戻しました。';
-              statusLabel.textContent = '状態: 下書き';
+              renderStatusUI('draft');
             } catch (err) {
               messageEl.textContent = translateSaveError(err);
               console.error(err);
             }
           });
 
-          const previewModal = document.getElementById('preview-modal') as HTMLElement;
-          const previewBody = document.getElementById('preview-body')!;
-          document.getElementById('preview-toggle')!.addEventListener('click', async () => {
-            previewBody.innerHTML = await renderPreviewHtml(editor, imageBaseUrl);
-            previewModal.hidden = false;
-          });
-          document.getElementById('preview-close')!.addEventListener('click', () => {
-            previewModal.hidden = true;
-          });
-
-          const deleteBtn = document.getElementById('delete')!;
-          let deleteArmed = false;
-          deleteBtn.addEventListener('click', async () => {
+          const confirmDialog = initConfirmDialog(
+            document.getElementById('confirm-dialog') as HTMLDialogElement,
+          );
+          document.getElementById('delete')!.addEventListener('click', async () => {
             messageEl.textContent = '';
-            if (!deleteArmed) {
-              deleteArmed = true;
-              deleteBtn.textContent = '本当に削除?(もう一度押す)';
-              return;
-            }
+            const ok = await confirmDialog.confirm({
+              title: '記事を削除しますか?',
+              body: `「${$('title').value.trim() || '無題の記事'}」を削除します。この操作は取り消せません。`,
+              confirmLabel: '削除する',
+            });
+            if (!ok) return;
             try {
               await deleteArticle(supabaseBrowser, id);
               redirectTo('/dashboard');

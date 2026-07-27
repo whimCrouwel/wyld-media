@@ -247,9 +247,8 @@
     @apply block rounded px-2 py-1 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground;
   }
 
-  /* Editor: media + preview modals */
-  #media-modal:not([hidden]),
-  #preview-modal:not([hidden]) {
+  /* Editor: media modal */
+  #media-modal:not([hidden]) {
     @apply fixed inset-0 z-50 flex flex-col gap-3 overflow-auto bg-background/95 p-6 backdrop-blur-sm;
   }
   #media-grid {

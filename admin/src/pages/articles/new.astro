@@ -96,16 +96,9 @@ const title = '新しい記事 | Wild Media CMS';
 
     <div class="flex flex-wrap gap-3 border-t pt-4">
       <Button type="button" id="create-draft">下書きを作成して編集へ</Button>
-      <Button type="button" id="preview-toggle" variant="outline">プレビュー</Button>
     </div>
     <p class="text-sm text-muted-foreground">公開は、下書き作成後の編集ページから行います。</p>
   </form>
-  <div id="preview-modal" role="dialog" aria-label="プレビュー" hidden>
-    <div class="flex justify-end">
-      <Button type="button" id="preview-close" variant="outline" size="sm">閉じる</Button>
-    </div>
-    <div id="preview-body" class="mx-auto max-w-2xl"></div>
-  </div>
   <p id="message" role="alert" class="mt-4 text-sm text-destructive"></p>
 
   <script>
@@ -125,7 +118,6 @@ const title = '新しい記事 | Wild Media CMS';
       import { initInterviewDialog } from '../../lib/interview-dialog';
       import { createInterviewPlugin, insertInterviewBlock } from '../../lib/interview-nodeview';
       import { renderTocPanel } from '../../lib/toc-panel';
-      import { renderPreviewHtml } from '../../lib/editor-preview';
       import { initCharCount } from '../../lib/char-count';
       import { triggerChunking } from '../../lib/search-index';
       import CharacterCount from '@tiptap/extension-character-count';
@@ -276,16 +268,6 @@ const title = '新しい記事 | Wild Media CMS';
         const collect = () => ({
           title: $('title').value, slug: $('slug').value, body: getBodyBlocks(editor),
           coverUrl: cover.getUrl(), commissionToken: $('commission').value, region: defaultRegion,
-        });
-
-        const previewModal = document.getElementById('preview-modal') as HTMLElement;
-        const previewBody = document.getElementById('preview-body')!;
-        document.getElementById('preview-toggle')!.addEventListener('click', async () => {
-          previewBody.innerHTML = await renderPreviewHtml(editor, imageBaseUrl);
-          previewModal.hidden = false;
-        });
-        document.getElementById('preview-close')!.addEventListener('click', () => {
-          previewModal.hidden = true;
         });
 
         const draftBtn = document.getElementById('create-draft') as HTMLButtonElement;
