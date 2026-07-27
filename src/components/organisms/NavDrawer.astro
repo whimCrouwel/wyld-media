@@ -86,6 +86,19 @@ const areas = areaLinks ?? (await getAreaLinks(supabaseServer));
     </div>
 
     <div class="nav-drawer-body">
+      <div id="announcement-banner" class="announcement-banner" hidden data-lenis-prevent>
+        <button type="button" id="announcement-banner-open" class="announcement-banner-open">
+          <span id="announcement-banner-title" class="announcement-banner-title"></span>
+        </button>
+        <button
+          type="button"
+          id="announcement-banner-dismiss"
+          class="announcement-banner-dismiss"
+          aria-label="お知らせを閉じる"
+        >
+          ×
+        </button>
+      </div>
       <MetaLabel class="area-heading-en">{areaMode === 'filter' ? areaFilterLabel.en : 'Articles per Area'}</MetaLabel>
       <span class="area-heading-ja">
         {areaMode === 'filter' ? areaFilterLabel.ja : '地域から記事を探す'}
@@ -100,6 +113,7 @@ const areas = areaLinks ?? (await getAreaLinks(supabaseServer));
 <script>
   import '../../scripts/nav-drawer';
   import '../../scripts/area-sheet';
+  import '../../scripts/announcement-banner';
 </script>
 
 <style>
@@ -226,6 +240,51 @@ const areas = areaLinks ?? (await getAreaLinks(supabaseServer));
     .nav-drawer {
       transition: none;
     }
+  }
+
+  .announcement-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.9rem;
+    padding: 0.5rem 0.6rem;
+    border-radius: 10px;
+    background-color: color-mix(in srgb, var(--color-accent) 18%, transparent);
+  }
+
+  .announcement-banner-open {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-bg);
+  }
+
+  .announcement-banner-title {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .announcement-banner-dismiss {
+    flex-shrink: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: var(--color-meta);
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  html.drawer-closed .announcement-banner {
+    display: none;
   }
 
   .area-sheet-backdrop {

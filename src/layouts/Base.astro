@@ -5,6 +5,7 @@ import SiteHeader from '../components/organisms/SiteHeader.astro';
 import NavDrawer from '../components/organisms/NavDrawer.astro';
 import MobileTabBar from '../components/organisms/MobileTabBar.astro';
 import SearchModal from '../components/organisms/SearchModal.astro';
+import AnnouncementModal from '../components/organisms/AnnouncementModal.astro';
 import BgGrid from '../components/organisms/BgGrid.astro';
 import MetaLabel from '../components/atoms/MetaLabel.astro';
 import type { AreaLink } from '../lib/sidebar';
@@ -124,6 +125,7 @@ const siteSchema = webSiteSchema({ name: siteName, url: siteUrl, inLanguage: 'ja
     </div>
     <MobileTabBar />
     <SearchModal />
+    <AnnouncementModal />
   </body>
 </html>
 
