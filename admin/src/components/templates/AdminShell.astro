@@ -100,6 +100,11 @@ const navLinkActive = 'bg-sidebar-accent text-sidebar-accent-foreground';
         </div>
       </nav>
 
+      <div id="announcement-section" hidden class="mt-4 flex flex-col gap-1 border-t border-sidebar-border pt-3">
+        <p class="px-3 text-xs font-medium uppercase tracking-wide text-sidebar-foreground/50">お知らせ</p>
+        <ul id="announcement-list" class="flex flex-col gap-1"></ul>
+      </div>
+
       <div class="mt-auto flex shrink-0 flex-col gap-1 border-t border-sidebar-border pt-3">
         <button id="logout" type="button" class={`${navLink} w-full text-left`}>
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0" aria-hidden="true">

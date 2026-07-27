@@ -1,5 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { fetchMyRole, fetchMyProfile, type Role } from './admin';
+import { fetchAnnouncements } from './announcements';
+import { initAnnouncementDialog } from './announcement-dialog';
 import { toAvatarViewModel, applyAvatar } from './avatar';
 import { redirectTo } from './auth';
 
@@ -59,6 +61,35 @@ export async function initShellChrome(supabase: SupabaseClient): Promise<ShellCh
     }
   } catch (err) {
     console.error(err);
+  }
+
+  // ライター/事業者向けのお知らせ一覧。RLSが自分向け・公開済みのみ返す。
+  if (role === 'writer' || role === 'provider') {
+    try {
+      const announcements = await fetchAnnouncements(supabase, { limit: 5 });
+      if (announcements.length > 0) {
+        const sectionEl = document.getElementById('announcement-section');
+        const listEl = document.getElementById('announcement-list');
+        const dialogEl = document.getElementById('announcement-dialog') as HTMLDialogElement | null;
+        if (sectionEl && listEl && dialogEl) {
+          const dialog = initAnnouncementDialog(dialogEl);
+          for (const a of announcements) {
+            const li = document.createElement('li');
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className =
+              'flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground';
+            btn.textContent = a.title;
+            btn.addEventListener('click', () => dialog.show(a.title, a.body));
+            li.appendChild(btn);
+            listEl.appendChild(li);
+          }
+          sectionEl.hidden = false;
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
   }
 
   return { role, roleLookupFailed };
