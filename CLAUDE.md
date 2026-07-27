@@ -8,6 +8,7 @@
 
 ## 絶対に守ること
 
+- **並列開発中かもしれない。** 別のターミナルのエージェントが同時にこのリポジトリで作業していることがある。作業開始前に必ず [docs/PARALLEL-DEV.md](docs/PARALLEL-DEV.md) を読み、`AGENTS-ACTIVE.local.md`(宣言板)を確認して自分の作業ブロックを宣言すること。特に git 操作(`add -A`・ブランチ切替・`stash`・`reset --hard` の禁止)と `supabase db reset` の禁止は厳守。
 - **権限・ビジネスルールは DB 層(RLS・トリガー)で強制する。** CMS はブラウザから anon key で Supabase に直結しており、クライアント側のチェックはUX目的でしかない。新ルールはまずマイグレーション+pgTAP テストで書く。
 - **service role key を `admin/` に入れない。** 公開サイトのビルド時(`src/lib/supabase-server.ts`)専用。
 - ホスティングは **Vercel**(Cloudflare Pages ではない)。画像ストレージは Cloudflare R2。
