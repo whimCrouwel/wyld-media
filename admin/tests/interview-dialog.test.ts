@@ -112,6 +112,66 @@ describe('initInterviewDialog', () => {
     expect(avatar.src).toBe('https://img.test/me.webp');
   });
 
+  it('pre-fills speaker A with writer name + role "聞き手" + usable profile avatar on fresh open', async () => {
+    const { modalEl, formEl, addBtn, saveBtn, cancelBtn } = setup();
+    const dialog = initInterviewDialog(fakeSupabase, {
+      modalEl, formEl, addBtn, saveBtn, cancelBtn,
+      myProfile: { name: '田中 花', avatarUrl: 'https://img.test/hana.webp' },
+      imageBaseUrl: 'https://img.test/',
+    });
+    const pending = dialog.open();
+    const nameA = formEl.querySelector('[data-speaker-card="A"] [name="name"]') as HTMLInputElement;
+    const roleA = formEl.querySelector('[data-speaker-card="A"] [name="role"]') as HTMLInputElement;
+    const avatarA = formEl.querySelector('[data-speaker-card="A"] img.speaker-card__avatar') as HTMLImageElement;
+    expect(nameA.value).toBe('田中 花');
+    expect(roleA.value).toBe('聞き手');
+    expect(avatarA?.src).toBe('https://img.test/hana.webp');
+    // B は空のまま
+    const nameB = formEl.querySelector('[data-speaker-card="B"] [name="name"]') as HTMLInputElement;
+    expect(nameB.value).toBe('');
+    // save のためだけに B にも名前を入れる (validate 通過用)
+    nameB.value = 'ゲスト';
+    saveBtn.click();
+    const result = await pending;
+    expect(result?.[0].name).toBe('田中 花');
+    expect(result?.[0].role).toBe('聞き手');
+    expect(result?.[0].avatarUrl).toBe('https://img.test/hana.webp');
+  });
+
+  it('pre-fills speaker A with name + role but empty avatar when profile avatar host is not allowed', () => {
+    const { modalEl, formEl, addBtn, saveBtn, cancelBtn } = setup();
+    const dialog = initInterviewDialog(fakeSupabase, {
+      modalEl, formEl, addBtn, saveBtn, cancelBtn,
+      myProfile: { name: '田中 花', avatarUrl: 'https://picsum.photos/200' },
+      imageBaseUrl: 'https://img.test/',
+    });
+    dialog.open();
+    const nameA = formEl.querySelector('[data-speaker-card="A"] [name="name"]') as HTMLInputElement;
+    const roleA = formEl.querySelector('[data-speaker-card="A"] [name="role"]') as HTMLInputElement;
+    expect(nameA.value).toBe('田中 花');
+    expect(roleA.value).toBe('聞き手');
+    // avatar は placeholder のまま (画像なし)
+    expect(formEl.querySelector('[data-speaker-card="A"] img.speaker-card__avatar')).toBeNull();
+    expect(formEl.querySelector('[data-speaker-card="A"] .speaker-card__avatar--placeholder')).not.toBeNull();
+  });
+
+  it('does NOT override initial speakers with profile defaults when editing existing interview', () => {
+    const { modalEl, formEl, addBtn, saveBtn, cancelBtn } = setup();
+    const dialog = initInterviewDialog(fakeSupabase, {
+      modalEl, formEl, addBtn, saveBtn, cancelBtn,
+      myProfile: { name: '田中 花', avatarUrl: 'https://img.test/hana.webp' },
+      imageBaseUrl: 'https://img.test/',
+    });
+    dialog.open([
+      { key: 'A', name: '既存A', role: '既存肩書き', avatarUrl: '' },
+      { key: 'B', name: '既存B', role: '', avatarUrl: '' },
+    ]);
+    const nameA = formEl.querySelector('[data-speaker-card="A"] [name="name"]') as HTMLInputElement;
+    const roleA = formEl.querySelector('[data-speaker-card="A"] [name="role"]') as HTMLInputElement;
+    expect(nameA.value).toBe('既存A');
+    expect(roleA.value).toBe('既存肩書き');
+  });
+
   it('rejects save with empty name and marks the field', () => {
     const { modalEl, formEl, addBtn, saveBtn, cancelBtn } = setup();
     const dialog = initInterviewDialog(fakeSupabase, {

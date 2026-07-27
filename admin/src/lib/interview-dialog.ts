@@ -201,11 +201,24 @@ export function initInterviewDialog(
     }
   });
 
+  // 新規インタビュー時の話者 A のデフォルト。A は聞き手(=ライター本人)なので、
+  // 名前・肩書き・(使えるなら)プロフィール画像をあらかじめセットしておく。
+  // profile が無い匿名操作時は空 A で開く。
+  function defaultSpeakerA(): Speaker {
+    if (!myProfile) return emptySpeaker('A');
+    return {
+      key: 'A',
+      name: myProfile.name || '',
+      role: '聞き手',
+      avatarUrl: profileAvatarUsable ? (myProfile.avatarUrl ?? '') : '',
+    };
+  }
+
   return {
     open(initial?: Speaker[]) {
       workingSpeakers = initial && initial.length > 0
         ? structuredClone(initial)
-        : [emptySpeaker('A'), emptySpeaker('B')];
+        : [defaultSpeakerA(), emptySpeaker('B')];
       render();
       modalEl.hidden = false;
       return new Promise<Speaker[] | null>((resolve) => {
