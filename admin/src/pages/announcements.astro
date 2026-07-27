@@ -1,0 +1,233 @@
+---
+import AdminShell from '../components/templates/AdminShell.astro';
+import Card from '../components/atoms/Card.astro';
+import Button from '../components/atoms/Button.astro';
+import Field from '../components/molecules/Field.astro';
+
+const title = 'お知らせ管理 | Wild Media CMS';
+---
+<AdminShell title={title} heading="お知らせ管理" wide>
+  <div class="space-y-6">
+    <Card class="p-6">
+      <h2 id="form-heading" class="mb-4 text-lg font-semibold tracking-tight">新しいお知らせを作成</h2>
+      <form id="announcement-form" class="space-y-4">
+        <Field id="ann-title" label="タイトル" type="text" required />
+        <Field id="ann-body" label="本文" as="textarea" rows={5} required />
+        <div class="space-y-2">
+          <span class="text-sm font-medium">対象</span>
+          <div class="flex flex-col gap-2">
+            <label class="flex items-center gap-2 text-sm">
+              <input id="ann-audience-writer" type="checkbox" class="h-4 w-4 rounded border-input" />
+              ライター
+            </label>
+            <label class="flex items-center gap-2 text-sm">
+              <input id="ann-audience-provider" type="checkbox" class="h-4 w-4 rounded border-input" />
+              サービスプロバイダー
+            </label>
+            <label class="flex items-center gap-2 text-sm">
+              <input id="ann-audience-end_user" type="checkbox" class="h-4 w-4 rounded border-input" />
+              エンドユーザー(公開サイト)
+            </label>
+          </div>
+        </div>
+        <label class="flex items-center gap-2 text-sm">
+          <input id="ann-published" type="checkbox" class="h-4 w-4 rounded border-input" />
+          公開する
+        </label>
+        <div class="flex items-center gap-2 pt-2">
+          <Button type="submit" id="ann-submit">作成</Button>
+          <Button type="button" id="ann-cancel-edit" variant="outline" hidden>編集をキャンセル</Button>
+        </div>
+      </form>
+    </Card>
+
+    <Card class="p-6">
+      <h2 class="mb-4 text-lg font-semibold tracking-tight">お知らせ一覧</h2>
+      <table class="admin-table">
+        <thead>
+          <tr><th>タイトル</th><th>対象</th><th>状態</th><th></th></tr>
+        </thead>
+        <tbody id="announcement-rows"><tr><td colspan="4">読み込み中…</td></tr></tbody>
+      </table>
+    </Card>
+
+    <p id="message" role="alert" class="text-sm text-muted-foreground"></p>
+  </div>
+
+  <script>
+    import { supabaseBrowser } from '../lib/supabase-browser';
+    import { redirectTo } from '../lib/auth';
+    import {
+      fetchAnnouncements, createAnnouncement, updateAnnouncement, deleteAnnouncement,
+      type AnnouncementAudience,
+    } from '../lib/announcements';
+    import { initShellChrome } from '../lib/shell';
+    import { initConfirmDialog } from '../lib/confirm-dialog';
+
+    const { data: { session } } = await supabaseBrowser.auth.getSession();
+    if (!session) {
+      redirectTo('/login');
+    } else {
+      const { role, roleLookupFailed } = await initShellChrome(supabaseBrowser);
+      if (roleLookupFailed) {
+        document.getElementById('message')!.textContent =
+          '権限の確認に失敗しました。ページを再読み込みしてください。';
+      } else if (role !== 'admin') {
+        // UX のためのリダイレクト。実際の防壁は RLS。
+        redirectTo('/dashboard');
+      } else {
+        const messageEl = document.getElementById('message')!;
+        const tbody = document.getElementById('announcement-rows')!;
+        const form = document.getElementById('announcement-form') as HTMLFormElement;
+        const submitBtn = document.getElementById('ann-submit') as HTMLButtonElement;
+        const cancelEditBtn = document.getElementById('ann-cancel-edit') as HTMLButtonElement;
+        const formHeading = document.getElementById('form-heading')!;
+        const titleEl = document.getElementById('ann-title') as HTMLInputElement;
+        const bodyEl = document.getElementById('ann-body') as HTMLTextAreaElement;
+        const publishedEl = document.getElementById('ann-published') as HTMLInputElement;
+        const audienceEls: Record<AnnouncementAudience, HTMLInputElement> = {
+          writer: document.getElementById('ann-audience-writer') as HTMLInputElement,
+          provider: document.getElementById('ann-audience-provider') as HTMLInputElement,
+          end_user: document.getElementById('ann-audience-end_user') as HTMLInputElement,
+        };
+        const confirmDialog = initConfirmDialog(
+          document.getElementById('confirm-dialog') as HTMLDialogElement,
+        );
+
+        let editingId: string | null = null;
+        let inFlight = false;
+
+        const resetForm = () => {
+          editingId = null;
+          form.reset();
+          formHeading.textContent = '新しいお知らせを作成';
+          submitBtn.textContent = '作成';
+          cancelEditBtn.hidden = true;
+        };
+
+        const audienceLabel: Record<AnnouncementAudience, string> = {
+          writer: 'ライター', provider: '事業者', end_user: 'エンドユーザー',
+        };
+
+        const renderRows = async () => {
+          const list = await fetchAnnouncements(supabaseBrowser);
+          tbody.innerHTML = '';
+          if (list.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4">お知らせはまだありません。</td></tr>';
+            return;
+          }
+          for (const a of list) {
+            const tr = document.createElement('tr');
+            const titleTd = document.createElement('td');
+            titleTd.textContent = a.title;
+            const audiencesTd = document.createElement('td');
+            audiencesTd.textContent = a.audiences.map((x) => audienceLabel[x]).join(' / ');
+            const statusTd = document.createElement('td');
+            statusTd.textContent = a.published ? '公開中' : '下書き';
+            const actionsTd = document.createElement('td');
+
+            const editBtn = document.createElement('button');
+            editBtn.type = 'button';
+            editBtn.textContent = '編集';
+            editBtn.addEventListener('click', () => {
+              editingId = a.id;
+              titleEl.value = a.title;
+              bodyEl.value = a.body;
+              publishedEl.checked = a.published;
+              for (const key of Object.keys(audienceEls) as AnnouncementAudience[]) {
+                audienceEls[key].checked = a.audiences.includes(key);
+              }
+              formHeading.textContent = 'お知らせを編集';
+              submitBtn.textContent = '更新';
+              cancelEditBtn.hidden = false;
+              titleEl.focus();
+            });
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.type = 'button';
+            deleteBtn.textContent = '削除';
+            deleteBtn.addEventListener('click', async () => {
+              const ok = await confirmDialog.confirm({
+                title: 'このお知らせを削除しますか?',
+                body: '元に戻せません。',
+              });
+              if (!ok) return;
+              messageEl.textContent = '';
+              try {
+                await deleteAnnouncement(supabaseBrowser, a.id);
+              } catch (err) {
+                messageEl.textContent = '削除に失敗しました。';
+                console.error(err);
+                return;
+              }
+              if (editingId === a.id) resetForm();
+              try {
+                await renderRows();
+              } catch (err) {
+                messageEl.textContent = '一覧の再読み込みに失敗しました。ページを再読み込みしてください。';
+                console.error(err);
+              }
+            });
+
+            actionsTd.appendChild(editBtn);
+            actionsTd.appendChild(deleteBtn);
+            tr.appendChild(titleTd);
+            tr.appendChild(audiencesTd);
+            tr.appendChild(statusTd);
+            tr.appendChild(actionsTd);
+            tbody.appendChild(tr);
+          }
+        };
+
+        try {
+          await renderRows();
+        } catch (err) {
+          tbody.innerHTML = '<tr><td colspan="4">読み込みに失敗しました。</td></tr>';
+          console.error(err);
+        }
+
+        cancelEditBtn.addEventListener('click', resetForm);
+
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          if (inFlight) return;
+          messageEl.textContent = '';
+          const input = {
+            title: titleEl.value,
+            body: bodyEl.value,
+            audiences: (Object.keys(audienceEls) as AnnouncementAudience[]).filter(
+              (key) => audienceEls[key].checked,
+            ),
+            published: publishedEl.checked,
+          };
+          inFlight = true;
+          submitBtn.disabled = true;
+          try {
+            try {
+              if (editingId) {
+                await updateAnnouncement(supabaseBrowser, editingId, input);
+              } else {
+                await createAnnouncement(supabaseBrowser, input);
+              }
+            } catch (err) {
+              messageEl.textContent = err instanceof Error ? err.message : '保存に失敗しました。';
+              console.error(err);
+              return;
+            }
+            messageEl.textContent = editingId ? '更新しました。' : '作成しました。';
+            resetForm();
+            try {
+              await renderRows();
+            } catch (err) {
+              messageEl.textContent += ' 一覧の再読み込みに失敗しました。ページを再読み込みしてください。';
+              console.error(err);
+            }
+          } finally {
+            inFlight = false;
+            submitBtn.disabled = false;
+          }
+        });
+      }
+    }
+  </script>
+</AdminShell>
