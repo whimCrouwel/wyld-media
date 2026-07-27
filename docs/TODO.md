@@ -13,7 +13,7 @@
 
 - [ ] `triggerChunking()`(`admin/src/lib/search-index.ts:7`)が `chunk-article` 呼び出し失敗を `console.warn` で握りつぶすだけで、記事が「公開済みだが検索不可」の状態になっても管理者に見える形での警告や再インデックス(バックフィル)手段がない — 対応は今回見送り、将来対応として記録のみ。
 
-- [ ] 検索結果に検索語と無関係な記事が混ざる(関連度の足切りがない)— `search_articles_hybrid`(`supabase/migrations/20260713100100_search_articles_hybrid.sql`)はベクトル検索(上位50件)とPGroongaフルテキスト検索(上位50件)をRRFで `full outer join` しており、どちらか一方の上位50件に入っているだけで実質無関係な記事にも `score` が付いて返ってしまう。呼び出し元 `supabase/functions/search-articles/index.ts:54-58` は `match_count: 10` 固定で、`score` による足切りをしていないため、関連する記事が1〜2件しかなくても残りの枠が弱い一致で埋まる。対応案: `score`(RRF値)に最低閾値を設けて足切りする、閾値未満しかない場合は0件(「見つかりませんでした」)として返す。閾値の具体的な値はサンプルクエリでの実測が必要。
+- [ ] `supabase/tests/database/11_search_articles_hybrid.test.sql:65` のコメントが記事F(離れた記事)のベクトル距離を「≈0.5527」としているが、実測(`'[1,0]'::vector(2) <=> '[0.3,0.7]'::vector(2)`)は0.6061で、コメントの数値が古い/誤り。テスト自体のアサーションは実際の距離(0.6061)を前提に正しく動いている(2026-07-28、`20260728120000_search_articles_hybrid_relax_threshold.sql` の閾値変更検証中に気付いた)。コメント修正のみ、動作影響なし。
 
 - [ ] プロバイダー⇔ライターの依頼トークン制フロー(設計中、`docs/superpowers/specs/` に依頼トークン設計spec予定)で、両者がプロセス(依頼→トークン発行→オフライン交渉→公開時にトークン入力)を理解できるよう説明するポップアップUIが必要。今回のスコープでは見送り、実装は次回。対象になりそうな箇所: プロバイダー側の依頼UI(新規)、`admin/src/pages/articles/new.astro`・`edit.astro` のトークン入力欄まわり。
 
@@ -31,6 +31,7 @@
 
 ## Done
 
+- [x] 検索結果に検索語と無関係な記事が混ざる(関連度の足切りがない) — `20260724100200_search_articles_hybrid_threshold.sql` でベクトルCTEに `max_distance`(既定0.5)を導入して解消済み。ただしこの既定値0.5がキツすぎ、キーワードが本文と一致しない自然文クエリで本来ヒットすべき記事まで除外する偽陰性の副作用を確認(2026-07-28、Chrome実機確認+実embedding距離計測: 「森林保全の取り組み」と `企業の森づくり最前線` の距離0.5331が0.5をわずかに超過し除外→0件)。`20260728120000_search_articles_hybrid_relax_threshold.sql` で0.6へ緩和して修正・確認済み(pgTAPテスト・実edge function・ブラウザとも確認)。根本的には「距離の固定カットオフ」自体が seed のごく少数の記事構成に基づくヒューリスティックなので、記事数が増えたら再チューニングが要る可能性は残る。
 - [x] **インタビュー・ブロックを自己完結にし、発言/ブロック単位の削除UIを追加** — (1) 中で `/` を押してもスラッシュメニューを発火させない(`admin/src/lib/insert-menu.ts` に `isInsideInterview` 述語を追加し `Suggestion.allow` で除外+`initInsertButton` の `＋` も interview 内では非表示)、(2) 各発言(turn)の右上に×ボタン(hover表示)、`turn--only` decoration + CSS で最後の 1 発言では隠す・実行時ガード付き、(3) 話者ツールバーに「ブロックを削除」ボタン(`window.confirm` 付き)。テスト 5 件追加(admin/tests/insert-menu.test.ts, admin/tests/interview-nodeview.test.ts)。E2Eで動作確認済み(2026-07-27)。
 
 - [x] **ルートの `npm test` が `tests/life-sim.test.ts` の import で失敗する** — `src/lib/life-sim.ts` は既に削除済みだったのでテスト側も削除して整合。関連commit: (次のcommit)。
