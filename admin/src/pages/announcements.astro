@@ -36,7 +36,7 @@ const title = 'お知らせ管理 | Wild Media CMS';
         </label>
         <div class="flex items-center gap-2 pt-2">
           <Button type="submit" id="ann-submit">作成</Button>
-          <Button type="button" id="ann-cancel-edit" variant="outline" hidden>編集をキャンセル</Button>
+          <Button type="button" id="ann-cancel-edit" variant="outline">編集をキャンセル</Button>
         </div>
       </form>
     </Card>
@@ -81,6 +81,7 @@ const title = 'お知らせ管理 | Wild Media CMS';
         const form = document.getElementById('announcement-form') as HTMLFormElement;
         const submitBtn = document.getElementById('ann-submit') as HTMLButtonElement;
         const cancelEditBtn = document.getElementById('ann-cancel-edit') as HTMLButtonElement;
+        cancelEditBtn.hidden = true;
         const formHeading = document.getElementById('form-heading')!;
         const titleEl = document.getElementById('ann-title') as HTMLInputElement;
         const bodyEl = document.getElementById('ann-body') as HTMLTextAreaElement;
