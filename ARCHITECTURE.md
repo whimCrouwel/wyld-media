@@ -43,6 +43,7 @@ Wild Media の「いまの姿」の地図。意思決定の経緯は [設計ス�
 - **クライアントは信頼しない。** CMS は anon key でブラウザから直接 Supabase を叩くため、devtools から任意のクエリを送れる前提。権限は RLS、ビジネスルール(投稿頻度制限・role 自己昇格防止・publish 条件)は DB トリガーで強制する。**新しいルールを足すときは必ず DB 層に置く。**
 - service role key は公開サイトのビルド時のみ使用(`src/lib/supabase-server.ts`)。ブラウザに渡るコードから import しない。
 - セルフサインアップは完全無効。ユーザー作成は `invite-user` Edge Function 経由のみ(関数内でも呼び出し元 role を DB 照合)。
+- `announcements` テーブルは唯一、公開サイトのブラウザが anon key + RLS で直接読む(他の公開データはビルド時に service role で取得)。RLS(`published=true and 'end_user' = ANY(audiences)`)が可視範囲の実体。
 
 ## 主要ルール
 

@@ -14,6 +14,7 @@ erDiagram
     profiles |o--o{ articles : "commissioned_by (nullable)"
     profiles |o--o{ articles : "moderation_hold_by (nullable)"
     articles ||--o{ post_chunks : "article_id (cascade delete)"
+    profiles |o--o{ announcements : "created_by (nullable)"
 
     "auth.users" {
         uuid id PK
@@ -103,6 +104,17 @@ erDiagram
         timestamptz created_at
     }
 
+    announcements {
+        uuid id PK
+        text title
+        text body
+        text_array audiences "writer/provider/end_user の組み合わせ、空不可"
+        boolean published
+        uuid created_by FK "-> profiles.id, nullable"
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
     post_chunks {
         uuid id PK
         uuid article_id FK "-> articles.id, cascade delete"
@@ -125,6 +137,7 @@ erDiagram
 | `settings` | RLS: authenticated 全員read、admin write | シングルトン(`id=1`固定)。`image_base_url` は空文字が既定(fail closed) |
 | `pricing_items` | RLS: writer 本人 or admin(select/insert/update/delete)。CMS内で他人の料金は見えない | ライターの公開プロフィール(`/writers/[slug]`)に載せる料金プラン。`published=true` の行を `sort_order` 昇順で表示。公開サイトのビルドは service role で読むので RLS はバイパスされる |
 | `media` | RLS: 所有者 or admin | R2にアップロード済み画像のURL記録のみ。記事から参照中の画像は削除不可(`block_media_in_use`) |
+| `announcements` | RLS: admin は全件CRUD。writer/providerはpublished=trueかつ自分のaudienceのみselect。anonはpublished=trueかつend_user向けのみselect | 公開サイトが初めてブラウザから直接(anon key + RLS)読むテーブル。他の公開データはビルド時にservice roleで読む |
 | `post_chunks` | RLS: ポリシーなし(service role専用) | ハイブリッド検索用。`embedding`(pgvector, 1536次元)+ `content`(pgroonga全文検索対象)。anon/authenticatedからは直接アクセス不可、`chunk-article`/`search-articles` Edge Function経由のみ |
 
 ## 主なDB関数(トリガー・RPC)
@@ -133,6 +146,7 @@ erDiagram
 |---|---|---|
 | `is_admin()` | トリガー内で使用 | 呼び出しユーザーがadmin roleかを判定 |
 | `is_writer()` | RLSポリシー内で使用 | 呼び出しユーザーがwriter roleかを判定(`articles` insert の制限に使用) |
+| `is_provider()` | RLSポリシー内で使用 | 呼び出しユーザーがprovider roleかを判定(`announcements` select の対象出し分けに使用) |
 | `set_commission_token()` | トリガー | `commission_tokens` insert時、provider_idを呼び出し本人に強制し、トークンを自動採番 |
 | `guard_commission_token_revoke()` | トリガー | `revoked_at` の null→非null 変更のみ許可し、使用済みトークンの取消を拒否 |
 | `validate_commission_token(token, article_id)` | RPC | 依頼トークンの実在チェック(呼び出し本人宛て・未取消・未使用〈article_idは自分自身を除外〉のみ応答) |
