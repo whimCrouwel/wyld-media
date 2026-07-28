@@ -46,6 +46,14 @@ supabase functions deploy invite-user r2-upload-url
 - [ ] 画像ホストを後から変える場合は、この値と既存のURLを同時に書き換える:
       `update articles set cover_image_url = replace(cover_image_url, '<旧>', '<新>'), body = replace(body, '<旧>', '<新>');`
       `update media set url = replace(url, '<旧>', '<新>');`
+- [ ] Edge Function `cleanup-orphaned-media` をデプロイする(`supabase functions deploy cleanup-orphaned-media`)。
+      env は `r2-delete-object` と共通(R2_* が既に設定済みなら追加不要)
+- [ ] 未使用メディア週次掃除の Vault シークレットを設定する(SQL Editor で):
+      `select vault.create_secret('https://<project-ref>.supabase.co', 'project_url');`
+      `select vault.create_secret('<service_role_key>', 'service_role_key');`
+      未設定の間、pg_cron ジョブ(毎週月曜 9:00 JST)は NOTICE を出して静かにスキップする(エラーにはならない)。
+      設定後 `select public.invoke_cleanup_orphaned_media();` を1回実行し、Edge Functions のログで
+      `cleanup-orphaned-media: deleted N media rows` が出ること・`select * from cron.job;` にジョブが居ることを確認
 
 ## フロントエンド(Vercel プロジェクト ×2)
 - [ ] 公開サイト: Vercel プロジェクト作成(Root Directory = リポジトリ直下、Framework = Astro)。env に `PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`(ビルド時のみ使用)/ `PUBLIC_SUPABASE_ANON_KEY` を設定し、ルートドメインを割り当て

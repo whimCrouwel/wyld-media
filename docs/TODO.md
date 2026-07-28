@@ -29,6 +29,10 @@
 
 - [ ] **【要調査・データ破損】** ローカルDBの本物の記事5件すべての `body` が、同一のテスト用インタビューブロック内容(話者「米田」「川崎」、発言「プラスチックを拾ったきっかけは?…」)に上書きされている: `kaigan-seisou`・`kigyou-no-mori`・`kawabe-kansatsu`・`koke-no-mori`・`toshi-no-yachou`(2026-07-28、Chrome実機確認+DB直接クエリで確認)。決め手は `updated_at`: `kaigan-seisou`/`kigyou-no-mori`/`kawabe-kansatsu` の3件がミリ秒まで完全一致(`2026-07-26 07:20:30.343902`)しており、個別編集ではあり得ないため、インタビューブロック機能(`admin/src/pages/articles/edit.astro`・`admin/src/lib/interview-nodeview.ts`、当時未コミットで変更中だった)の保存処理に、複数記事へ同一ペイロードを書き込んでしまうバグがあった可能性が高い。`interview-e2e-test` 記事(2026-07-27作成)を使ったテスト中に発生したと推測されるが、リポジトリ内に該当する自動テスト/スクリプトは見当たらず、原因未特定。このため `tests/content.test.ts` の DB 依存テスト3件も失敗する。`supabase db reset` はローカルルールで禁止されているため未対応 — **他の並行作業が完全に終わったのを確認してから**、(1) 原因(保存処理のどこが複数記事に書き込んでいるか)を特定、(2) 安全なタイミングで `npm run seed` によるリセットを検討。目次カード機能(2026-07-28)の `extractHeadings` 関連ユニットテストはこの影響を受けず5件とも成功している。
 
+- [ ] 未使用画像の週次自動掃除(pg_cron + Edge Function `cleanup-orphaned-media`、2026-07-28実装)の**本番セットアップ**が未実施 — 次回デプロイ時に `supabase functions deploy cleanup-orphaned-media` + Vault シークレット2件(`project_url` / `service_role_key`)の登録 + 動作確認。手順: `docs/superpowers/DEPLOYMENT-CHECKLIST.md` の Edge Functions 節。未セットアップの間、cron ジョブは毎週静かにスキップする(実害なし)。ローカルでの Edge Function 実機疎通(curl)も未実施(検出・削除ロジック自体は pgTAP `19_orphaned_media_cleanup.test.sql` で9件検証済み)。
+
+- [ ] (環境起因、`02_rls` テスト11と同類)`supabase test db` で `18_announcements.test.sql` の4件(テスト6・9・13・14)が失敗する — seed 済みのお知らせ3件(`34bf9ae` で追加)がローカルDBに残っており、テストが期待する「クリーンな状態+挿入分だけ」という件数前提が崩れるため(2026-07-28、掃除機能のテスト実行時に確認。`19_orphaned_media_cleanup.test.sql` 自体は9件全パス)。DBリセット後は再現しないはず。
+
 - [ ] `public.media` テーブルに `service_role` への GRANT がなく(`20260709120500_media_library.sql` は `authenticated` にのみ select/insert/delete を付与)、service role keyで `media` を読もうとすると `permission denied for table media` になる(2026-07-28、WP記事インポートスクリプトの動作確認中に気付いた。`authenticated` セッション経由では正常に読める)。ビルド時など service role でmediaを参照する処理は現状ないため実害はないが、今後そういう処理を足すなら要 GRANT 追加。
 
 ## Done

@@ -64,6 +64,23 @@ rclone sync backups/r2/ "r2:$R2_BUCKET"
   ```
   注意: Mac がスリープ中は動かない。確実にしたければ Claude Code のスケジュール実行(`/schedule`)ではなく cron を使う — クラウドのルーティンはこの Mac のファイルに触れないため、ローカルバックアップには使えない。
 
+## 未使用画像の掃除(自動)
+
+記事の削除・カバー画像の差し替え・本文からの画像削除は R2 のオブジェクトを消さないため、未参照の画像が溜まっていく。この掃除は**クラウド側で全自動**になっている(このMacが寝ていても動く):
+
+- **毎週月曜 9:00 JST** に pg_cron が Edge Function `cleanup-orphaned-media` を起動し、どこからも参照されていない `media` 行と R2 オブジェクトを削除する
+- 「参照」= 記事のカバー・本文の画像/ファイル・インタビュー話者アバター・プロフィールのアバター/カバー/サービス画像(判定は DB 関数 `delete_orphaned_media`、pgTAP テスト `19_orphaned_media_cleanup.test.sql`)
+- アップロードから **7日未満**の画像は対象外(編集中の下書きを誤検知しない)
+- 本番セットアップ(Function デプロイ + Vault シークレット2件)→ [superpowers/DEPLOYMENT-CHECKLIST.md](superpowers/DEPLOYMENT-CHECKLIST.md) の Edge Functions 節
+
+今すぐ手動で走らせたいとき(SQL Editor / `supabase db query` で):
+
+```sql
+select public.invoke_cleanup_orphaned_media();
+```
+
+結果は Supabase Dashboard → Edge Functions → cleanup-orphaned-media のログで確認(`deleted N media rows`)。誤削除に気づいたら: 掃除で消えた画像も、その時点の `backups/r2/` には残っている(次回 backup.sh 実行で鏡が上書きされるまで)。上の「R2 の画像が消えた」の手順で戻せる。
+
 ## 復旧リハーサル(任意、余裕があるとき)
 
 年に1〜2回、`supabase start` したローカル環境に `data.sql` を流してみて、CMS でログイン・記事表示ができることを確認しておくと、本番障害時に手順で詰まらない。
