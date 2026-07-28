@@ -5,6 +5,7 @@
 - 全体像・信頼境界・主要ルール → [ARCHITECTURE.md](ARCHITECTURE.md)
 - 本番の仕組み(Vercel + Supabase + R2 がどう繋がってるか)→ [docs/PRODUCTION.md](docs/PRODUCTION.md)
 - 本番ドメインを変えるとき → [docs/DOMAIN-CHANGE.md](docs/DOMAIN-CHANGE.md)(Vercel だけでは足りない — Supabase Auth / R2 CORS / CMS_URL secret も要更新)
+- バックアップと復旧(「バックアップを実行して」と言われたら `./scripts/backup.sh`)→ [docs/RECOVERY.md](docs/RECOVERY.md)
 
 ## 絶対に守ること
 

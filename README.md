@@ -103,3 +103,11 @@ npm test                # ロジックの単体テスト(Vitest)
 ## デプロイ
 
 初回は手作業(supabase.com / Vercel / R2 のセットアップ)。手順とコマンドは `docs/superpowers/DEPLOYMENT-CHECKLIST.md`。デプロイ後の運用は自動(記事公開 → Webhook → 再ビルド)。スキーマ変更時のみ `supabase db push` が必要。
+
+## バックアップ(週1回)
+
+```bash
+./scripts/backup.sh    # 本番 DB のダンプ + R2 画像を backups/ に取る(gitignore 済み、Dropbox 経由でオフサイトにもなる)
+```
+
+初回の準備(`brew install rclone` と `scripts/backup.env` の作成)、戻し方、cron / Claude での自動実行は `docs/RECOVERY.md`。
