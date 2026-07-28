@@ -26,6 +26,11 @@
      (もとは src/components/molecules/SpecimenCard.astro が個別に持っていた
      値。カードを増やすたびに再発明しないよう theme token 化した)。 */
   --color-hairline: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  /* カード/パネル全般の角丸。SpecimenCard で確立した値を正とし、各ページが
+     rounded-[12px]/[16px]/[18px]/[20px] とバラバラに再発明していたのを1トークンに
+     集約する(Tailwind v4 の --radius-* 名前空間により rounded-card ユーティリティが
+     自動生成される)。 */
+  --radius-card: 1rem;
   /* 本文: 日本語はゼンカクゴシック、欧文もそのまま同書体で統一 */
   --font-sans: 'Zen Kaku Gothic New', -apple-system, BlinkMacSystemFont, sans-serif;
   /* 見出し: 文芸的なしっぽり明朝(和欧とも) */
@@ -83,6 +88,75 @@ body::before {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+/* 共通カード面。bg-card + ヘアライン枠 + rounded-card を1クラスに集約する。
+   これまで writer/provider の一覧行・関連記事・料金表・目次などが各ファイルで
+   `bg-card border-hairline rounded-[Npx] border` を個別に組み立てていた
+   (かつ一覧行だけ丸ごと抜け落ちていて背景なしの素の行になっていた)。 */
+.card {
+  background-color: var(--color-card);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-card);
+}
+
+/* ボタン/CTA共通の器。writer/provider プロフィールの「ホームページ」「取材を
+   依頼する」、404の導線、LoadMore、service-cta が同じピル型なのにそれぞれ
+   padding や hover 演出を個別実装していたのを1系統に集約する。
+   variant: outline(枠線のみ) / solid(塗り) / lift(カード面+ホバーで浮く) */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  border-radius: 999px;
+  padding: 0.7rem 1.5rem;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    color 0.25s ease,
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.25s ease;
+}
+
+.btn-outline {
+  border: 1px solid var(--color-card);
+}
+
+.btn-outline:hover,
+.btn-outline:focus-visible {
+  border-color: var(--color-ink);
+}
+
+.btn-solid {
+  background-color: var(--color-ink);
+  color: var(--color-bg);
+}
+
+.btn-solid:hover,
+.btn-solid:focus-visible {
+  opacity: 0.8;
+}
+
+.btn-lift {
+  background-color: var(--color-card);
+  border: 1px solid var(--color-hairline);
+}
+
+.btn-lift:hover,
+.btn-lift:focus-visible {
+  background-color: color-mix(in srgb, var(--color-accent) 16%, var(--color-card));
+  border-color: var(--color-accent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--color-ink) 15%, transparent);
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition: none;
+  }
 }
 
 /* Tiny uppercase meta text — the only text style outside hero/article prose */

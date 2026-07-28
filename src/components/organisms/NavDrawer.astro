@@ -41,7 +41,9 @@ const areas = areaLinks ?? (await getAreaLinks(supabaseServer));
     せり上がるシートに変え、下部タブバー(MobileTabBar.astro)の Area ボタン
     (id="area-sheet-open")で開閉する。検索も同タブバー側の検索ボタンに
     任せるため、この <aside> 内の頭部(ロゴ・トグル・検索アイコン列)は
-    モバイルでは丸ごと非表示にする。 */}
+    モバイルでは丸ごと非表示にする。お知らせバナーも同様に、モバイルでは
+    タブバーの News ボタンから直接モーダルを開く導線に切り出したので、
+    この地図シート内では非表示にする(announcement-banner.ts 参照)。 */}
 <div id="area-sheet-backdrop" class="area-sheet-backdrop" data-lenis-prevent></div>
 <aside id="nav-drawer" class="nav-drawer" aria-label="メニュー" data-lenis-prevent>
   <div class="nav-drawer-inner">
@@ -370,6 +372,13 @@ const areas = areaLinks ?? (await getAreaLinks(supabaseServer));
     /* デスクトップの rail 用ロゴ・トグルは出さない。シートの開閉は
        モバイルヘッダーの地図アイコン(#area-sheet-open)とバックドロップが担う。 */
     .nav-drawer-head {
+      display: none;
+    }
+
+    /* お知らせはモバイルでは下部タブバーの News ボタンから直接モーダルを開く
+       導線に切り出したので、地図シート側には表示しない(マップに紛れ込む
+       問題の解消)。 */
+    .announcement-banner {
       display: none;
     }
 

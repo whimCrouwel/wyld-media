@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import MetaLabel from '../components/atoms/MetaLabel.astro';
+import Button from '../components/atoms/Button.astro';
 ---
 
 <Base
@@ -20,12 +21,12 @@ import MetaLabel from '../components/atoms/MetaLabel.astro';
       お探しのページは削除されたか、URL が変更された可能性があります。
     </p>
     <div class="mt-10 flex flex-wrap justify-center gap-4">
-      <a href="/" class="border-card hover:border-ink rounded-full border px-6 py-3 transition-colors">
+      <Button href="/" variant="outline">
         <MetaLabel class="text-ink">トップへ</MetaLabel>
-      </a>
-      <a href="/writers" class="border-card hover:border-ink rounded-full border px-6 py-3 transition-colors">
+      </Button>
+      <Button href="/writers" variant="outline">
         <MetaLabel class="text-ink">ライターを見る</MetaLabel>
-      </a>
+      </Button>
     </div>
   </main>
 </Base>

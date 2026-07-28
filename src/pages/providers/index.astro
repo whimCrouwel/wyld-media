@@ -30,13 +30,13 @@ const providerAreas = buildAreaLinks(providers.map((p) => p.region));
       class="pb-14"
     />
 
-    <ul id="provider-list">
+    <ul id="provider-list" class="space-y-4">
       {
         providers.map((p) => (
-          <li class="border-card border-b" data-region={p.region ?? ''}>
+          <li data-region={p.region ?? ''}>
             <a
               href={`/providers/${p.slug}`}
-              class="group flex items-center gap-8 py-8 transition-opacity hover:opacity-70"
+              class="card hover:border-ink group flex items-center gap-8 p-6 transition-colors"
             >
               <WriterAvatar src={p.avatarUrl} name={p.name} size={72} />
               <span class="min-w-0 flex-1">
@@ -85,6 +85,9 @@ const providerAreas = buildAreaLinks(providers.map((p) => p.region));
 </script>
 
 <style>
+  /* 行自体が .card(bg-card)になったので、入れ子のバッジは同色だと溶けて
+     見えなくなる。card よりもう一段沈める --color-panel を使い、面として
+     区別できるようにする。 */
   .provider-teaser {
     display: flex;
     align-items: center;
@@ -93,7 +96,7 @@ const providerAreas = buildAreaLinks(providers.map((p) => p.region));
     width: fit-content;
     padding: 0.4rem 0.7rem 0.4rem 0.4rem;
     border-radius: 10px;
-    background-color: var(--color-card);
+    background-color: var(--color-panel);
   }
 
   .provider-teaser-thumb {
@@ -105,7 +108,7 @@ const providerAreas = buildAreaLinks(providers.map((p) => p.region));
   }
 
   .provider-teaser-thumb-empty {
-    background-color: var(--color-panel);
+    background-color: var(--color-bg);
   }
 
   .provider-teaser-text {

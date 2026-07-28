@@ -14,7 +14,7 @@ const { page } = Astro.props;
 {
   page.url.next && (
     <div class="flex justify-center py-16">
-      <a id="load-more" href={page.url.next} data-next={page.url.next} class="load-more">
+      <a id="load-more" href={page.url.next} data-next={page.url.next} class="btn btn-lift load-more">
         <MetaLabel class="load-more-label">Read More</MetaLabel>
         <svg
           class="load-more-icon"
@@ -34,20 +34,8 @@ const { page } = Astro.props;
 }
 
 <style>
-  .load-more {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.6rem;
-    background-color: var(--color-card);
-    border: 1px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
-    border-radius: 999px;
-    padding: 0.75rem 1.75rem;
-    transition:
-      background-color 0.25s ease,
-      border-color 0.25s ease,
-      transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
-      box-shadow 0.25s ease;
-  }
+  /* 背景/枠線/角丸/ホバーの浮き上がりは共通の .btn.btn-lift(global.css)に
+     集約済み。ここでは Read More 固有のラベル色・アイコン演出だけを持つ。 */
 
   /* MetaLabel(子コンポーネント)のspanは LoadMore 側のスコープIDを持たない
      ため、通常のクラスセレクタでは当たらない。:global() で確実に届かせる。 */
@@ -61,15 +49,6 @@ const { page } = Astro.props;
     height: 0.85rem;
     color: var(--color-accent);
     transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
-  }
-
-  /* AreaNav のタイルホバーと同じ「差し色をうっすら混ぜて浮き上がらせる」言語で揃える */
-  .load-more:hover,
-  .load-more:focus-visible {
-    background-color: color-mix(in srgb, var(--color-accent) 16%, var(--color-card));
-    border-color: var(--color-accent);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px color-mix(in srgb, var(--color-ink) 15%, transparent);
   }
 
   .load-more:hover :global(.load-more-label),

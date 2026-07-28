@@ -1,0 +1,23 @@
+---
+// 共通ボタン/CTA。href があれば <a>、なければ <button> になる(Chip.astro と同じ形)。
+// 見た目は global.css の .btn/.btn-{variant} 側に集約してあるので、ここは
+// タグの出し分けとクラス付与だけを担う。
+export interface Props {
+  href?: string;
+  variant?: 'outline' | 'solid' | 'lift';
+  class?: string;
+  [key: string]: unknown;
+}
+const { href, variant = 'outline', class: className = '', ...rest } = Astro.props;
+---
+{
+  href ? (
+    <a href={href} class:list={['btn', `btn-${variant}`, className]} {...rest}>
+      <slot />
+    </a>
+  ) : (
+    <button type="button" class:list={['btn', `btn-${variant}`, className]} {...rest}>
+      <slot />
+    </button>
+  )
+}

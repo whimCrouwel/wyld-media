@@ -3,6 +3,7 @@ import Base from '../../layouts/Base.astro';
 import MetaLabel from '../../components/atoms/MetaLabel.astro';
 import SectionHeader from '../../components/molecules/SectionHeader.astro';
 import SocialIcon from '../../components/atoms/SocialIcon.astro';
+import Button from '../../components/atoms/Button.astro';
 import Breadcrumbs from '../../components/molecules/Breadcrumbs.astro';
 import JsonLd from '../../components/JsonLd.astro';
 import { supabaseServer } from '../../lib/supabase-server';
@@ -52,40 +53,36 @@ const crumbsLd = breadcrumbListSchema(crumbs, siteUrl);
     <JsonLd data={crumbsLd} />
   </Fragment>
 
-  {/* カバーバナー(未設定なら省略)。上部は古紙色のスクリムで固定ヘッダーの可読性を保つ */}
+  {/* カバーバナー(未設定なら省略)。固定ヘッダーが不透明な地色を持つため、ここでは
+      画像を素のまま見せる(可読性のためのスクリムは不要)。パンくず・ロゴは
+      どちらもこのバナーの外(下)に置き、画像とは重ならない。 */}
   {
     hasCover && (
-      <div class="relative h-[clamp(180px,30vh,300px)] w-full overflow-hidden">
+      <div class="h-[clamp(180px,30vh,300px)] w-full overflow-hidden">
         <img
           src={provider.coverImageUrl}
           alt={`${provider.name}のカバー画像`}
-          class="absolute inset-0 h-full w-full object-cover"
+          class="h-full w-full object-cover"
           loading="eager"
           decoding="async"
-        />
-        <div
-          class="absolute inset-x-0 top-0 h-36"
-          style="background: linear-gradient(to bottom, var(--color-bg) 0%, var(--color-bg) 42%, transparent 100%);"
         />
       </div>
     )
   }
 
   <div class="mx-auto max-w-4xl px-6 pb-24">
-    <Breadcrumbs crumbs={crumbs} class="mb-6" />
-    {/* ロゴ(角丸スクエア)。カバーがある時は少し重ねる */}
-    <div class={hasCover ? 'relative z-10 -mt-14' : ''}>
-      <span
-        class="block w-[120px] overflow-hidden rounded-[18px]"
-        style="box-shadow: 0 0 0 5px var(--color-bg); background: var(--color-bg);"
-      >
+    <Breadcrumbs crumbs={crumbs} class="mt-6 mb-8" />
+
+    {/* ロゴ(左)+ 会社・団体名(右)を1つのグループとして横並びにする */}
+    <div class="flex flex-wrap items-center gap-5">
+      <span class="rounded-card block w-24 shrink-0 overflow-hidden" style="background: var(--color-bg);">
         {
           provider.avatarUrl ? (
             <img
               src={provider.avatarUrl}
               alt={provider.name}
-              width={120}
-              height={120}
+              width={96}
+              height={96}
               class="block aspect-square w-full object-cover"
               loading="eager"
               decoding="async"
@@ -93,20 +90,17 @@ const crumbsLd = breadcrumbListSchema(crumbs, siteUrl);
           ) : (
             <span
               class="bg-card border-hairline text-meta flex aspect-square w-full items-center justify-center border"
-              style="font-family: var(--font-heading); font-size: 44px;"
+              style="font-family: var(--font-heading); font-size: 36px;"
             >
               {provider.name.trim().charAt(0)}
             </span>
           )
         }
       </span>
-    </div>
 
-    {/* 会社・団体名 + 右上アクション */}
-    <div class="mt-6 flex flex-wrap items-start justify-between gap-x-6 gap-y-5">
       <div class="min-w-0">
         <h1
-          style="font-family: var(--font-heading); font-size: clamp(30px, 5vw, 46px); line-height: 1.2;"
+          style="font-family: var(--font-heading); font-size: clamp(28px, 4vw, 40px); line-height: 1.2;"
         >
           {provider.name}
         </h1>
@@ -119,18 +113,18 @@ const crumbsLd = breadcrumbListSchema(crumbs, siteUrl);
           </MetaLabel>
         </p>
       </div>
-
-      {
-        provider.homepageUrl && (
-          <a
-            href={provider.homepageUrl}
-            class="border-card hover:border-ink shrink-0 rounded-full border px-5 py-2.5 transition-colors"
-          >
-            <MetaLabel class="text-ink">ホームページ ↗</MetaLabel>
-          </a>
-        )
-      }
     </div>
+
+    {/* 右上アクション */}
+    {
+      provider.homepageUrl && (
+        <div class="mt-6">
+          <Button href={provider.homepageUrl} variant="outline">
+            <MetaLabel class="text-ink">ホームページ ↗</MetaLabel>
+          </Button>
+        </div>
+      )
+    }
 
     {provider.bio && <p class="text-meta mt-8 max-w-2xl" style="line-height: 1.9;">{provider.bio}</p>}
 
@@ -168,7 +162,7 @@ const crumbsLd = breadcrumbListSchema(crumbs, siteUrl);
       provider.serviceName && (
         <>
           <SectionHeader label="Provider's Projects" class="mt-14 pb-6" />
-          <div class="service-card">
+          <div class="card service-card">
             {provider.serviceImageUrl ? (
               <img
                 src={provider.serviceImageUrl}
@@ -184,7 +178,7 @@ const crumbsLd = breadcrumbListSchema(crumbs, siteUrl);
               <h2 class="service-name">{provider.serviceName}</h2>
               {provider.serviceDescription && <p class="service-desc">{provider.serviceDescription}</p>}
               {provider.serviceUrl && (
-                <a href={provider.serviceUrl} target="_blank" rel="noopener noreferrer" class="service-cta">
+                <a href={provider.serviceUrl} target="_blank" rel="noopener noreferrer" class="btn btn-lift service-cta">
                   サービス詳細を見る
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M7 17L17 7M7 7h10v10" />
@@ -200,14 +194,13 @@ const crumbsLd = breadcrumbListSchema(crumbs, siteUrl);
 </Base>
 
 <style>
+  /* 背景/枠線/角丸は共通の .card(global.css)に集約済み。ここは
+     このカード固有の2カラムレイアウトだけを持つ。 */
   .service-card {
     display: grid;
     grid-template-columns: 220px 1fr;
     gap: 1.6rem;
     padding: 1.4rem;
-    border-radius: 18px;
-    background-color: var(--color-card);
-    border: 1px solid color-mix(in srgb, var(--color-ink) 8%, transparent);
   }
 
   @media (max-width: 620px) {
@@ -241,21 +234,11 @@ const crumbsLd = breadcrumbListSchema(crumbs, siteUrl);
     color: var(--color-meta);
   }
 
+  /* 背景/枠線/角丸/ホバーの浮き上がりは共通の .btn.btn-lift(global.css)に
+     集約済み。ここはこのボタン固有のフォントサイズと矢印アイコン演出だけを持つ。 */
   .service-cta {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.55rem;
     margin-top: 1.2rem;
-    padding: 0.65rem 1.4rem;
-    border-radius: 999px;
-    background-color: var(--color-bg);
-    border: 1px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
     font-size: 13px;
-    transition:
-      background-color 0.25s ease,
-      border-color 0.25s ease,
-      transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
-      box-shadow 0.25s ease;
   }
 
   .service-cta svg {
@@ -265,22 +248,12 @@ const crumbsLd = breadcrumbListSchema(crumbs, siteUrl);
     transition: transform 0.25s ease;
   }
 
-  .service-cta:hover,
-  .service-cta:focus-visible {
-    background-color: color-mix(in srgb, var(--color-accent) 16%, var(--color-bg));
-    border-color: var(--color-accent);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px color-mix(in srgb, var(--color-ink) 15%, transparent);
-    outline: none;
-  }
-
   .service-cta:hover svg,
   .service-cta:focus-visible svg {
     transform: translate(2px, -2px);
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .service-cta,
     .service-cta svg {
       transition: none;
     }

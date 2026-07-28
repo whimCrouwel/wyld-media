@@ -1,8 +1,12 @@
-{/* モバイル専用の下部タブバー(アプリのような固定ナビ)。検索と地域(地図シート
-    開閉)の2項目だけ。検索ボタンは search-modal.ts が拾う共有クラス
+{/* モバイル専用の下部タブバー(アプリのような固定ナビ)。検索・地域(地図シート
+    開閉)・お知らせの3項目。検索ボタンは search-modal.ts が拾う共有クラス
     search-open-trigger を持つ。地域ボタンは NavDrawer.astro 側の
     area-sheet.ts が id="area-sheet-open" で拾う(同じIDの要素はページ内に
-    ここしかない)。 */}
+    ここしかない)。お知らせボタンは announcement-banner.ts が
+    id="mobile-announcement-open" で拾い、直接モーダルを開く(地図シートは
+    経由しない)。公開中のお知らせが無い間は非表示(hidden)にしておき、
+    announcement-banner.ts が取得できたときだけ表示 + .has-news で3カラムに
+    切り替える。 */}
 <nav class="mobile-tab-bar md:hidden" aria-label="モバイルナビゲーション">
   <button type="button" class="tab-item search-open-trigger" aria-label="記事を検索">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -25,6 +29,13 @@
     </svg>
     <span class="tab-label">Area</span>
   </button>
+  <button type="button" id="mobile-announcement-open" class="tab-item" aria-label="お知らせを見る" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9Z" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </svg>
+    <span class="tab-label">News</span>
+  </button>
 </nav>
 
 <style>
@@ -44,6 +55,13 @@
       background-color: var(--color-ink);
       border-top: 1px solid color-mix(in srgb, var(--color-bg) 15%, transparent);
       padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    /* お知らせが取得できた場合だけ announcement-banner.ts が付与する。
+       hidden の News ボタンをそのままにすると空きカラムができるため、
+       表示するときは3カラムへ切り替える。 */
+    .mobile-tab-bar.has-news {
+      grid-template-columns: repeat(3, 1fr);
     }
 
     .tab-item {

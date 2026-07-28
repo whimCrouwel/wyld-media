@@ -8,7 +8,10 @@ export interface Props {
 }
 const { crumbs, class: className } = Astro.props;
 ---
-<nav aria-label="Breadcrumb" class={className}>
+{/* relative z-20: プロフィールページ(writers/providers)ではカバー画像に
+    -mt-14 z-10 で重ねるアバターがこの直後に続く。パンくずが static のままだと
+    アバターの下に沈んで読めなくなるため、常にそれより上に来るよう固定しておく。 */}
+<nav aria-label="Breadcrumb" class:list={['relative z-20', className]}>
   <ol class="flex flex-wrap items-center gap-x-2 gap-y-1">
     {crumbs.map((crumb, i) => {
       const isLast = i === crumbs.length - 1;

@@ -1,0 +1,38 @@
+---
+import MetaLabel from '../atoms/MetaLabel.astro';
+
+// サムネイル+日付+タイトルの横並びカード。RelatedArticles(記事ページの関連記事)と
+// writers/[slug].astro の Works 一覧が同じマークアップを個別にコピーしていたのを
+// 1コンポーネントへ集約する。
+export interface Props {
+  href: string;
+  title: string;
+  date: string;
+  imageUrl: string | null;
+}
+const { href, title, date, imageUrl } = Astro.props;
+---
+<a href={href} class="card hover:border-ink flex items-center gap-4 p-3 transition-colors">
+  {
+    imageUrl ? (
+      <img
+        src={imageUrl}
+        alt=""
+        class="bg-card h-[72px] w-[72px] shrink-0 rounded-[12px] object-cover"
+        loading="lazy"
+        decoding="async"
+      />
+    ) : (
+      <span class="bg-card h-[72px] w-[72px] shrink-0 rounded-[12px]" />
+    )
+  }
+  <span class="min-w-0">
+    <MetaLabel class="block tabular-nums">{date}</MetaLabel>
+    <span
+      class="mt-1 block line-clamp-2"
+      style="font-family: var(--font-heading); font-size: 16px; line-height: 1.4;"
+    >
+      {title}
+    </span>
+  </span>
+</a>

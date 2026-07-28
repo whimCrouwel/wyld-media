@@ -29,13 +29,13 @@ const writerAreas = buildAreaLinks(writers.map((w) => w.region));
       class="pb-14"
     />
 
-    <ul id="writer-list">
+    <ul id="writer-list" class="space-y-4">
       {
         writers.map((w) => (
-          <li class="border-card border-b" data-region={w.region ?? ''}>
+          <li data-region={w.region ?? ''}>
             <a
               href={`/writers/${w.slug}`}
-              class="group flex items-center gap-8 py-8 transition-opacity hover:opacity-70"
+              class="card hover:border-ink group flex items-center gap-8 p-6 transition-colors"
             >
               <WriterAvatar src={w.avatarUrl} name={w.name} size={72} />
               <span class="min-w-0 flex-1">

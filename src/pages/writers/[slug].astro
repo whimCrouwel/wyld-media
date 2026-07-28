@@ -3,7 +3,9 @@ import Base from '../../layouts/Base.astro';
 import MetaLabel from '../../components/atoms/MetaLabel.astro';
 import SectionHeader from '../../components/molecules/SectionHeader.astro';
 import SocialIcon from '../../components/atoms/SocialIcon.astro';
+import Button from '../../components/atoms/Button.astro';
 import Breadcrumbs from '../../components/molecules/Breadcrumbs.astro';
+import ArticleRow from '../../components/molecules/ArticleRow.astro';
 import JsonLd from '../../components/JsonLd.astro';
 import { supabaseServer } from '../../lib/supabase-server';
 import { fetchWriters, fetchWriterBySlug, formatDate } from '../../lib/content';
@@ -53,40 +55,36 @@ const crumbsLd = breadcrumbListSchema(crumbs, siteUrl);
     <JsonLd data={crumbsLd} />
   </Fragment>
 
-  {/* カバーバナー(未設定なら省略)。上部は古紙色のスクリムで固定ヘッダーの可読性を保つ */}
+  {/* カバーバナー(未設定なら省略)。固定ヘッダーが不透明な地色を持つため、ここでは
+      画像を素のまま見せる(可読性のためのスクリムは不要)。パンくず・アバターは
+      どちらもこのバナーの外(下)に置き、画像とは重ならない。 */}
   {
     hasCover && (
-      <div class="relative h-[clamp(180px,30vh,300px)] w-full overflow-hidden">
+      <div class="h-[clamp(180px,30vh,300px)] w-full overflow-hidden">
         <img
           src={writer.coverImageUrl}
           alt={`${writer.name}のカバー画像`}
-          class="absolute inset-0 h-full w-full object-cover"
+          class="h-full w-full object-cover"
           loading="eager"
           decoding="async"
-        />
-        <div
-          class="absolute inset-x-0 top-0 h-36"
-          style="background: linear-gradient(to bottom, var(--color-bg) 0%, var(--color-bg) 42%, transparent 100%);"
         />
       </div>
     )
   }
 
   <div class="mx-auto max-w-4xl px-6 pb-24">
-    <Breadcrumbs crumbs={crumbs} class="mb-6" />
-    {/* アバター(角丸スクエア)。カバーがある時は少し重ねる */}
-    <div class={hasCover ? 'relative z-10 -mt-14' : ''}>
-      <span
-        class="block w-[120px] overflow-hidden rounded-[18px]"
-        style="box-shadow: 0 0 0 5px var(--color-bg); background: var(--color-bg);"
-      >
+    <Breadcrumbs crumbs={crumbs} class="mt-6 mb-8" />
+
+    {/* アバター(左)+ 名前・地域(右)を1つのグループとして横並びにする */}
+    <div class="flex flex-wrap items-center gap-5">
+      <span class="rounded-card block w-24 shrink-0 overflow-hidden" style="background: var(--color-bg);">
         {
           writer.avatarUrl ? (
             <img
               src={writer.avatarUrl}
               alt={writer.name}
-              width={120}
-              height={120}
+              width={96}
+              height={96}
               class="block aspect-square w-full object-cover"
               loading="eager"
               decoding="async"
@@ -94,20 +92,17 @@ const crumbsLd = breadcrumbListSchema(crumbs, siteUrl);
           ) : (
             <span
               class="bg-card border-hairline text-meta flex aspect-square w-full items-center justify-center border"
-              style="font-family: var(--font-heading); font-size: 44px;"
+              style="font-family: var(--font-heading); font-size: 36px;"
             >
               {writer.name.trim().charAt(0)}
             </span>
           )
         }
       </span>
-    </div>
 
-    {/* 名前 + 右上アクション */}
-    <div class="mt-6 flex flex-wrap items-start justify-between gap-x-6 gap-y-5">
       <div class="min-w-0">
         <h1
-          style="font-family: var(--font-heading); font-size: clamp(30px, 5vw, 46px); line-height: 1.2;"
+          style="font-family: var(--font-heading); font-size: clamp(28px, 4vw, 40px); line-height: 1.2;"
         >
           {writer.name}
         </h1>
@@ -120,29 +115,24 @@ const crumbsLd = breadcrumbListSchema(crumbs, siteUrl);
           </MetaLabel>
         </p>
       </div>
+    </div>
 
-      <div class="flex flex-wrap items-center gap-3">
-        {
-          writer.homepageUrl && (
-            <a
-              href={writer.homepageUrl}
-              class="border-card hover:border-ink rounded-full border px-5 py-2.5 transition-colors"
-            >
-              <MetaLabel class="text-ink">ホームページ ↗</MetaLabel>
-            </a>
-          )
-        }
-        {
-          writer.contactUrl && (
-            <a
-              href={writer.contactUrl}
-              class="bg-ink rounded-full px-5 py-2.5 transition-opacity hover:opacity-80"
-            >
-              <MetaLabel style="color: var(--color-bg);">取材を依頼する</MetaLabel>
-            </a>
-          )
-        }
-      </div>
+    {/* 右上アクション */}
+    <div class="mt-6 flex flex-wrap items-center gap-3">
+      {
+        writer.homepageUrl && (
+          <Button href={writer.homepageUrl} variant="outline">
+            <MetaLabel class="text-ink">ホームページ ↗</MetaLabel>
+          </Button>
+        )
+      }
+      {
+        writer.contactUrl && (
+          <Button href={writer.contactUrl} variant="solid">
+            <MetaLabel style="color: var(--color-bg);">取材を依頼する</MetaLabel>
+          </Button>
+        )
+      }
     </div>
 
     {writer.bio && <p class="text-meta mt-8 max-w-2xl" style="line-height: 1.9;">{writer.bio}</p>}
@@ -182,31 +172,12 @@ const crumbsLd = breadcrumbListSchema(crumbs, siteUrl);
           <SectionHeader label="Works" count={writer.articles.length} class="mt-14 pb-5" />
           <div class="grid gap-4 sm:grid-cols-2">
             {writer.articles.map((a) => (
-              <a
+              <ArticleRow
                 href={`/articles/${a.slug}`}
-                class="border-card hover:border-ink flex items-center gap-4 rounded-[16px] border p-3 transition-colors"
-              >
-                {a.coverImageUrl ? (
-                  <img
-                    src={a.coverImageUrl}
-                    alt=""
-                    class="bg-card h-[72px] w-[72px] shrink-0 rounded-[12px] object-cover"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                ) : (
-                  <span class="bg-card h-[72px] w-[72px] shrink-0 rounded-[12px]" />
-                )}
-                <span class="min-w-0">
-                  <MetaLabel class="block tabular-nums">{formatDate(a.publishedAt)}</MetaLabel>
-                  <span
-                    class="mt-1 block line-clamp-2"
-                    style="font-family: var(--font-heading); font-size: 16px; line-height: 1.4;"
-                  >
-                    {a.title}
-                  </span>
-                </span>
-              </a>
+                title={a.title}
+                date={formatDate(a.publishedAt)}
+                imageUrl={a.coverImageUrl}
+              />
             ))}
           </div>
         </>
@@ -216,7 +187,7 @@ const crumbsLd = breadcrumbListSchema(crumbs, siteUrl);
     {/* 料金プラン(pricing_items) */}
     {
       writer.pricingItems.length > 0 && (
-        <div class="bg-card border-hairline mt-6 rounded-[16px] border px-6 py-5">
+        <div class="card mt-6 px-6 py-5">
           <div class="mb-3 flex items-baseline justify-between gap-3">
             <MetaLabel>料金プラン</MetaLabel>
             <MetaLabel>ライターが自由に設定</MetaLabel>

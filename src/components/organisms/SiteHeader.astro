@@ -1,6 +1,13 @@
 ---
 import MetaLabel from '../atoms/MetaLabel.astro';
 import SocialIcon from '../atoms/SocialIcon.astro';
+
+// 現在地のハイライト用。Works は記事関連(トップ・記事詳細・地域絞り込み)、
+// Writers/Projects はそれぞれ配下のプロフィールページも含めて「現在地」とみなす。
+const pathname = Astro.url.pathname;
+const isWorksActive = pathname === '/' || pathname.startsWith('/articles/') || pathname.startsWith('/areas/');
+const isWritersActive = pathname.startsWith('/writers');
+const isProjectsActive = pathname.startsWith('/providers');
 ---
 
 {/* デスクトップ: ロゴとメニュー開閉ボタンは常設サイドバー(NavDrawer.astro)側に
@@ -11,19 +18,28 @@ import SocialIcon from '../atoms/SocialIcon.astro';
     モバイル(768px未満): ロゴ + ハンバーガーボタンだけを出す。
     Works/Writers/Projects はハンバーガーの先にある小さなドロップダウン
     (#mobile-menu)に格納する。検索・地域(地図シート開閉)はここには置かず、
-    画面下部の MobileTabBar.astro(アプリのタブバー)に移した。 */}
-<header class="fixed top-0 right-0 left-0 z-50 flex items-center justify-between gap-4 px-6 py-5 md:justify-end">
+    画面下部の MobileTabBar.astro(アプリのタブバー)に移した。
+    地色(--color-bg)を上から下へのグラデーションで乗せているのは、writers/providers
+    のカバー画像の上に重なっても文字が読めるようにするため(完全透明だと写真に
+    よっては文字が埋もれる)。ヘッダー下端で完全透明に落とし、その下のカバー画像
+    との境目が硬い帯にならず馴染むようにする。 */}
+<header
+  class="fixed top-0 right-0 left-0 z-50 flex items-center justify-between gap-4 px-6 py-5 md:justify-end"
+  style="background: linear-gradient(to bottom, color-mix(in srgb, var(--color-bg) 88%, transparent) 0%, transparent 100%);"
+>
   <a href="/" class="logo-link-mobile flex items-center md:hidden">
     <img src="/logo.svg" alt="Wild Media" class="logo-mark-mobile" />
   </a>
 
   <nav class="hidden items-center gap-6 md:flex">
-    <a href="/" class="transition-opacity hover:opacity-60"><MetaLabel class="text-ink">Works</MetaLabel></a>
-    <a href="/writers" class="transition-opacity hover:opacity-60"
-      ><MetaLabel class="text-ink">Writers</MetaLabel></a
+    <a href="/" class:list={['nav-link', { 'is-active': isWorksActive }]}
+      ><MetaLabel class="nav-link-label">Works</MetaLabel></a
     >
-    <a href="/providers" class="transition-opacity hover:opacity-60"
-      ><MetaLabel class="text-ink">Projects</MetaLabel></a
+    <a href="/writers" class:list={['nav-link', { 'is-active': isWritersActive }]}
+      ><MetaLabel class="nav-link-label">Writers</MetaLabel></a
+    >
+    <a href="/providers" class:list={['nav-link', { 'is-active': isProjectsActive }]}
+      ><MetaLabel class="nav-link-label">Projects</MetaLabel></a
     >
     {/* Wild Media公式Instagramへの導線。ヘッダーの文字色(--color-ink)と
         同じ丸背景+白(--color-bg)アイコン。デスクトップのみ。 */}
@@ -55,9 +71,15 @@ import SocialIcon from '../atoms/SocialIcon.astro';
 </header>
 
 <nav id="mobile-menu" class="mobile-menu md:hidden" aria-label="メニュー">
-  <a href="/" class="mobile-menu-link"><MetaLabel class="text-ink">Works</MetaLabel></a>
-  <a href="/writers" class="mobile-menu-link"><MetaLabel class="text-ink">Writers</MetaLabel></a>
-  <a href="/providers" class="mobile-menu-link"><MetaLabel class="text-ink">Projects</MetaLabel></a>
+  <a href="/" class:list={['mobile-menu-link', { 'is-active': isWorksActive }]}
+    ><MetaLabel class="nav-link-label">Works</MetaLabel></a
+  >
+  <a href="/writers" class:list={['mobile-menu-link', { 'is-active': isWritersActive }]}
+    ><MetaLabel class="nav-link-label">Writers</MetaLabel></a
+  >
+  <a href="/providers" class:list={['mobile-menu-link', { 'is-active': isProjectsActive }]}
+    ><MetaLabel class="nav-link-label">Projects</MetaLabel></a
+  >
 </nav>
 
 <script>
@@ -65,6 +87,26 @@ import SocialIcon from '../atoms/SocialIcon.astro';
 </script>
 
 <style>
+  /* Works/Writers/Projects 共通のテキスト色。ホバー/現在地はどちらも差し色
+     (--color-accent)で揃え、現在地はさらに下線で区別する(サイドバーの
+     地域チップ .chip.is-active と同じ言語)。MetaLabel の span は別ファイルの
+     コンポーネントでこのスコープIDを持たないため :global() で届かせる
+     (LoadMore.astro の .load-more-label と同じ手当て)。 */
+  .nav-link-label {
+    color: var(--color-ink);
+    transition: color 0.2s ease;
+  }
+
+  .nav-link:hover :global(.nav-link-label) {
+    color: var(--color-accent);
+  }
+
+  .nav-link.is-active :global(.nav-link-label) {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 5px;
+  }
+
   .logo-mark-mobile {
     height: 16px;
     width: auto;
@@ -147,12 +189,14 @@ import SocialIcon from '../atoms/SocialIcon.astro';
       pointer-events: auto;
     }
 
-    .mobile-menu-link {
-      transition: opacity 0.2s ease;
+    .mobile-menu-link:hover :global(.nav-link-label) {
+      color: var(--color-accent);
     }
 
-    .mobile-menu-link:hover {
-      opacity: 0.6;
+    .mobile-menu-link.is-active :global(.nav-link-label) {
+      color: var(--color-accent);
+      text-decoration: underline;
+      text-underline-offset: 5px;
     }
   }
 
