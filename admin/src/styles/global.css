@@ -263,15 +263,32 @@
     @apply block rounded px-2 py-1 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground;
   }
 
-  /* Editor: media modal */
+  /* Editor: media modal(interview modal と同じ「淡い全画面オーバーレイ+中央カード」構成) */
   #media-modal:not([hidden]) {
-    @apply fixed inset-0 z-50 flex flex-col gap-3 overflow-auto bg-background/95 p-6 backdrop-blur-sm;
+    @apply fixed inset-0 z-50 overflow-auto bg-background/95 p-6 backdrop-blur-sm;
+  }
+  #media-modal > div {
+    @apply mx-auto w-full max-w-4xl space-y-4 rounded-xl border bg-card p-6 text-card-foreground shadow-sm;
   }
   #media-grid {
-    @apply grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4;
+    @apply grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4;
+  }
+  #media-grid figure {
+    @apply space-y-1;
   }
   #media-grid img {
     @apply aspect-square w-full cursor-pointer rounded-md border object-cover transition hover:ring-2 hover:ring-ring;
+  }
+  #media-grid figcaption {
+    @apply text-xs text-muted-foreground;
+  }
+  #media-grid button[data-role='delete'] {
+    @apply text-xs text-destructive hover:underline;
+  }
+
+  /* sr-only にした file input のキーボードフォーカスを、ボタン化したラベル側に表示する */
+  input[type='file'].sr-only:focus-visible + label {
+    @apply ring-2 ring-ring ring-offset-2;
   }
 
   /* Editor: interview speaker registration modal (interview-dialog.ts が中身を描画) */

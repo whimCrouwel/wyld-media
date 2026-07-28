@@ -1,5 +1,7 @@
 ---
 import Button from '../atoms/Button.astro';
+import { cn } from '../../lib/cn';
+import { buttonBase, buttonVariants, buttonSizes } from '../../lib/button-variants';
 
 interface Props {
   // ウィジェットの接頭辞。hidden 入力の id になり、
@@ -17,8 +19,21 @@ const { id, label, hint, accept = 'image/jpeg,image/png,image/webp' } = Astro.pr
   {hint && <p class="mb-2 text-sm text-muted-foreground">{hint}</p>}
   <input type="hidden" id={id} />
   <p id={`${id}-current`} class="mb-2"></p>
-  <div class="flex items-center gap-3">
-    <input type="file" id={`${id}-file`} accept={accept} class="text-sm" />
+  <div class="flex flex-wrap items-center gap-3">
+    {/*
+      ネイティブの file input は「ファイルを選択 未選択」という素のテキスト描画に
+      なりボタンに見えないため、input を sr-only にしてラベルをボタンとして描く。
+      選択したファイル名の表示は不要(選択と同時にプレビュー/クロッパーが出る)。
+      キーボードフォーカス時のリングは global.css の `input.sr-only:focus-visible + label`。
+    */}
+    <input type="file" id={`${id}-file`} accept={accept} class="sr-only" />
+    <label
+      for={`${id}-file`}
+      class={cn(buttonBase, buttonVariants.outline, buttonSizes.sm, 'cursor-pointer')}
+    >
+      画像を選択
+    </label>
+    <slot name="actions" />
     <Button type="button" id={`${id}-clear`} variant="outline" size="sm">画像を外す</Button>
   </div>
   <div id={`${id}-crop`} class="mt-3 max-w-[480px]"></div>
