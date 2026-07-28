@@ -2,7 +2,9 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { listMyMedia, deleteMedia, translateMediaError, type MediaItem } from './media';
 
 export interface MediaPicker {
-  open(): Promise<void>;
+  // onPickOverride を渡すと、その回の選択だけ既定の onPick の代わりに呼ばれる
+  // (カバー画像など、本文挿入以外の用途で同じモーダルを使い回すため)。
+  open(onPickOverride?: (url: string) => void): Promise<void>;
 }
 
 export interface MediaPickerOptions {
@@ -17,6 +19,8 @@ export function initMediaPicker(
   supabase: SupabaseClient, opts: MediaPickerOptions,
 ): MediaPicker {
   const { modalEl, gridEl, statusEl, closeBtn, onPick } = opts;
+  // open() のたびに上書き(または既定に戻す)される現在の選択ハンドラ。
+  let activeOnPick = onPick;
 
   const close = () => {
     modalEl.hidden = true;
@@ -46,7 +50,7 @@ export function initMediaPicker(
       img.loading = 'lazy';
       pick.append(img);
       pick.addEventListener('click', () => {
-        onPick(item.url);
+        activeOnPick(item.url);
         close();
       });
 
@@ -97,7 +101,8 @@ export function initMediaPicker(
   };
 
   return {
-    async open() {
+    async open(onPickOverride) {
+      activeOnPick = onPickOverride ?? onPick;
       modalEl.hidden = false;
       await refresh();
     },

@@ -58,6 +58,24 @@ describe('initMediaPicker', () => {
     expect(els.modalEl.hidden).toBe(true);
   });
 
+  it('open に onPick 上書きを渡すとその回だけ差し替わり、次回は既定に戻る', async () => {
+    vi.spyOn(media, 'listMyMedia').mockResolvedValue([ITEM]);
+    const els = setup();
+    const defaultPick = vi.fn();
+    const override = vi.fn();
+    const picker = initMediaPicker(supabase, { ...els, onPick: defaultPick });
+
+    await picker.open(override);
+    (els.gridEl.querySelector('button[data-role="pick"]') as HTMLButtonElement).click();
+    expect(override).toHaveBeenCalledWith(ITEM.url);
+    expect(defaultPick).not.toHaveBeenCalled();
+
+    await picker.open();
+    (els.gridEl.querySelector('button[data-role="pick"]') as HTMLButtonElement).click();
+    expect(defaultPick).toHaveBeenCalledWith(ITEM.url);
+    expect(override).toHaveBeenCalledOnce();
+  });
+
   it('削除は2クリック必要', async () => {
     vi.spyOn(media, 'listMyMedia').mockResolvedValue([ITEM]);
     const del = vi.spyOn(media, 'deleteMedia').mockResolvedValue(undefined);

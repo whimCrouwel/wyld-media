@@ -43,6 +43,7 @@ const title = '記事の編集 | Wild Media CMS';
         <p id="cover-current" class="mb-2"></p>
         <div class="flex items-center gap-3">
           <input type="file" id="cover-file" accept="image/jpeg,image/png,image/webp" class="text-sm" />
+          <Button type="button" id="cover-pick" variant="outline" size="sm">ライブラリから選ぶ</Button>
           <Button type="button" id="cover-clear" variant="outline" size="sm">画像を外す</Button>
         </div>
         <div id="cover-crop" class="mt-3 max-w-[480px]"></div>
@@ -351,6 +352,16 @@ const title = '記事の編集 | Wild Media CMS';
             statusEl: document.getElementById('media-status') as HTMLElement,
             closeBtn: document.getElementById('media-close') as HTMLButtonElement,
             onPick: (url) => insertImageUrlBlock(editor, url),
+          });
+
+          // カバー画像もライブラリから再利用できる。ライブラリの画像は
+          // アップロード時にトリミング済みなので再クロップは挟まない。
+          document.getElementById('cover-pick')!.addEventListener('click', () => {
+            picker.open((url) => {
+              cover.setUrl(url);
+              document.getElementById('cover-status')!.textContent =
+                'ライブラリから設定しました。保存すると反映されます。';
+            });
           });
 
           fileInput.addEventListener('change', async () => {
