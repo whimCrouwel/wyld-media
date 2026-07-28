@@ -20,7 +20,8 @@ const navLinkActive = 'bg-sidebar-accent text-sidebar-accent-foreground';
 <AdminLayout title={title}>
   <div class="flex bg-background">
     <aside
-      class="sticky top-0 hidden h-screen w-64 shrink-0 flex-col overflow-y-auto border-r border-sidebar-border bg-sidebar px-3 py-5 md:flex"
+      id="admin-sidebar"
+      class="admin-sidebar flex h-screen w-64 shrink-0 flex-col overflow-y-auto border-r border-sidebar-border bg-sidebar px-3 py-5"
     >
       <div class="-mx-3 -mt-5 mb-4 flex h-7 shrink-0 items-center justify-center border-b border-sidebar-border bg-muted/60 text-[10px] font-medium tracking-wide text-sidebar-foreground/50">
         Wild Media CMS
@@ -115,7 +116,26 @@ const navLinkActive = 'bg-sidebar-accent text-sidebar-accent-foreground';
       </div>
     </aside>
 
+    <div id="admin-sidebar-backdrop" class="admin-sidebar-backdrop" aria-hidden="true"></div>
+
     <div class="flex min-w-0 flex-1 flex-col">
+      <div class="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-3 border-b border-sidebar-border bg-background px-4 md:hidden">
+        <button
+          type="button"
+          id="admin-sidebar-toggle"
+          aria-label="メニュー"
+          aria-expanded="false"
+          aria-controls="admin-sidebar"
+          class="-ml-2 inline-flex h-9 w-9 items-center justify-center rounded-md text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" class="h-5 w-5" aria-hidden="true">
+            <line x1="4" y1="7" x2="20" y2="7" />
+            <line x1="4" y1="12" x2="20" y2="12" />
+            <line x1="4" y1="17" x2="20" y2="17" />
+          </svg>
+        </button>
+        <span class="text-sm font-medium">Wild Media CMS</span>
+      </div>
       <main class:list={['flex-1 px-4 py-8 sm:px-8', wide ? '' : 'mx-auto w-full max-w-2xl']}>
         {heading && <h1 class="mb-6 text-2xl font-semibold tracking-tight">{heading}</h1>}
         <slot />
@@ -124,6 +144,26 @@ const navLinkActive = 'bg-sidebar-accent text-sidebar-accent-foreground';
   </div>
 
   <script>
+    // モバイル幅ではサイドバーを画面外にスライドさせて隠し、ハンバーガーボタンで
+    // 開閉する(src/scripts/mobile-menu.ts と同じ「html にクラスを付け外しする」方式)。
+    const sidebarToggle = document.getElementById('admin-sidebar-toggle');
+    const sidebarBackdrop = document.getElementById('admin-sidebar-backdrop');
+    if (sidebarToggle && sidebarBackdrop) {
+      const isSidebarOpen = () => document.documentElement.classList.contains('admin-sidebar-open');
+      const setSidebarOpen = (open: boolean) => {
+        document.documentElement.classList.toggle('admin-sidebar-open', open);
+        sidebarToggle.setAttribute('aria-expanded', String(open));
+      };
+      sidebarToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setSidebarOpen(!isSidebarOpen());
+      });
+      sidebarBackdrop.addEventListener('click', () => setSidebarOpen(false));
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && isSidebarOpen()) setSidebarOpen(false);
+      });
+    }
+
     // /profile は「基本情報の編集」「主要サービスの編集」「料金プランの編集」の
     // 3つのナビ項目が同じパスを指す(?tab=service / ?tab=pricing のみ違う)ため、
     // サーバー側のパス一致だけではアクティブ状態を正しく出し分けられない。

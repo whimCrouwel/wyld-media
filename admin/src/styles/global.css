@@ -83,6 +83,22 @@
  * @apply. Static markup uses atoms/components instead of these classes.
  */
 @layer components {
+  /* AdminShell: mobile sidebar (hidden off-canvas by default, slides in via
+     html.admin-sidebar-open; md+ is unaffected — always sticky in the flex row). */
+  .admin-sidebar {
+    @apply fixed inset-y-0 left-0 z-50 -translate-x-full transition-transform duration-200
+      md:sticky md:inset-auto md:top-0 md:translate-x-0 md:transition-none;
+  }
+  html.admin-sidebar-open .admin-sidebar {
+    @apply translate-x-0;
+  }
+  .admin-sidebar-backdrop {
+    @apply pointer-events-none fixed inset-0 z-40 bg-black/40 opacity-0 transition-opacity duration-200 md:hidden;
+  }
+  html.admin-sidebar-open .admin-sidebar-backdrop {
+    @apply pointer-events-auto opacity-100;
+  }
+
   /* Dashboard: article list */
   .article-list {
     @apply divide-y divide-border overflow-hidden rounded-xl border bg-card shadow-sm;
