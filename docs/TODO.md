@@ -6,6 +6,7 @@
 
 ## Open
 
+- [ ] 添付ファイル(PDF、`kind: 'file'`)は `media` テーブルに記録されない — `admin/src/lib/block-uploads.ts` の `insertFileBlock` が `uploadToR2` 直呼びで `recordMedia` を通らないため。(1) メディアライブラリに出ない=再利用できない、(2) 週次の `cleanup-orphaned-media` は `media` 行ベースなので、記事から外した後の PDF は R2 に永久に残る(誤削除はされないが掃除もされない)。ライブラリで画像とファイルを区別して表示する UI(`admin/src/lib/media-picker.ts` は現状 `<img>` 前提)もセットで要検討。(2026-07-28、カバー画像のライブラリ選択対応中に気付いた)
 - [ ] admin のサイト設定画面で「設定の読み込みに失敗しました」と表示される — `admin/src/pages/settings.astro:71`
 - [ ] 同じ設定画面で、現在の設定値がフォームに表示されない(空欄になる) — 取得: `admin/src/lib/admin.ts:110-119`(`fetchSettings`)、フォームへの反映: `admin/src/pages/settings.astro:67-69`
   - **調査結果(再現できず)**: `settings` テーブルの行(id=1)・RLSポリシー・grant・ログイン込みの実ブラウザ再現・関連テスト(`admin/tests/admin.test.ts` 含む `npm test`/`admin npm test` 全パス)すべて正常。両症状は同一原因(`fetchSettings` が例外を投げると `settings.astro:67-69` のフォーム反映がスキップされ、同じ catch で `:71` のエラー文言が出る)であることは意図的に `page_size` カラムを一時的に落として確認済みだが、現在の環境ではその原因が存在しない。有力な仮説: `page_size` 列を追加した `supabase/migrations/20260720160000_article_region_and_page_size.sql` が直近(2026-07-20)に追加されたばかりで、報告時点でこのマイグレーションが未適用のローカルDBを見ていた可能性(スキーマドリフト)。**要確認**: `supabase db reset`(または `supabase migration up`)して最新マイグレーションを当てた状態で `/settings` を開いても再現するか。再現しなければ「マイグレーション適用漏れが原因、解消済み」としてチェックを付けられる。再現する場合はブラウザのコンソール/ネットワークの実際のエラー内容が必要。
