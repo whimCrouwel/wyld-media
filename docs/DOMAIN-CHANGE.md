@@ -112,7 +112,7 @@ supabase secrets list
 ## 現状のマップ
 
 ```
-公開サイト:  zine.wyld-crd.org (旧 wyld-media.vercel.app も生きている)
+公開サイト:  zine.wyld-crd.org (旧 wyld-media.vercel.app は 308 でここへリダイレクト)
 CMS:         wyld-media-admin.vercel.app
 ```
 
