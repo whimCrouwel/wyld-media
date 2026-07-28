@@ -10,17 +10,19 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@astrojs/check": "^0.9.10",
     "@supabase/supabase-js": "^2.45.0",
     "@tiptap/core": "2.27.2",
-    "@tiptap/starter-kit": "2.27.2",
-    "@tiptap/suggestion": "2.27.2",
     "@tiptap/extension-bubble-menu": "2.27.2",
     "@tiptap/extension-character-count": "2.27.2",
     "@tiptap/extension-link": "2.27.2",
     "@tiptap/extension-text-align": "2.27.2",
+    "@tiptap/starter-kit": "2.27.2",
+    "@tiptap/suggestion": "2.27.2",
     "@wild-media/blocks-renderer": "^0.1.0",
     "astro": "^5.0.0",
-    "cropperjs": "^1.6.2"
+    "cropperjs": "^1.6.2",
+    "typescript": "^6.0.3"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.2",
