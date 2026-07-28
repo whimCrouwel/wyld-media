@@ -6,7 +6,7 @@
 const filter = document.getElementById('area-filter');
 const list = document.getElementById('provider-list');
 const count = document.getElementById('provider-count');
-// 「Providers」見出しの隣にも今の絞り込み地域を出す(サイドバーの地図だけだと
+// 「Changemakers」見出しの隣にも今の絞り込み地域を出す(サイドバーの地図だけだと
 // スクロールで見えなくなるため、本文側にも同じ情報を持たせる)。
 const activeLabel = document.getElementById('active-region-label');
 

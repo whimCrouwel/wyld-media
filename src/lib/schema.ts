@@ -160,7 +160,7 @@ export const buildCrumbs = {
   ],
   provider: (input: ProviderCrumbsInput): Crumb[] => [
     { name: 'Home', url: '/' },
-    { name: 'Providers', url: '/providers' },
+    { name: 'Changemakers', url: '/providers' },
     { name: input.name, url: `/providers/${input.slug}` },
   ],
   area: (input: AreaCrumbsInput): Crumb[] => [

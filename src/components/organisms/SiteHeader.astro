@@ -2,21 +2,22 @@
 import MetaLabel from '../atoms/MetaLabel.astro';
 import SocialIcon from '../atoms/SocialIcon.astro';
 
-// 現在地のハイライト用。Works は記事関連(トップ・記事詳細・地域絞り込み)、
-// Writers/Projects はそれぞれ配下のプロフィールページも含めて「現在地」とみなす。
+// 現在地のハイライト用。Writers/Changemakers はそれぞれ配下のプロフィールページも
+// 含めて「現在地」とみなす。トップ(Works相当)へのリンクはロゴが兼ねているため
+// ナビ項目としては持たない。
 const pathname = Astro.url.pathname;
-const isWorksActive = pathname === '/' || pathname.startsWith('/articles/') || pathname.startsWith('/areas/');
 const isWritersActive = pathname.startsWith('/writers');
-const isProjectsActive = pathname.startsWith('/providers');
+const isChangemakersActive = pathname.startsWith('/providers');
 ---
 
 {/* デスクトップ: ロゴとメニュー開閉ボタンは常設サイドバー(NavDrawer.astro)側に
-    あるので、ここは記事一覧・ライター一覧・認定プロバイダー一覧への直接リンクだけ
-    (justify-end)。プロバイダー一覧へのリンクは表示文言だけ「Projects」にしている
+    あるので、ここはライター一覧・認定プロバイダー一覧への直接リンクだけ
+    (justify-end)。トップへの導線はロゴが兼ねるため、Works的なリンクは置かない。
+    プロバイダー一覧へのリンクは表示文言だけ「Changemakers」にしている
     (リンク先は変わらず /providers。ロールとしては「provider」だが、単なる企業
     ディレクトリではなく環境活動そのものへの導線に見えるよう表示文言だけ変えた)。
     モバイル(768px未満): ロゴ + ハンバーガーボタンだけを出す。
-    Works/Writers/Projects はハンバーガーの先にある小さなドロップダウン
+    Writers/Changemakers はハンバーガーの先にある小さなドロップダウン
     (#mobile-menu)に格納する。検索・地域(地図シート開閉)はここには置かず、
     画面下部の MobileTabBar.astro(アプリのタブバー)に移した。
     地色(--color-bg)を上から下へのグラデーションで乗せているのは、writers/providers
@@ -32,14 +33,11 @@ const isProjectsActive = pathname.startsWith('/providers');
   </a>
 
   <nav class="hidden items-center gap-6 md:flex">
-    <a href="/" class:list={['nav-link', { 'is-active': isWorksActive }]}
-      ><MetaLabel class="nav-link-label">Works</MetaLabel></a
-    >
     <a href="/writers" class:list={['nav-link', { 'is-active': isWritersActive }]}
       ><MetaLabel class="nav-link-label">Writers</MetaLabel></a
     >
-    <a href="/providers" class:list={['nav-link', { 'is-active': isProjectsActive }]}
-      ><MetaLabel class="nav-link-label">Projects</MetaLabel></a
+    <a href="/providers" class:list={['nav-link', { 'is-active': isChangemakersActive }]}
+      ><MetaLabel class="nav-link-label">Changemakers</MetaLabel></a
     >
     {/* Wild Media公式Instagramへの導線。ヘッダーの文字色(--color-ink)と
         同じ丸背景+白(--color-bg)アイコン。デスクトップのみ。 */}
@@ -71,14 +69,11 @@ const isProjectsActive = pathname.startsWith('/providers');
 </header>
 
 <nav id="mobile-menu" class="mobile-menu md:hidden" aria-label="メニュー">
-  <a href="/" class:list={['mobile-menu-link', { 'is-active': isWorksActive }]}
-    ><MetaLabel class="nav-link-label">Works</MetaLabel></a
-  >
   <a href="/writers" class:list={['mobile-menu-link', { 'is-active': isWritersActive }]}
     ><MetaLabel class="nav-link-label">Writers</MetaLabel></a
   >
-  <a href="/providers" class:list={['mobile-menu-link', { 'is-active': isProjectsActive }]}
-    ><MetaLabel class="nav-link-label">Projects</MetaLabel></a
+  <a href="/providers" class:list={['mobile-menu-link', { 'is-active': isChangemakersActive }]}
+    ><MetaLabel class="nav-link-label">Changemakers</MetaLabel></a
   >
 </nav>
 
@@ -87,7 +82,7 @@ const isProjectsActive = pathname.startsWith('/providers');
 </script>
 
 <style>
-  /* Works/Writers/Projects 共通のテキスト色。ホバー/現在地はどちらも差し色
+  /* Writers/Changemakers 共通のテキスト色。ホバー/現在地はどちらも差し色
      (--color-accent)で揃え、現在地はさらに下線で区別する(サイドバーの
      地域チップ .chip.is-active と同じ言語)。MetaLabel の span は別ファイルの
      コンポーネントでこのスコープIDを持たないため :global() で届かせる
@@ -161,7 +156,7 @@ const isProjectsActive = pathname.startsWith('/providers');
   @media (max-width: 767px) {
     /* ハンバーガーの右下に出るドロップダウンカード。閉時は少し上・透明で
        浮いた状態にし、開くと定位置へフェードイン(シートのような大きな
-       オーバーレイにはしない — Works/Writers/Projects の3本だけなので軽い演出で十分)。 */
+       オーバーレイにはしない — Writers/Changemakers の2本だけなので軽い演出で十分)。 */
     .mobile-menu {
       display: flex;
       flex-direction: column;
