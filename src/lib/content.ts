@@ -190,7 +190,7 @@ export async function fetchPublishedArticles(
 ): Promise<{ featured: ArticleSummary[]; normal: ArticleSummary[] }> {
   const { data: settings, error: settingsError } = await db
     .from('settings')
-    .select('featured_count')
+    .select('featured_count, featured_window_days')
     .eq('id', 1)
     .single();
   if (settingsError) throw settingsError;
@@ -208,9 +208,14 @@ export async function fetchPublishedArticles(
   if (error) throw error;
 
   const rows = (data ?? []).map(toSummary);
+  // Featured帯は「依頼記事である」だけでなく「公開から featured_window_days 日以内」も
+  // 条件にする。件数上限だけだと依頼記事が増えるほど古いものがいつまでも居座ってしまう
+  // ため、帯には直近のものだけを出し、外れたものは通常記事として扱う(PRバッジ自体は
+  // buildGalleryWork 側で commissionedByName から常時出すので、帯落ちしても消えない)。
+  const featuredCutoff = Date.now() - settings.featured_window_days * 24 * 60 * 60 * 1000;
   const featuredIds = new Set(
     rows
-      .filter((r) => r.commissionedByName !== null)
+      .filter((r) => r.commissionedByName !== null && new Date(r.publishedAt).getTime() >= featuredCutoff)
       .slice(0, settings.featured_count)
       .map((r) => r.id),
   );

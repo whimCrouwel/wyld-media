@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(26);
+select plan(27);
 
 select has_table('public', 'profiles', 'profiles table exists');
 select has_column('public', 'profiles', 'avatar_url', 'profiles has avatar_url');
@@ -19,6 +19,7 @@ select has_column('public', 'articles', 'region', 'articles has region');
 select has_table('public', 'settings', 'settings table exists');
 select has_column('public', 'settings', 'page_size', 'settings has page_size');
 select has_column('public', 'settings', 'commission_interval_days', 'settings has commission_interval_days');
+select has_column('public', 'settings', 'featured_window_days', 'settings has featured_window_days');
 
 select throws_ok(
   $$update settings set page_size = 0 where id = 1$$,
@@ -26,8 +27,8 @@ select throws_ok(
 );
 
 select results_eq(
-  'select post_interval_days, featured_count, commission_interval_days from settings where id = 1',
-  $$values (10, 3, 10)$$,
+  'select post_interval_days, featured_count, commission_interval_days, featured_window_days from settings where id = 1',
+  $$values (10, 3, 10, 14)$$,
   'settings has initial row with defaults'
 );
 

@@ -11,6 +11,9 @@ interface Props {
   authorName: string;
   authorHref: string;
   authorAvatarUrl: string | null;
+  regionName: string | null;
+  regionHref: string | null;
+  commissionedByName: string | null;
   index: number;
 }
 const {
@@ -23,6 +26,9 @@ const {
   authorName,
   authorHref,
   authorAvatarUrl,
+  regionName,
+  regionHref,
+  commissionedByName,
   index,
 } = Astro.props;
 ---
@@ -38,6 +44,9 @@ const {
   authorName={authorName}
   authorHref={authorHref}
   authorAvatarUrl={authorAvatarUrl}
+  regionName={regionName}
+  regionHref={regionHref}
+  commissionedByName={commissionedByName}
   class="reveal group"
   data-ratio={ratio}
   data-index={index}

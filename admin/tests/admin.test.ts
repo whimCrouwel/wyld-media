@@ -234,6 +234,7 @@ describe('settings', () => {
     const s = await fetchSettings(hanaClient);
     expect(s.postIntervalDays).toBeGreaterThanOrEqual(0);
     expect(s.featuredCount).toBeGreaterThanOrEqual(0);
+    expect(s.featuredWindowDays).toBeGreaterThanOrEqual(0);
     expect(s.pageSize).toBeGreaterThanOrEqual(1);
   });
 
@@ -257,11 +258,27 @@ describe('settings', () => {
     }
   });
 
+  it('admin は featured_window_days を更新できる', async () => {
+    const before = await fetchSettings(adminClient);
+    try {
+      await updateSettings(adminClient, { ...before, featuredWindowDays: before.featuredWindowDays + 1 });
+      const after = await fetchSettings(adminClient);
+      expect(after.featuredWindowDays).toBe(before.featuredWindowDays + 1);
+    } finally {
+      await updateSettings(adminClient, before);
+    }
+  });
+
   it('不正な値は送信前に弾く', async () => {
-    await expect(updateSettings(adminClient, { postIntervalDays: -1, featuredCount: 3, pageSize: 2 }))
-      .rejects.toThrow('INVALID_SETTINGS');
-    await expect(updateSettings(adminClient, { postIntervalDays: 10, featuredCount: 1.5, pageSize: 2 }))
-      .rejects.toThrow('INVALID_SETTINGS');
+    await expect(
+      updateSettings(adminClient, { postIntervalDays: -1, featuredCount: 3, featuredWindowDays: 14, pageSize: 2 }),
+    ).rejects.toThrow('INVALID_SETTINGS');
+    await expect(
+      updateSettings(adminClient, { postIntervalDays: 10, featuredCount: 1.5, featuredWindowDays: 14, pageSize: 2 }),
+    ).rejects.toThrow('INVALID_SETTINGS');
+    await expect(
+      updateSettings(adminClient, { postIntervalDays: 10, featuredCount: 3, featuredWindowDays: -1, pageSize: 2 }),
+    ).rejects.toThrow('INVALID_SETTINGS');
   });
 
   it('pageSize が 1 未満なら INVALID_SETTINGS', async () => {

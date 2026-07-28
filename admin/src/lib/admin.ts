@@ -164,16 +164,21 @@ export async function setModerationHold(
 export interface SiteSettings {
   postIntervalDays: number;
   featuredCount: number;
+  featuredWindowDays: number;
   pageSize: number;
 }
 
 export async function fetchSettings(supabase: SupabaseClient): Promise<SiteSettings> {
   const { data, error } = await supabase
-    .from('settings').select('post_interval_days, featured_count, page_size').eq('id', 1).single();
+    .from('settings')
+    .select('post_interval_days, featured_count, featured_window_days, page_size')
+    .eq('id', 1)
+    .single();
   if (error) throw error;
   return {
     postIntervalDays: data.post_interval_days,
     featuredCount: data.featured_count,
+    featuredWindowDays: data.featured_window_days,
     pageSize: data.page_size,
   };
 }
@@ -181,12 +186,14 @@ export async function fetchSettings(supabase: SupabaseClient): Promise<SiteSetti
 export async function updateSettings(supabase: SupabaseClient, s: SiteSettings): Promise<void> {
   if (!Number.isInteger(s.postIntervalDays) || s.postIntervalDays < 0) throw new Error('INVALID_SETTINGS');
   if (!Number.isInteger(s.featuredCount) || s.featuredCount < 0) throw new Error('INVALID_SETTINGS');
+  if (!Number.isInteger(s.featuredWindowDays) || s.featuredWindowDays < 0) throw new Error('INVALID_SETTINGS');
   if (!Number.isInteger(s.pageSize) || s.pageSize < 1) throw new Error('INVALID_SETTINGS');
   const { data, error } = await supabase
     .from('settings')
     .update({
       post_interval_days: s.postIntervalDays,
       featured_count: s.featuredCount,
+      featured_window_days: s.featuredWindowDays,
       page_size: s.pageSize,
     })
     .eq('id', 1)

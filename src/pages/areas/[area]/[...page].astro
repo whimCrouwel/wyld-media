@@ -35,13 +35,20 @@ export const getStaticPaths = (async ({ paginate }) => {
   // 地域ごとに分けつつ、番号は「全作品通し番号」(/ と同じ基準)のまま持ち回る。
   // 地域内の順番で振り直すと同じ記事が / と /areas/xxx で違う番号になる
   // (このバグの実体だった)。
+  //
+  // region の存在自体は featured 除外前の記事一覧から判定する。featured 除外後の
+  // 件数だけで Map を作ると、その地域の記事が全部 featured に入った回(例: 記事が
+  // 1本しかなくそれが featured)に地域自体が Map から消え、getStaticPaths が
+  // そのページのパスを一切生成しなくなって /areas/xxx が 404 してしまう。
   const byRegion = new Map<string, RegionItem[]>();
+  all.forEach((article) => {
+    if (!article.region) return;
+    if (!byRegion.has(article.region)) byRegion.set(article.region, []);
+  });
   all.forEach((article, globalIndex) => {
     if (!article.region) return;
     if (featuredIds.has(article.id)) return;
-    const list = byRegion.get(article.region) ?? [];
-    list.push({ article, globalIndex });
-    byRegion.set(article.region, list);
+    byRegion.get(article.region)!.push({ article, globalIndex });
   });
 
   return [...byRegion.entries()].flatMap(([region, items]) =>

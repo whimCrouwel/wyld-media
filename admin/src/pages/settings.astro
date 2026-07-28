@@ -12,7 +12,15 @@ const title = 'サイト設定 | Wild Media CMS';
       <Field id="interval" label="通常記事の投稿間隔(日)" type="number" min="0" step="1" required />
       <Field
         id="featured"
-        label="Featured 表示件数(最新の依頼記事)"
+        label="Featured 表示件数(直近の依頼記事、上限)"
+        type="number"
+        min="0"
+        step="1"
+        required
+      />
+      <Field
+        id="featured-window"
+        label="Featured 表示期間(公開から何日以内の依頼記事を対象にするか)"
         type="number"
         min="0"
         step="1"
@@ -49,12 +57,14 @@ const title = 'サイト設定 | Wild Media CMS';
         const messageEl = document.getElementById('message')!;
         const intervalEl = document.getElementById('interval') as HTMLInputElement;
         const featuredEl = document.getElementById('featured') as HTMLInputElement;
+        const featuredWindowEl = document.getElementById('featured-window') as HTMLInputElement;
         const pageSizeEl = document.getElementById('page-size') as HTMLInputElement;
 
         try {
           const s = await fetchSettings(supabaseBrowser);
           intervalEl.value = String(s.postIntervalDays);
           featuredEl.value = String(s.featuredCount);
+          featuredWindowEl.value = String(s.featuredWindowDays);
           pageSizeEl.value = String(s.pageSize);
         } catch (err) {
           messageEl.textContent = '設定の読み込みに失敗しました。';
@@ -73,6 +83,7 @@ const title = 'サイト設定 | Wild Media CMS';
           if (
             intervalEl.value.trim() === '' ||
             featuredEl.value.trim() === '' ||
+            featuredWindowEl.value.trim() === '' ||
             pageSizeEl.value.trim() === ''
           ) {
             messageEl.textContent = '値を入力してください。';
@@ -85,6 +96,7 @@ const title = 'サイト設定 | Wild Media CMS';
               await updateSettings(supabaseBrowser, {
                 postIntervalDays: Number(intervalEl.value),
                 featuredCount: Number(featuredEl.value),
+                featuredWindowDays: Number(featuredWindowEl.value),
                 pageSize: Number(pageSizeEl.value),
               });
             } catch (err) {

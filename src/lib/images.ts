@@ -1,5 +1,6 @@
 import probe from 'probe-image-size';
 import { formatDate, type ArticleSummary } from './content';
+import { regionSlug, type Region } from './regions';
 
 // ギャラリーカード1枚ぶんの表示データ(index.astro → MasonryGrid / FeaturedStrip)
 export interface GalleryWork {
@@ -12,6 +13,9 @@ export interface GalleryWork {
   authorName: string;
   authorHref: string;
   authorAvatarUrl: string | null;
+  regionName: string | null;
+  regionHref: string | null;
+  commissionedByName: string | null;
 }
 
 // カバー画像未設定の記事用プレースホルダー(仮運用)。slug をシードにした
@@ -74,5 +78,8 @@ export async function buildGalleryWork(
     authorName: article.authorName,
     authorHref: `/writers/${article.authorSlug}`,
     authorAvatarUrl: article.authorAvatarUrl,
+    regionName: article.region,
+    regionHref: article.region ? `/areas/${regionSlug(article.region as Region)}` : null,
+    commissionedByName: article.commissionedByName,
   };
 }

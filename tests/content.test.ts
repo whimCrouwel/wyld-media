@@ -111,6 +111,32 @@ describe('content data layer (requires seeded local Supabase)', () => {
     expect(normal.map((a) => a.slug)).toEqual(['toshi-no-yachou', 'koke-no-mori', 'kawabe-kansatsu']);
   });
 
+  it('featured_window_days を超えて公開された依頼記事は帯から外れる(PRバッジは別途常時表示)', async () => {
+    const { data: before, error: beforeError } = await db
+      .from('settings')
+      .select('featured_window_days')
+      .eq('id', 1)
+      .single();
+    if (beforeError) throw beforeError;
+    try {
+      // 窓を0日にすると「今日公開」以外の依頼記事は全て帯の対象外になる
+      // (シード記事はすべて過去日付なので featured は空になるはず)。
+      const { error } = await db
+        .from('settings')
+        .update({ featured_window_days: 0 })
+        .eq('id', 1);
+      if (error) throw error;
+      const { featured } = await fetchPublishedArticles(db);
+      expect(featured).toEqual([]);
+    } finally {
+      const { error } = await db
+        .from('settings')
+        .update({ featured_window_days: before.featured_window_days })
+        .eq('id', 1);
+      if (error) throw error;
+    }
+  });
+
   it('returns article detail with sanitized rendered body', async () => {
     const article = await fetchArticleBySlug(db, 'kawabe-kansatsu');
     expect(article).not.toBeNull();

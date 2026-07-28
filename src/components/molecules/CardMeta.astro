@@ -3,7 +3,7 @@ import MetaLabel from '../atoms/MetaLabel.astro';
 import WriterAvatar from '../atoms/WriterAvatar.astro';
 
 // ギャラリーカードと Featured 帯で同じメタ行を2箇所に複製していたのを1つに集約。
-// 標本カードの体裁: カタログ番号+日付のeyebrow、明朝の見出しタイトル、
+// 標本カードの体裁: カタログ番号+日付のeyebrow、地域チップ、明朝の見出しタイトル、
 // 丸アバター付きの著者行。
 interface Props {
   href: string;
@@ -13,8 +13,22 @@ interface Props {
   authorName: string;
   authorHref: string;
   authorAvatarUrl: string | null;
+  regionName: string | null;
+  regionHref: string | null;
+  commissionedByName: string | null;
 }
-const { href, title, date, number, authorName, authorHref, authorAvatarUrl } = Astro.props;
+const {
+  href,
+  title,
+  date,
+  number,
+  authorName,
+  authorHref,
+  authorAvatarUrl,
+  regionName,
+  regionHref,
+  commissionedByName,
+} = Astro.props;
 ---
 
 <div class="card-meta">
@@ -22,6 +36,27 @@ const { href, title, date, number, authorName, authorHref, authorAvatarUrl } = A
     <MetaLabel class="shrink-0 tabular-nums">No. {String(number).padStart(2, '0')}</MetaLabel>
     <MetaLabel class="shrink-0 tabular-nums">{date}</MetaLabel>
   </div>
+
+  {
+    (regionName || commissionedByName) && (
+      <div class="badge-row">
+        {regionName && regionHref && (
+          <a href={regionHref} class="region-badge">
+            {regionName}
+          </a>
+        )}
+        {
+          // Featured帯に出るかどうか(直近14日・上限件数)とは独立に、依頼記事であること
+          // 自体は帯から外れても消えない恒久的な印として出す。
+          commissionedByName && (
+            <span class="pr-badge" title={`提供: ${commissionedByName}`}>
+              PR
+            </span>
+          )
+        }
+      </div>
+    )
+  }
 
   <a href={href} class="card-title-link">
     <h3 class="card-title">{title}</h3>
@@ -70,5 +105,68 @@ const { href, title, date, number, authorName, authorHref, authorAvatarUrl } = A
 
   .card-author:hover {
     opacity: 0.7;
+  }
+
+  .badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  /* 地域バッジ。CN/Chakra 系UIの secondary badge を踏襲: ピル型+薄い塗り+枠線+
+     影1段で「押せるラベル」に見せる(.chip の下線リンクだと地の文と区別しづらいため)。 */
+  .region-badge {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font-accent);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    padding: 0.32rem 0.6rem;
+    border-radius: 999px;
+    background-color: color-mix(in srgb, var(--color-accent) 12%, var(--color-card));
+    border: 1px solid color-mix(in srgb, var(--color-accent) 32%, transparent);
+    color: var(--color-accent-hover);
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--color-ink) 14%, transparent);
+    transition:
+      background-color 0.2s ease,
+      border-color 0.2s ease,
+      box-shadow 0.2s ease,
+      transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .region-badge:hover {
+    background-color: var(--color-accent);
+    border-color: var(--color-accent);
+    color: var(--color-bg);
+    box-shadow: 0 4px 10px color-mix(in srgb, var(--color-ink) 20%, transparent);
+    transform: translateY(-1px);
+  }
+
+  /* PRバッジ。Featured帯(地色寄りの差し色)と混同しないよう、依頼記事という
+     恒久的な事実は無彩色(ink塗り)で「ラベル」として据える。リンクではないので
+     hover演出は付けない。 */
+  .pr-badge {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font-accent);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    line-height: 1;
+    padding: 0.32rem 0.55rem;
+    border-radius: 999px;
+    background-color: var(--color-ink);
+    color: var(--color-bg);
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--color-ink) 14%, transparent);
+    cursor: default;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .region-badge {
+      transition: none;
+    }
   }
 </style>

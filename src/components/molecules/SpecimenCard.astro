@@ -16,6 +16,9 @@ interface Props {
   authorName: string;
   authorHref: string;
   authorAvatarUrl: string | null;
+  regionName: string | null;
+  regionHref: string | null;
+  commissionedByName: string | null;
   class?: string;
   [key: string]: unknown;
 }
@@ -29,6 +32,9 @@ const {
   authorName,
   authorHref,
   authorAvatarUrl,
+  regionName,
+  regionHref,
+  commissionedByName,
   class: className = '',
   ...rest
 } = Astro.props;
@@ -59,6 +65,9 @@ const {
       authorName={authorName}
       authorHref={authorHref}
       authorAvatarUrl={authorAvatarUrl}
+      regionName={regionName}
+      regionHref={regionHref}
+      commissionedByName={commissionedByName}
     />
   </div>
 </article>
@@ -67,7 +76,7 @@ const {
   /* 器: 古紙色(--color-card)の面を地(--color-bg)の上に置き、うっすら浮かせる。
      影は控えめ(古紙のインクの落ち影程度)。角丸で標本ラベルのカードに見せる。 */
   .specimen {
-    border-radius: 16px;
+    border-radius: var(--radius-card);
     background-color: var(--color-card);
     border: 1px solid var(--color-hairline);
     box-shadow: 0 6px 18px -12px rgba(88, 61, 28, 0.4);
@@ -84,7 +93,7 @@ const {
 
   /* 画像は器の上辺いっぱいに敷き、下側だけメタ行と余白でつなぐ */
   .specimen-image {
-    border-radius: 15px 15px 0 0;
+    border-radius: calc(var(--radius-card) - 1px) calc(var(--radius-card) - 1px) 0 0;
   }
 
   .specimen-body {
