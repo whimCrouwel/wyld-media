@@ -78,7 +78,8 @@ erDiagram
         int id PK "常に1行のみ(id=1)"
         int post_interval_days "通常記事の投稿間隔(日)"
         int commission_interval_days "同一provider→writerへの依頼間隔(日)"
-        int featured_count "Featured枠の件数"
+        int featured_count "Featured枠の件数上限"
+        int featured_window_days "Featured対象の窓(公開からの日数、既定14)"
         int page_size "一覧1ページあたりの記事数"
         text image_base_url "本文画像の許可ホスト(fail closed)"
     }

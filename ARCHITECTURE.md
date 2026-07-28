@@ -64,7 +64,10 @@ Wild Media の「いまの姿」の地図。意思決定の経緯は [設計ス�
   CMS で「主要サービス」タブを編集できる(未認定は無条件に不可。公開サイト側での主要
   サービス表示は未実装 — 表示できないうちは編集させても意味がないための制限)。
   依頼トークンの発行は認定の有無に関係なく、全 provider が可能。
-- Featured 枠 = 最新の依頼記事 `featured_count`(初期値3)件
+- Featured 枠 = 公開から `featured_window_days`(初期値14)日以内の依頼記事のうち、
+  最新 `featured_count`(初期値3)件まで。窓を外れても記事自体は消えず、カードには
+  依頼記事であることを示す常時表示の PR バッジが別途つく(Featured 枠の一時的な
+  掲載可否と、依頼記事という恒久的な事実を分離している)。
 - 本文の画像・ファイルブロックは `settings.image_base_url` 配下の URL のみ許可し、
   画像は 5 枚まで(`articles` のトリガー `a_enforce_body_image_rules`。違反時の例外は
   `IMAGE_LIMIT_EXCEEDED`・`IMAGE_HOST_NOT_ALLOWED`・`FILE_HOST_NOT_ALLOWED`)。
