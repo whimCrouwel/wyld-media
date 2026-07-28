@@ -20,6 +20,7 @@ const title = 'ダッシュボード | Wild Media CMS';
         >＋ 新しい記事を作成</a
       >
     </div>
+    <p id="publish-cooldown-notice" class="mb-3 text-sm text-muted-foreground" hidden></p>
     <p id="article-list-message" role="alert" class="mb-3 text-sm text-destructive"></p>
     <ul id="article-list" class="article-list"><li>読み込み中…</li></ul>
   </div>
@@ -75,8 +76,8 @@ const title = 'ダッシュボード | Wild Media CMS';
   <script>
       import { supabaseBrowser } from '../lib/supabase-browser';
       import { redirectTo } from '../lib/auth';
-      import { fetchMyArticles } from '../lib/dashboard';
-      import { fetchMyProfile, fetchAllArticlesForAudit, type AuditArticle } from '../lib/admin';
+      import { fetchMyArticles, nextEligiblePublishDate } from '../lib/dashboard';
+      import { fetchMyProfile, fetchAllArticlesForAudit, fetchSettings, type AuditArticle } from '../lib/admin';
       import { toAvatarViewModel, applyAvatar } from '../lib/avatar';
       import { deleteArticle } from '../lib/articles';
       import { initConfirmDialog } from '../lib/confirm-dialog';
@@ -318,8 +319,20 @@ const title = 'ダッシュボード | Wild Media CMS';
 
         const listEl = document.getElementById('article-list')!;
         const listMessageEl = document.getElementById('article-list-message')!;
+        const cooldownEl = document.getElementById('publish-cooldown-notice')!;
         try {
           const articles = await fetchMyArticles(supabaseBrowser);
+          try {
+            const settings = await fetchSettings(supabaseBrowser);
+            const nextDate = nextEligiblePublishDate(articles, settings.postIntervalDays);
+            if (nextDate) {
+              cooldownEl.textContent =
+                `依頼記事ではない次の記事は ${nextDate.toLocaleDateString('ja-JP')} から投稿できます。`;
+              cooldownEl.hidden = false;
+            }
+          } catch (err) {
+            console.error(err);
+          }
           if (articles.length === 0) {
             listEl.innerHTML = '<li>まだ記事がありません。</li>';
           } else {

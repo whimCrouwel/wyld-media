@@ -115,6 +115,7 @@ const title = '記事の編集 | Wild Media CMS';
       </div>
     </div>
 
+    <p id="publish-cooldown-notice" class="text-sm text-muted-foreground" hidden></p>
     <div class="flex flex-wrap items-center gap-3 border-t pt-4">
       <Button type="button" id="save-draft" variant="secondary">下書き保存</Button>
       <Button type="button" id="publish">公開する</Button>
@@ -135,7 +136,8 @@ const title = '記事の編集 | Wild Media CMS';
       import { redirectTo } from '../../lib/auth';
       import { initShellChrome } from '../../lib/shell';
       import { fetchArticleForEdit, saveArticle, deleteArticle, validateCommissionToken, checkSlugAvailable } from '../../lib/articles';
-      import { setModerationHold, fetchMyProfile } from '../../lib/admin';
+      import { setModerationHold, fetchMyProfile, fetchSettings } from '../../lib/admin';
+      import { fetchMyArticles, nextEligiblePublishDate } from '../../lib/dashboard';
       import { translateSaveError, isValidArticleSlug } from '../../lib/editor-helpers';
       import { initCoverWidget } from '../../lib/cover-widget';
       import { fetchImageBaseUrl, translateUploadError } from '../../lib/images';
@@ -199,6 +201,32 @@ const title = '記事の編集 | Wild Media CMS';
             setButtonVariant(saveDraftBtn, isDraft ? 'secondary' : 'default');
           };
           renderStatusUI(article.status);
+
+          // 依頼記事(依頼トークンあり)は投稿間隔の対象外なので、通常記事として
+          // 公開しようとしている場合だけ「次にいつ投稿できるか」を案内する。
+          const publishCooldownEl = document.getElementById('publish-cooldown-notice')!;
+          let publishBlockedUntil: Date | null = null;
+          try {
+            const [myArticles, settings] = await Promise.all([
+              fetchMyArticles(supabaseBrowser),
+              fetchSettings(supabaseBrowser),
+            ]);
+            publishBlockedUntil = nextEligiblePublishDate(myArticles, settings.postIntervalDays);
+          } catch (err) {
+            console.error(err);
+          }
+          const renderPublishCooldown = () => {
+            const hasCommissionToken = $('commission').value.trim() !== '';
+            if (!publishBtn.hidden && publishBlockedUntil && !hasCommissionToken) {
+              publishCooldownEl.textContent =
+                `依頼記事ではない次の記事は ${publishBlockedUntil.toLocaleDateString('ja-JP')} から公開できます。`;
+              publishCooldownEl.hidden = false;
+            } else {
+              publishCooldownEl.hidden = true;
+            }
+          };
+          renderPublishCooldown();
+          $('commission').addEventListener('input', renderPublishCooldown);
 
           const holdNoticeEl = document.getElementById('hold-notice')!;
           const holdAtEl = document.getElementById('hold-at')!;
@@ -390,6 +418,7 @@ const title = '記事の編集 | Wild Media CMS';
               messageEl.textContent = publish ? '公開しました。' : '保存しました。';
               const fresh = await fetchArticleForEdit(supabaseBrowser, id);
               if (fresh) renderStatusUI(fresh.status);
+              renderPublishCooldown();
             } catch (err) {
               if (err instanceof Error && err.message === 'CONFLICT') {
                 messageEl.textContent = '他の場所でこの記事が更新されています。ページを再読み込みしてください。';
@@ -419,6 +448,7 @@ const title = '記事の編集 | Wild Media CMS';
               clearDraftBackup(id);
               messageEl.textContent = '下書きに戻しました。';
               renderStatusUI('draft');
+              renderPublishCooldown();
             } catch (err) {
               messageEl.textContent = translateSaveError(err);
               console.error(err);

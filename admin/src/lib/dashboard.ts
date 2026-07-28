@@ -33,3 +33,20 @@ export async function fetchMyArticles(supabase: SupabaseClient): Promise<MyArtic
     moderationHoldReason: row.moderation_hold_reason,
   }));
 }
+
+// 依頼記事(commissioned_by あり)は投稿間隔の対象外(enforce_publish_rules トリガー参照)。
+// ここでは通常記事の直近公開日から次に投稿できる日を計算する(投稿可能なら null)。
+export function nextEligiblePublishDate(
+  articles: MyArticle[],
+  postIntervalDays: number,
+): Date | null {
+  const lastNormalPublishedAt = articles
+    .filter((a) => a.status === 'published' && !a.isCommissioned && a.publishedAt)
+    .map((a) => a.publishedAt as string)
+    .sort()
+    .at(-1);
+  if (!lastNormalPublishedAt) return null;
+  const next = new Date(lastNormalPublishedAt);
+  next.setDate(next.getDate() + postIntervalDays);
+  return next.getTime() > Date.now() ? next : null;
+}
