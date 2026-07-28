@@ -15,4 +15,4 @@ Allow: /
 User-agent: CCBot
 Allow: /
 
-Sitemap: https://wyld-media.vercel.app/sitemap-index.xml
+Sitemap: https://zine.wyld-crd.org/sitemap-index.xml

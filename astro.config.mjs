@@ -4,7 +4,7 @@ import sitemap from '@astrojs/sitemap';
 
 // The public production URL. Update this AND public/robots.txt when the domain changes.
 // See docs/DOMAIN-CHANGE.md.
-const SITE = process.env.PUBLIC_SITE_URL ?? 'https://wyld-media.vercel.app';
+const SITE = process.env.PUBLIC_SITE_URL ?? 'https://zine.wyld-crd.org';
 
 export default defineConfig({
   site: SITE,
