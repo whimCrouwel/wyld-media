@@ -15,6 +15,7 @@ function polyfillDialog(dialogEl: HTMLDialogElement) {
 function setup() {
   document.body.innerHTML = `
     <dialog id="announcement-dialog">
+      <p data-announcement-date hidden></p>
       <h2 data-announcement-title></h2>
       <p data-announcement-body></p>
       <button type="button" data-role="close"></button>
@@ -39,6 +40,19 @@ describe('initAnnouncementDialog', () => {
     expect(dialogEl.open).toBe(true);
     expect(dialogEl.querySelector('[data-announcement-title]')!.textContent).toBe('お知らせ タイトル');
     expect(dialogEl.querySelector('[data-announcement-body]')!.textContent).toBe('お知らせ 本文');
+  });
+
+  it('show() に日付を渡すと表示し、渡さなければ隠す', () => {
+    const dialogEl = setup();
+    const dialog = initAnnouncementDialog(dialogEl);
+    const dateEl = dialogEl.querySelector<HTMLElement>('[data-announcement-date]')!;
+
+    dialog.show('t', 'b', '2026/7/28');
+    expect(dateEl.hidden).toBe(false);
+    expect(dateEl.textContent).toBe('2026/7/28');
+
+    dialog.show('t', 'b');
+    expect(dateEl.hidden).toBe(true);
   });
 
   it('閉じるボタンでダイアログが閉じる', () => {

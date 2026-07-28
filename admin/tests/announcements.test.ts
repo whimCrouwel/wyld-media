@@ -1,10 +1,18 @@
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
 import {
-  validateAnnouncementInput, fetchAnnouncements,
+  validateAnnouncementInput, fetchAnnouncements, formatAnnouncementDate,
   createAnnouncement, updateAnnouncement, deleteAnnouncement,
   type AnnouncementInput,
 } from '../src/lib/announcements';
+
+describe('formatAnnouncementDate', () => {
+  it('ISO文字列を YYYY/M/D 形式にする', () => {
+    // ローカルタイムゾーン依存を避けるため正午UTCではなくローカル日時で組む
+    const iso = new Date(2026, 6, 28, 12, 0, 0).toISOString();
+    expect(formatAnnouncementDate(iso)).toBe('2026/7/28');
+  });
+});
 
 const url = process.env.PUBLIC_SUPABASE_URL!;
 const anon = process.env.PUBLIC_SUPABASE_ANON_KEY!;

@@ -101,9 +101,12 @@ const navLinkActive = 'bg-sidebar-accent text-sidebar-accent-foreground';
         </div>
       </nav>
 
-      <div id="announcement-section" hidden class="mt-4 flex flex-col gap-1 border-t border-sidebar-border pt-3">
-        <p class="px-3 text-xs font-medium uppercase tracking-wide text-sidebar-foreground/50">お知らせ</p>
-        <ul id="announcement-list" class="flex flex-col gap-1"></ul>
+      <div id="announcement-section" hidden class="mt-4 flex flex-col gap-2 border-t border-sidebar-border pt-3">
+        <p class="flex items-center gap-1.5 px-1 text-xs font-semibold uppercase tracking-wide text-sidebar-accent-foreground">
+          <span class="h-1.5 w-1.5 rounded-full bg-sidebar-accent-foreground" aria-hidden="true"></span>
+          お知らせ
+        </p>
+        <ul id="announcement-list" class="flex flex-col gap-2"></ul>
       </div>
 
       <div class="mt-auto flex shrink-0 flex-col gap-1 border-t border-sidebar-border pt-3">

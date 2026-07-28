@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { fetchMyRole, fetchMyProfile, type Role } from './admin';
-import { fetchAnnouncements } from './announcements';
+import { fetchAnnouncements, formatAnnouncementDate } from './announcements';
 import { initAnnouncementDialog } from './announcement-dialog';
 import { toAvatarViewModel, applyAvatar } from './avatar';
 import { redirectTo } from './auth';
@@ -78,9 +78,19 @@ export async function initShellChrome(supabase: SupabaseClient): Promise<ShellCh
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className =
-              'flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground';
-            btn.textContent = a.title;
-            btn.addEventListener('click', () => dialog.show(a.title, a.body));
+              'flex w-full flex-col gap-0.5 rounded-lg border border-sidebar-accent-foreground/25 ' +
+              'bg-sidebar-accent px-3 py-2 text-left transition-colors ' +
+              'hover:border-sidebar-accent-foreground/60';
+            const dateLabel = formatAnnouncementDate(a.createdAt);
+            const dateEl = document.createElement('span');
+            dateEl.className = 'text-[11px] text-sidebar-accent-foreground/70';
+            dateEl.textContent = dateLabel;
+            const titleEl = document.createElement('span');
+            titleEl.className = 'text-sm font-medium text-sidebar-accent-foreground';
+            titleEl.textContent = a.title;
+            btn.appendChild(dateEl);
+            btn.appendChild(titleEl);
+            btn.addEventListener('click', () => dialog.show(a.title, a.body, dateLabel));
             li.appendChild(btn);
             listEl.appendChild(li);
           }

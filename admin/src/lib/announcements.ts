@@ -21,6 +21,13 @@ export interface AnnouncementInput {
 
 const VALID_AUDIENCES: AnnouncementAudience[] = ['writer', 'provider', 'end_user'];
 
+// お知らせの作成日時を「2026/7/28」形式(閲覧者のローカルタイムゾーン)にする。
+// サイドバーのお知らせ欄と閲覧ダイアログで共用。
+export function formatAnnouncementDate(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+}
+
 export function validateAnnouncementInput(input: AnnouncementInput): string | null {
   if (!input.title.trim()) return 'タイトルを入力してください';
   if (!input.body.trim()) return '本文を入力してください';
