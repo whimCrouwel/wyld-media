@@ -205,6 +205,30 @@ async function main() {
   });
   if (draftError) throw draftError;
 
+  // 4b) お知らせ。公開サイトのサイドバーバナー確認用に end_user 向け公開1件と、
+  //     CMSサイドバーのお知らせ欄確認用に writer / provider 向け各1件を、固定IDで
+  //     冪等に入れ直す(writer 向けは anon から見えないことの確認も兼ねる)。
+  const SEED_ANNOUNCEMENTS = [
+    { id: '00000000-0000-0000-0000-0000000000b1', title: 'Wild Media がリニューアルしました',
+      body: '記事プラットフォーム Wild Media はデザインを一新しました。地域から記事を探せるサイドバーの地図ナビもぜひご活用ください。',
+      audiences: ['end_user'], published: true },
+    { id: '00000000-0000-0000-0000-0000000000b2', title: '【ライター向け】原稿料の改定について',
+      body: '来月分の依頼から新しい料金テーブルが適用されます。詳細はCMSのお知らせをご確認ください。',
+      audiences: ['writer'], published: true },
+    { id: '00000000-0000-0000-0000-0000000000b3', title: '【事業者向け】依頼フローが新しくなりました',
+      body: 'ライターへの依頼トークン発行画面を刷新しました。ダッシュボードからご確認ください。',
+      audiences: ['provider'], published: true },
+  ];
+  const { error: delAnnError } = await db
+    .from('announcements')
+    .delete()
+    .in('id', SEED_ANNOUNCEMENTS.map((a) => a.id));
+  if (delAnnError) throw delAnnError;
+  const { error: annError } = await db
+    .from('announcements')
+    .insert(SEED_ANNOUNCEMENTS.map((a) => ({ ...a, created_by: ids['seed-admin'] })));
+  if (annError) throw annError;
+
   // 5) settings.image_base_url を設定する。これが画像公開ホストの唯一の権威で、
   //    Edge Function(r2-upload-url / r2-delete-object)と保存トリガーが揃ってこの
   //    DB 値を読む。ローカルでは PUBLIC_IMAGE_BASE_URL から流し込む。
@@ -257,7 +281,7 @@ async function main() {
   }
 
   console.log(
-    `Seed complete: ${USERS.length} users, 5 published articles (2 commissioned, indexed for search), 1 draft`,
+    `Seed complete: ${USERS.length} users, 5 published articles (2 commissioned, indexed for search), 1 draft, 3 announcements`,
   );
 }
 

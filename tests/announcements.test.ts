@@ -1,22 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
-import {
-  fetchLatestEndUserAnnouncement, shouldShowAnnouncement,
-} from '../src/lib/announcements';
-
-describe('shouldShowAnnouncement', () => {
-  it('未表示(dismissedIdがnull)なら表示する', () => {
-    expect(shouldShowAnnouncement('abc', null)).toBe(true);
-  });
-
-  it('同じIDを閉じていれば表示しない', () => {
-    expect(shouldShowAnnouncement('abc', 'abc')).toBe(false);
-  });
-
-  it('別のIDを閉じていた場合は表示する(新しいお知らせ)', () => {
-    expect(shouldShowAnnouncement('new-id', 'old-id')).toBe(true);
-  });
-});
+import { fetchLatestEndUserAnnouncement } from '../src/lib/announcements';
 
 describe('fetchLatestEndUserAnnouncement (RLS)', () => {
   const serviceClient = createClient(

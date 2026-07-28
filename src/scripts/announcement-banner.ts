@@ -1,26 +1,21 @@
-// サイドバーのお知らせバナー。公開中の end_user 向けお知らせを1件取得して表示し、
-// クリックでポップアップに全文を表示する。× で閉じたら同じお知らせは再表示しない。
+// サイドバーのお知らせバナー。公開中の end_user 向けお知らせを1件取得して常に表示し、
+// クリックでポップアップに全文を表示する(閉じる操作は無し — 公開中は出続ける)。
 import { supabaseBrowser } from '../lib/supabase-browser';
 import { lockPageScroll, unlockPageScroll } from './scroll-lock';
-import {
-  fetchLatestEndUserAnnouncement, shouldShowAnnouncement,
-  getDismissedAnnouncementId, setDismissedAnnouncementId,
-} from '../lib/announcements';
+import { fetchLatestEndUserAnnouncement } from '../lib/announcements';
 
 const banner = document.getElementById('announcement-banner');
 const openBtn = document.getElementById('announcement-banner-open');
-const dismissBtn = document.getElementById('announcement-banner-dismiss');
 const titleEl = document.getElementById('announcement-banner-title');
 const modal = document.getElementById('announcement-modal') as HTMLDialogElement | null;
 const modalTitleEl = document.getElementById('announcement-modal-title');
 const modalBodyEl = document.getElementById('announcement-modal-body');
 
-if (banner && openBtn && dismissBtn && titleEl && modal && modalTitleEl && modalBodyEl) {
+if (banner && openBtn && titleEl && modal && modalTitleEl && modalBodyEl) {
   (async () => {
     try {
       const announcement = await fetchLatestEndUserAnnouncement(supabaseBrowser);
       if (!announcement) return;
-      if (!shouldShowAnnouncement(announcement.id, getDismissedAnnouncementId())) return;
 
       titleEl.textContent = announcement.title;
       banner.hidden = false;
@@ -30,11 +25,6 @@ if (banner && openBtn && dismissBtn && titleEl && modal && modalTitleEl && modal
         modalBodyEl.textContent = announcement.body;
         lockPageScroll();
         modal.showModal();
-      });
-
-      dismissBtn.addEventListener('click', () => {
-        setDismissedAnnouncementId(announcement.id);
-        banner.hidden = true;
       });
     } catch (err) {
       console.error(err);

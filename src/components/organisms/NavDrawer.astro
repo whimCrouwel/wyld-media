@@ -88,15 +88,13 @@ const areas = areaLinks ?? (await getAreaLinks(supabaseServer));
     <div class="nav-drawer-body">
       <div id="announcement-banner" class="announcement-banner" hidden data-lenis-prevent>
         <button type="button" id="announcement-banner-open" class="announcement-banner-open">
+          <span class="announcement-banner-label">
+            <span class="announcement-banner-dot" aria-hidden="true"></span>
+            News
+            <span class="announcement-banner-label-ja">お知らせ</span>
+          </span>
           <span id="announcement-banner-title" class="announcement-banner-title"></span>
-        </button>
-        <button
-          type="button"
-          id="announcement-banner-dismiss"
-          class="announcement-banner-dismiss"
-          aria-label="お知らせを閉じる"
-        >
-          ×
+          <span class="announcement-banner-more" aria-hidden="true">詳しく読む →</span>
         </button>
       </div>
       <MetaLabel class="area-heading-en">{areaMode === 'filter' ? areaFilterLabel.en : 'Articles per Area'}</MetaLabel>
@@ -242,45 +240,91 @@ const areas = areaLinks ?? (await getAreaLinks(supabaseServer));
     }
   }
 
+  /* お知らせバナー。閉じる操作は無く、公開中のお知らせがある間は出続ける。
+     黒地の上でアクセント色を効かせたカード型で、全面がモーダルを開くボタン。 */
   .announcement-banner {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    margin-bottom: 0.9rem;
-    padding: 0.5rem 0.6rem;
-    border-radius: 10px;
-    background-color: color-mix(in srgb, var(--color-accent) 18%, transparent);
+    margin-bottom: 1.1rem;
   }
 
   .announcement-banner-open {
-    flex: 1;
-    min-width: 0;
+    display: block;
+    width: 100%;
     text-align: left;
-    background: none;
-    border: none;
-    cursor: pointer;
+    padding: 0.7rem 0.75rem 0.65rem;
+    border: 1px solid color-mix(in srgb, var(--color-accent) 45%, transparent);
+    border-radius: 12px;
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-accent) 24%, transparent),
+      color-mix(in srgb, var(--color-accent) 8%, transparent)
+    );
     color: var(--color-bg);
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+  }
+
+  .announcement-banner-open:hover {
+    border-color: var(--color-accent);
+  }
+
+  .announcement-banner-label {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-family: var(--font-accent);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  .announcement-banner-label-ja {
+    font-family: var(--font-sans);
+    letter-spacing: 0.08em;
+    color: var(--color-meta);
+  }
+
+  .announcement-banner-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--color-accent);
+    animation: announcement-pulse 2.4s ease-out infinite;
+  }
+
+  @keyframes announcement-pulse {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 55%, transparent);
+    }
+    70% {
+      box-shadow: 0 0 0 5px transparent;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .announcement-banner-dot {
+      animation: none;
+    }
   }
 
   .announcement-banner-title {
-    display: block;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 12px;
+    margin-top: 0.35rem;
+    font-size: 12.5px;
     font-weight: 600;
+    line-height: 1.45;
   }
 
-  .announcement-banner-dismiss {
-    flex-shrink: 0;
-    width: 1.5rem;
-    height: 1.5rem;
-    border: none;
-    background: none;
-    cursor: pointer;
-    color: var(--color-meta);
-    font-size: 14px;
-    line-height: 1;
+  .announcement-banner-more {
+    display: block;
+    margin-top: 0.4rem;
+    font-size: 10px;
+    color: color-mix(in srgb, var(--color-bg) 65%, transparent);
   }
 
   html.drawer-closed .announcement-banner {
