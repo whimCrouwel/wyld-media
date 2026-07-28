@@ -5,7 +5,7 @@ import {
   updateProviderCertification,
   validateInviteInput, inviteUser, translateInviteError,
   fetchSettings, updateSettings,
-  fetchAllArticlesForAudit, setModerationHold,
+  fetchAllArticlesForAudit, setModerationHold, updatePublishedAt,
 } from '../src/lib/admin';
 import { createDraft, deleteArticle } from '../src/lib/articles';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -353,5 +353,51 @@ describe('article moderation hold (admin auditing)', () => {
   it('writer は自分の記事であってもホールドを変更できない(トリガーで拒否)', async () => {
     await expect(setModerationHold(hanaClient, articleId, true, '理由'))
       .rejects.toThrow(/admin/);
+  });
+});
+
+describe('published_at update (admin)', () => {
+  // hana が seed で公開済みの記事(koke-no-mori)を使う。publishedAt は最後に必ず元へ戻す。
+  let publishedId: string;
+  let originalPublishedAt: string;
+
+  beforeAll(async () => {
+    const { data, error } = await adminClient
+      .from('articles').select('id, published_at').eq('slug', 'koke-no-mori').single();
+    if (error) throw error;
+    publishedId = data.id;
+    originalPublishedAt = data.published_at;
+  });
+
+  afterAll(async () => {
+    await updatePublishedAt(adminClient, publishedId, originalPublishedAt);
+  });
+
+  it('admin は公開済み記事の公開日時を書き換えられる', async () => {
+    const newDate = new Date('2020-01-01T00:00:00.000Z').toISOString();
+    await updatePublishedAt(adminClient, publishedId, newDate);
+    const all = await fetchAllArticlesForAudit(adminClient);
+    expect(new Date(all.find((a) => a.id === publishedId)!.publishedAt!).getTime())
+      .toBe(new Date(newDate).getTime());
+  });
+
+  it('著者本人が呼んでもトリガーが黙って元の値へ戻す(エラーにはならない)', async () => {
+    await updatePublishedAt(adminClient, publishedId, originalPublishedAt);
+    await updatePublishedAt(hanaClient, publishedId, new Date('1999-01-01').toISOString());
+    const all = await fetchAllArticlesForAudit(adminClient);
+    expect(new Date(all.find((a) => a.id === publishedId)!.publishedAt!).getTime())
+      .toBe(new Date(originalPublishedAt).getTime());
+  });
+
+  it('著者でも admin でもない場合は PUBLISHED_AT_UPDATE_DENIED', async () => {
+    await expect(updatePublishedAt(certifiedClient, publishedId, new Date().toISOString()))
+      .rejects.toThrow('PUBLISHED_AT_UPDATE_DENIED');
+  });
+
+  it('不正な日時は INVALID_PUBLISHED_AT', async () => {
+    await expect(updatePublishedAt(adminClient, publishedId, 'not-a-date'))
+      .rejects.toThrow('INVALID_PUBLISHED_AT');
+    await expect(updatePublishedAt(adminClient, publishedId, ''))
+      .rejects.toThrow('INVALID_PUBLISHED_AT');
   });
 });

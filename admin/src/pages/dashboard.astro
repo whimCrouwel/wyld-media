@@ -77,7 +77,9 @@ const title = 'ダッシュボード | Wild Media CMS';
       import { supabaseBrowser } from '../lib/supabase-browser';
       import { redirectTo } from '../lib/auth';
       import { fetchMyArticles, nextEligiblePublishDate } from '../lib/dashboard';
-      import { fetchMyProfile, fetchAllArticlesForAudit, fetchSettings, type AuditArticle } from '../lib/admin';
+      import {
+        fetchMyProfile, fetchAllArticlesForAudit, fetchSettings, updatePublishedAt, type AuditArticle,
+      } from '../lib/admin';
       import { toAvatarViewModel, applyAvatar } from '../lib/avatar';
       import { deleteArticle } from '../lib/articles';
       import { initConfirmDialog } from '../lib/confirm-dialog';
@@ -266,6 +268,22 @@ const title = 'ダッシュボード | Wild Media CMS';
           const auditMessageEl = document.getElementById('audit-message')!;
           const STATUS_LABEL: Record<AuditArticle['status'], string> = { draft: '下書き', published: '公開中' };
 
+          // date input(value形式 YYYY-MM-DD)は常にUTC基準で解釈されるため、UTCの年月日で読み書きする
+          // (ローカルタイムゾーンで組み立てると、UTCとの差でカレンダー上の日付が一日ずれることがある)。
+          const toDateInputValue = (iso: string): string => {
+            const d = new Date(iso);
+            const y = d.getUTCFullYear();
+            const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+            const day = String(d.getUTCDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+          };
+          const applyDateInputValue = (originalIso: string, dateValue: string): string => {
+            const next = new Date(originalIso);
+            const [y, m, day] = dateValue.split('-').map(Number);
+            next.setUTCFullYear(y, m - 1, day);
+            return next.toISOString();
+          };
+
           const renderAudit = (articles: AuditArticle[]) => {
             auditRowsEl.innerHTML = '';
             if (articles.length === 0) {
@@ -297,7 +315,30 @@ const title = 'ダッシュボード | Wild Media CMS';
               }
 
               const dateTd = document.createElement('td');
-              dateTd.textContent = a.publishedAt ? new Date(a.publishedAt).toLocaleDateString('ja-JP') : '';
+              if (a.status === 'published' && a.publishedAt) {
+                const dateInput = document.createElement('input');
+                dateInput.type = 'date';
+                dateInput.value = toDateInputValue(a.publishedAt);
+                dateInput.addEventListener('change', async () => {
+                  auditMessageEl.textContent = '';
+                  if (!dateInput.value) {
+                    dateInput.value = toDateInputValue(a.publishedAt!);
+                    return;
+                  }
+                  const nextIso = applyDateInputValue(a.publishedAt!, dateInput.value);
+                  try {
+                    await updatePublishedAt(supabaseBrowser, a.id, nextIso);
+                    a.publishedAt = nextIso;
+                  } catch (err) {
+                    auditMessageEl.textContent = '公開日の更新に失敗しました。';
+                    console.error(err);
+                    dateInput.value = toDateInputValue(a.publishedAt!);
+                  }
+                });
+                dateTd.appendChild(dateInput);
+              } else {
+                dateTd.textContent = a.publishedAt ? new Date(a.publishedAt).toLocaleDateString('ja-JP') : '';
+              }
 
               tr.appendChild(titleTd);
               tr.appendChild(authorTd);

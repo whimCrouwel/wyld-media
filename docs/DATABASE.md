@@ -26,6 +26,7 @@ erDiagram
         user_role role "admin / writer / provider"
         text slug UK
         text name
+        text title "肩書き(名前の下に表示、自由記述)"
         text bio
         text avatar_url "顔写真(サムネイル)"
         text cover_image_url "プロフィール上部のバナー"

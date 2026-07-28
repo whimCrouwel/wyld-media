@@ -161,6 +161,22 @@ export async function setModerationHold(
   if ((data ?? []).length === 0) throw new Error('MODERATION_HOLD_UPDATE_DENIED');
 }
 
+// 公開日時の手動修正(記事移行時の日付合わせ、誤操作の補正など)。DBトリガー
+// (enforce_publish_rules)は old.status='published' かつ new.status='published' の更新でのみ
+// admin による published_at の上書きを許可する。writer が自分の記事に対して呼んでもトリガーが
+// 値を黙って old の値に戻すため実質無効(エラーにはならない)。
+export async function updatePublishedAt(
+  supabase: SupabaseClient, articleId: string, publishedAt: string,
+): Promise<void> {
+  if (!publishedAt || Number.isNaN(Date.parse(publishedAt))) {
+    throw new Error('INVALID_PUBLISHED_AT');
+  }
+  const { data, error } = await supabase
+    .from('articles').update({ published_at: publishedAt }).eq('id', articleId).select('id');
+  if (error) throw error;
+  if ((data ?? []).length === 0) throw new Error('PUBLISHED_AT_UPDATE_DENIED');
+}
+
 export interface SiteSettings {
   postIntervalDays: number;
   featuredCount: number;

@@ -11,7 +11,7 @@ describe('parseSnsLinks', () => {
 describe('buildProfileUpdate', () => {
   it('builds a payload without role or commission_code', () => {
     const payload = buildProfileUpdate({
-      name: '田中 花', bio: '自己紹介',
+      name: '田中 花', title: '環境ライター', bio: '自己紹介',
       avatarUrl: 'https://img.example/hana.jpg', coverImageUrl: 'https://img.example/hana-cover.jpg',
       region: '甲信越', location: '長野県松本市',
       homepageUrl: 'https://hana.example', snsRaw: 'https://x.example',
@@ -20,7 +20,7 @@ describe('buildProfileUpdate', () => {
       serviceUrl: 'https://forest.example/service', serviceImageUrl: 'https://img.example/service.jpg',
     });
     expect(payload).toEqual({
-      name: '田中 花', bio: '自己紹介',
+      name: '田中 花', title: '環境ライター', bio: '自己紹介',
       avatar_url: 'https://img.example/hana.jpg',
       cover_image_url: 'https://img.example/hana-cover.jpg',
       region: '甲信越', location: '長野県松本市',
@@ -38,12 +38,13 @@ describe('buildProfileUpdate', () => {
   });
   it('nulls out empty optional fields and unsafe urls', () => {
     const payload = buildProfileUpdate({
-      name: '佐藤', bio: '', avatarUrl: 'javascript:x', coverImageUrl: 'javascript:x',
+      name: '佐藤', title: '  ', bio: '', avatarUrl: 'javascript:x', coverImageUrl: 'javascript:x',
       region: '', location: '  ',
       homepageUrl: 'javascript:x', snsRaw: '',
       contactUrl: '',
       serviceName: '', serviceDescription: '', serviceUrl: 'javascript:x', serviceImageUrl: 'javascript:x',
     });
+    expect(payload.title).toBeNull();
     expect(payload.avatar_url).toBeNull();
     expect(payload.cover_image_url).toBeNull();
     expect(payload.region).toBeNull();
@@ -59,7 +60,7 @@ describe('buildProfileUpdate', () => {
   });
   it('drops a region that is not in the list', () => {
     const payload = buildProfileUpdate({
-      name: '佐藤', bio: '', avatarUrl: '', coverImageUrl: '',
+      name: '佐藤', title: '', bio: '', avatarUrl: '', coverImageUrl: '',
       region: '中部', location: '',
       homepageUrl: '', snsRaw: '', contactUrl: '',
       serviceName: '', serviceDescription: '', serviceUrl: '', serviceImageUrl: '',

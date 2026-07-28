@@ -10,6 +10,7 @@ export function parseSnsLinks(raw: string): string[] {
 
 export interface ProfileFormInput {
   name: string;
+  title: string;
   bio: string;
   avatarUrl: string;
   coverImageUrl: string;
@@ -26,6 +27,7 @@ export interface ProfileFormInput {
 
 export interface ProfileUpdate {
   name: string;
+  title: string | null;
   bio: string;
   avatar_url: string | null;
   cover_image_url: string | null;
@@ -80,6 +82,7 @@ function emptyToNull(value: string): string | null {
 export function buildProfileUpdate(input: ProfileFormInput): ProfileUpdate {
   return {
     name: input.name.trim(),
+    title: emptyToNull(input.title),
     bio: input.bio,
     avatar_url: safeUrl(input.avatarUrl),
     cover_image_url: safeUrl(input.coverImageUrl),
