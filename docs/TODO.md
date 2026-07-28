@@ -29,6 +29,8 @@
 
 - [ ] **【要調査・データ破損】** ローカルDBの本物の記事5件すべての `body` が、同一のテスト用インタビューブロック内容(話者「米田」「川崎」、発言「プラスチックを拾ったきっかけは?…」)に上書きされている: `kaigan-seisou`・`kigyou-no-mori`・`kawabe-kansatsu`・`koke-no-mori`・`toshi-no-yachou`(2026-07-28、Chrome実機確認+DB直接クエリで確認)。決め手は `updated_at`: `kaigan-seisou`/`kigyou-no-mori`/`kawabe-kansatsu` の3件がミリ秒まで完全一致(`2026-07-26 07:20:30.343902`)しており、個別編集ではあり得ないため、インタビューブロック機能(`admin/src/pages/articles/edit.astro`・`admin/src/lib/interview-nodeview.ts`、当時未コミットで変更中だった)の保存処理に、複数記事へ同一ペイロードを書き込んでしまうバグがあった可能性が高い。`interview-e2e-test` 記事(2026-07-27作成)を使ったテスト中に発生したと推測されるが、リポジトリ内に該当する自動テスト/スクリプトは見当たらず、原因未特定。このため `tests/content.test.ts` の DB 依存テスト3件も失敗する。`supabase db reset` はローカルルールで禁止されているため未対応 — **他の並行作業が完全に終わったのを確認してから**、(1) 原因(保存処理のどこが複数記事に書き込んでいるか)を特定、(2) 安全なタイミングで `npm run seed` によるリセットを検討。目次カード機能(2026-07-28)の `extractHeadings` 関連ユニットテストはこの影響を受けず5件とも成功している。
 
+- [ ] `public.media` テーブルに `service_role` への GRANT がなく(`20260709120500_media_library.sql` は `authenticated` にのみ select/insert/delete を付与)、service role keyで `media` を読もうとすると `permission denied for table media` になる(2026-07-28、WP記事インポートスクリプトの動作確認中に気付いた。`authenticated` セッション経由では正常に読める)。ビルド時など service role でmediaを参照する処理は現状ないため実害はないが、今後そういう処理を足すなら要 GRANT 追加。
+
 ## Done
 
 - [x] 検索結果に検索語と無関係な記事が混ざる(関連度の足切りがない) — `20260724100200_search_articles_hybrid_threshold.sql` でベクトルCTEに `max_distance`(既定0.5)を導入して解消済み。ただしこの既定値0.5がキツすぎ、キーワードが本文と一致しない自然文クエリで本来ヒットすべき記事まで除外する偽陰性の副作用を確認(2026-07-28、Chrome実機確認+実embedding距離計測: 「森林保全の取り組み」と `企業の森づくり最前線` の距離0.5331が0.5をわずかに超過し除外→0件)。`20260728120000_search_articles_hybrid_relax_threshold.sql` で0.6へ緩和して修正・確認済み(pgTAPテスト・実edge function・ブラウザとも確認)。根本的には「距離の固定カットオフ」自体が seed のごく少数の記事構成に基づくヒューリスティックなので、記事数が増えたら再チューニングが要る可能性は残る。
