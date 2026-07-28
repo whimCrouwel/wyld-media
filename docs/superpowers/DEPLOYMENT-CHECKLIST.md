@@ -60,12 +60,19 @@ supabase functions deploy invite-user r2-upload-url
       (`PUBLIC_SUPABASE_ANON_KEY` は検索モーダルがブラウザから直接 Supabase を叩くために必要。Astro はビルド時に値を埋め込むため、未設定だと本番ビルドの全ページで検索が例外を起こす。service role キーは CMS プロジェクトには絶対に含めない)
 - [ ] CMS: 別の Vercel プロジェクト作成(Root Directory = `admin/`)。env は `PUBLIC_SUPABASE_URL` / `PUBLIC_SUPABASE_ANON_KEY` のみ(service role キーは絶対に含めない)。admin サブドメインを割り当て
 - [ ] 公開サイト側プロジェクトで Deploy Hook を作成(Settings → Git → Deploy Hooks)
-- [ ] Supabase Database Webhook(articles の INSERT/UPDATE/DELETE)→ 上記 Vercel Deploy Hook URL を POST で叩き自動再ビルド。
-      ただしダッシュボードの Webhook UI では発火条件を絞れないため、SQL Editor で条件付きトリガー3本として作成する
-      (`rebuild_on_article_publish_insert` = `new.status = 'published'` / `_update` = `old.status = 'published' or new.status = 'published'` / `_delete` = `old.status = 'published'`、
-      いずれも `supabase_functions.http_request(<Deploy Hook URL>, 'POST', '{"Content-type":"application/json"}', '{}', '5000')` を実行)。
-      下書きの保存では再ビルドさせない(公開・公開中記事の変更・非公開化・公開記事の削除のみ発火)。
-      なお profiles / settings の変更では再ビルドは走らない — プロフィール等だけ変えた場合は次の記事保存まで反映されない(必要なら Vercel で手動 Redeploy)
+- [ ] Supabase の再ビルドトリガー(articles / profiles)→ 変更時に上記 Vercel Deploy Hook URL を POST で叩き自動再ビルド。
+      ダッシュボードの Webhook UI では発火条件を絞れないため、SQL Editor で条件付きトリガーとして作成する。
+      いずれも `execute function supabase_functions.http_request(<Deploy Hook URL>, 'POST', '{"Content-type":"application/json"}', '{}', '5000')`:
+      - articles(下書きの保存では再ビルドさせない — 公開・公開中記事の変更・非公開化・公開記事の削除のみ発火):
+        `rebuild_on_article_publish_insert` = `when (new.status = 'published')` /
+        `_update` = `when (old.status = 'published' or new.status = 'published')` /
+        `_delete` = `when (old.status = 'published')`
+      - profiles(公開サイトに出ないadminプロフィールでは発火させない):
+        `rebuild_on_profile_insert` = `when (new.role <> 'admin')` /
+        `_update` = `when (old.role <> 'admin' or new.role <> 'admin')` /
+        `_delete` = `when (old.role <> 'admin')`
+      連続保存でビルドが乱立しても、Vercel が同一コミット×同一 Deploy Hook の先行デプロイを自動キャンセルして最後の1つに畳む。
+      なお settings の変更では再ビルドは走らない(必要なら Vercel で手動 Redeploy)
 
 ## 検証
 - [ ] 招待受諾(パスワード設定)フローをホストの SMTP で E2E 確認
