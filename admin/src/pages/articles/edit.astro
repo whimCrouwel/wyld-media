@@ -4,6 +4,7 @@ import Card from '../../components/atoms/Card.astro';
 import Button from '../../components/atoms/Button.astro';
 import Field from '../../components/molecules/Field.astro';
 import ImageUploadField from '../../components/molecules/ImageUploadField.astro';
+import InfoButton from '../../components/atoms/InfoButton.astro';
 import { REGIONS } from '../../lib/regions';
 
 const title = '記事の編集 | Wild Media CMS';
@@ -44,7 +45,9 @@ const title = '記事の編集 | Wild Media CMS';
         </Button>
       </ImageUploadField>
       <div class="space-y-2">
-        <Field id="commission" label="依頼トークン(任意)" type="text" />
+        <Field id="commission" label="依頼トークン(任意)" type="text">
+          <InfoButton slot="info" id="commission-info" label="依頼トークンについて" />
+        </Field>
         <span id="commission-status" class="text-sm text-muted-foreground"></span>
       </div>
     </Card>
@@ -133,7 +136,14 @@ const title = '記事の編集 | Wild Media CMS';
       import { fetchArticleForEdit, saveArticle, deleteArticle, validateCommissionToken, checkSlugAvailable } from '../../lib/articles';
       import { setModerationHold, fetchMyProfile, fetchSettings } from '../../lib/admin';
       import { fetchMyArticles, nextEligiblePublishDate } from '../../lib/dashboard';
-      import { translateSaveError, isValidArticleSlug } from '../../lib/editor-helpers';
+      import {
+        translateSaveError,
+        isValidArticleSlug,
+        COMMISSION_TOKEN_INFO_TITLE,
+        COMMISSION_TOKEN_INFO_BODY,
+        COMMISSION_TOKEN_INFO_LINK,
+      } from '../../lib/editor-helpers';
+      import { initInfoDialog } from '../../lib/info-dialog';
       import { initCoverWidget } from '../../lib/cover-widget';
       import { fetchImageBaseUrl, translateUploadError } from '../../lib/images';
       import { initMediaPicker } from '../../lib/media-picker';
@@ -169,6 +179,10 @@ const title = '記事の編集 | Wild Media CMS';
         const slugStatus = document.getElementById('slug-status')!;
         const commissionStatus = document.getElementById('commission-status')!;
         const imageBaseUrl = await fetchImageBaseUrl(supabaseBrowser);
+        const infoDialog = initInfoDialog(document.getElementById('info-dialog') as HTMLDialogElement);
+        document.getElementById('commission-info')!.addEventListener('click', () => {
+          infoDialog.show(COMMISSION_TOKEN_INFO_TITLE, COMMISSION_TOKEN_INFO_BODY, COMMISSION_TOKEN_INFO_LINK);
+        });
 
         const article = await fetchArticleForEdit(supabaseBrowser, id);
         if (!article) {

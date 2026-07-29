@@ -18,7 +18,10 @@ interface Props {
 const { id, label, as = 'input', type = 'text', ...rest } = Astro.props;
 ---
 <div id={`${id}-field`} class="space-y-2">
-  <Label for={id} id={`${id}-label`}>{label}</Label>
+  <div class="flex items-center gap-1.5">
+    <Label for={id} id={`${id}-label`}>{label}</Label>
+    <slot name="info" />
+  </div>
   {
     as === 'textarea' ? (
       <Textarea id={id} {...rest} />

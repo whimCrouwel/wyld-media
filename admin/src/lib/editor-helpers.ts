@@ -1,5 +1,18 @@
 const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
+export const COMMISSION_TOKEN_INFO_TITLE = '依頼トークンとは';
+export const COMMISSION_TOKEN_INFO_BODY = `依頼トークンは、プロバイダー(広告主)があなた宛てに発行する、1回限りの合言葉です(例: WM-1A2B3C4D)。
+
+サイトの外で依頼を受けたら、プロバイダーからトークンを受け取ってこの欄に入力してください。カーソルを外すと依頼者名が表示され、正しいトークンか確認できます。保存すると記事が依頼元に紐づき、投稿間隔の制限なしで公開でき、トップページの特集(Featured)枠に掲載されます。
+
+1つのトークンは1つの記事にのみ使えます。心当たりのある依頼がなければ、空欄のままで構いません。
+
+報酬の支払いなどの取引はすべて両者間で直接行い、運営は一切関与しません。依頼を受ける前に「依頼の仕組み」ページの重要な注意を必ずお読みください。`;
+export const COMMISSION_TOKEN_INFO_LINK = {
+  href: '/commission-guide',
+  label: '「依頼の仕組み」と重要な注意を読む →',
+};
+
 export function isValidArticleSlug(slug: string): boolean {
   return SLUG_RE.test(slug);
 }

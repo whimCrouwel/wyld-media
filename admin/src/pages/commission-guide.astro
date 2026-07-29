@@ -1,0 +1,184 @@
+---
+import AdminShell from '../components/templates/AdminShell.astro';
+import Card from '../components/atoms/Card.astro';
+
+const title = '依頼の仕組み | Wild Media CMS';
+
+const stepNum =
+  'flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground shadow-sm';
+const actorChip = 'inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold';
+const providerChip = `${actorChip} bg-accent text-accent-foreground`;
+const writerChip = `${actorChip} bg-success/15 text-success`;
+const bothChip = `${actorChip} bg-secondary text-secondary-foreground`;
+---
+<AdminShell title={title} heading="依頼の仕組み">
+  <div class="space-y-6">
+    <!-- ヒーロー: 依頼トークン = 合言葉、を一目で -->
+    <Card class="overflow-hidden">
+      <div class="bg-gradient-to-br from-accent/70 via-accent/30 to-transparent p-6 sm:p-8">
+        <p class="text-sm font-semibold text-accent-foreground">ライターに依頼すると</p>
+        <p class="mt-2 text-xl font-semibold leading-snug tracking-tight sm:text-2xl">
+          記事が特集(Featured)として掲載され、<br class="hidden sm:block" />より多くの読者に届きます。
+        </p>
+        <div class="mt-5 flex flex-wrap items-center gap-3 text-sm font-medium">
+          <span class="inline-flex items-center gap-2 rounded-full bg-card px-3 py-1.5 shadow-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-accent-foreground" aria-hidden="true">
+              <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+            </svg>
+            プロバイダー
+          </span>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true">
+            <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+          </svg>
+          <code class="rounded-md bg-primary px-3 py-1.5 font-mono text-sm font-semibold tracking-wider text-primary-foreground shadow-sm">WM-1A2B3C4D</code>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true">
+            <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+          </svg>
+          <span class="inline-flex items-center gap-2 rounded-full bg-card px-3 py-1.5 shadow-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 text-success" aria-hidden="true">
+              <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
+            </svg>
+            ライター
+          </span>
+        </div>
+        <p class="mt-4 text-sm text-muted-foreground">
+          その証明になるのが、1回限りの合言葉「依頼トークン」。相談はサイトの外で自由に、
+          成立したらトークンを1つ渡すだけで、記事が「依頼記事」になります。
+        </p>
+      </div>
+    </Card>
+
+    <!-- メリット: 2タイル -->
+    <div class="grid gap-4 sm:grid-cols-2">
+      <Card class="p-6">
+        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/15">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 text-warning-foreground" aria-hidden="true">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+          </svg>
+        </div>
+        <h2 class="mt-3 text-base font-semibold tracking-tight">待たずに公開できる</h2>
+        <p class="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+          依頼記事は、通常記事の投稿間隔ルールを気にせずすぐ公開できます。
+        </p>
+      </Card>
+      <Card class="p-6">
+        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-accent">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 text-accent-foreground" aria-hidden="true">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+          </svg>
+        </div>
+        <h2 class="mt-3 text-base font-semibold tracking-tight">特集枠でビューが伸びる</h2>
+        <p class="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+          トップページの特集(Featured)枠に掲載され、通常記事より多くの読者の目に触れます。
+        </p>
+      </Card>
+    </div>
+
+    <!-- 流れ: タイムライン -->
+    <Card class="p-6 sm:p-8">
+      <h2 class="text-lg font-semibold tracking-tight">依頼の流れ</h2>
+      <ol class="mt-6 space-y-0">
+        <li class="relative flex gap-4 pb-8">
+          <span class="absolute left-4 top-8 h-full w-px -translate-x-1/2 bg-border" aria-hidden="true"></span>
+          <span class={stepNum}>1</span>
+          <div class="pt-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <p class="text-sm font-semibold">サイトの外で依頼を相談する</p>
+              <span class={bothChip}>ふたりで</span>
+            </div>
+            <p class="mt-1 text-sm text-muted-foreground">テーマ・報酬・納期などはメールや打ち合わせで直接決めます。</p>
+          </div>
+        </li>
+        <li class="relative flex gap-4 pb-8">
+          <span class="absolute left-4 top-8 h-full w-px -translate-x-1/2 bg-border" aria-hidden="true"></span>
+          <span class={stepNum}>2</span>
+          <div class="pt-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <p class="text-sm font-semibold">トークンを発行する</p>
+              <span class={providerChip}>プロバイダー</span>
+            </div>
+            <p class="mt-1 text-sm text-muted-foreground">ダッシュボードの「ライターに依頼する」からワンクリック。</p>
+          </div>
+        </li>
+        <li class="relative flex gap-4 pb-8">
+          <span class="absolute left-4 top-8 h-full w-px -translate-x-1/2 bg-border" aria-hidden="true"></span>
+          <span class={stepNum}>3</span>
+          <div class="pt-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <p class="text-sm font-semibold">トークンをライターに渡す</p>
+              <span class={providerChip}>プロバイダー</span>
+            </div>
+            <p class="mt-1 text-sm text-muted-foreground">メールなど、いつもの連絡手段でそのまま伝えればOK。</p>
+          </div>
+        </li>
+        <li class="relative flex gap-4 pb-8">
+          <span class="absolute left-4 top-8 h-full w-px -translate-x-1/2 bg-border" aria-hidden="true"></span>
+          <span class={stepNum}>4</span>
+          <div class="pt-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <p class="text-sm font-semibold">記事作成画面でトークンを入力する</p>
+              <span class={writerChip}>ライター</span>
+            </div>
+            <p class="mt-1 text-sm text-muted-foreground">「依頼トークン」欄に入力して、依頼者名が表示されれば成功。</p>
+          </div>
+        </li>
+        <li class="relative flex gap-4">
+          <span class={stepNum}>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4" aria-hidden="true">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </span>
+          <div class="pt-1">
+            <p class="text-sm font-semibold">公開すると依頼記事に</p>
+            <p class="mt-1 text-sm text-muted-foreground">記事が依頼元に紐づき、Featured 枠に表示されます。</p>
+          </div>
+        </li>
+      </ol>
+      <div class="mt-6 flex flex-wrap gap-2 border-t pt-5 text-xs text-muted-foreground">
+        <span class="rounded-full bg-secondary px-2.5 py-1">1トークン = 1記事</span>
+        <span class="rounded-full bg-secondary px-2.5 py-1">使えるのは宛先のライター本人だけ</span>
+        <span class="rounded-full bg-secondary px-2.5 py-1">未使用なら発行元が取消できます</span>
+        <span class="rounded-full bg-secondary px-2.5 py-1">同じライターへの連続発行には間隔があります</span>
+      </div>
+    </Card>
+
+    <!-- 重要な注意: ここだけは正確に・しっかり -->
+    <Card class="border-destructive/40 p-6 sm:p-8">
+      <div class="flex items-center gap-3">
+        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-destructive/10">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 text-destructive" aria-hidden="true">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+        </div>
+        <h2 class="text-lg font-semibold tracking-tight">取引についての重要な注意</h2>
+      </div>
+      <ul class="mt-5 list-disc space-y-2.5 pl-5 text-sm leading-relaxed text-muted-foreground">
+        <li>
+          依頼の交渉・契約・納品・<strong class="text-foreground">報酬の支払い</strong>は、
+          すべてプロバイダーとライターの間で直接行っていただきます。サイト上で金銭のやり取りは発生しません。
+        </li>
+        <li>
+          Wild Media は取引の当事者・仲介者ではありません。依頼内容の保証や、報酬の未払い・納品遅延などの
+          トラブルへの対応は<strong class="text-foreground">一切行いません</strong>。
+        </li>
+        <li>運営が行うのは、トークンによる依頼の実在確認と、依頼記事としての掲載のみです。</li>
+        <li>トラブルを避けるため、依頼条件はメールなど記録の残る形で事前に取り交わすことをおすすめします。</li>
+      </ul>
+    </Card>
+  </div>
+  <p id="message" role="alert" class="mt-4 text-sm text-muted-foreground"></p>
+
+  <script>
+    import { supabaseBrowser } from '../lib/supabase-browser';
+    import { redirectTo } from '../lib/auth';
+    import { initShellChrome } from '../lib/shell';
+
+    // 静的な説明ページ。認証ガードとサイドバー配線のみ行う。
+    const { data: { session } } = await supabaseBrowser.auth.getSession();
+    if (!session) {
+      redirectTo('/login');
+    } else {
+      await initShellChrome(supabaseBrowser);
+    }
+  </script>
+</AdminShell>

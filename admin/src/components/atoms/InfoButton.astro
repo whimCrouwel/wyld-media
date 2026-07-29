@@ -1,0 +1,22 @@
+---
+import { cn } from '../../lib/cn';
+
+interface Props {
+  id: string;
+  label: string;
+  class?: string;
+}
+
+const { id, label, class: className } = Astro.props;
+---
+<button
+  type="button"
+  id={id}
+  aria-label={label}
+  class={cn(
+    'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-input text-xs font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+    className,
+  )}
+>
+  ?
+</button>
