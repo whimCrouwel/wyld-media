@@ -5,6 +5,7 @@ import Button from '../components/atoms/Button.astro';
 import Field from '../components/molecules/Field.astro';
 import Label from '../components/atoms/Label.astro';
 import Select from '../components/atoms/Select.astro';
+import { REGIONS } from '../lib/regions';
 
 const title = 'ユーザー管理 | Wild Media CMS';
 ---
@@ -16,6 +17,10 @@ const title = 'ユーザー管理 | Wild Media CMS';
         <Field id="inv-email" label="メールアドレス" type="email" required />
         <Field id="inv-name" label="名前" type="text" required />
         <Field id="inv-slug" label="スラッグ(小文字英数字とハイフン)" type="text" required />
+        <Field id="inv-region" label="活動拠点(エリア)" as="select">
+          <option value="">未設定</option>
+          {REGIONS.map((r) => <option value={r}>{r}</option>)}
+        </Field>
         <div class="space-y-2">
           <Label for="inv-role">種別</Label>
           <Select id="inv-role">
@@ -186,6 +191,7 @@ const title = 'ユーザー管理 | Wild Media CMS';
             slug: $('inv-slug').value.trim(),
             role,
             certified: role === 'provider' ? $('inv-certified').checked : false,
+            region: $('inv-region').value || undefined,
           };
           const validationError = validateInviteInput(input);
           if (validationError) { messageEl.textContent = validationError; return; }

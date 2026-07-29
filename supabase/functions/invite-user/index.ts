@@ -34,22 +34,31 @@ Deno.serve(async (req) => {
   if (callerProfile?.role !== 'admin') return json({ error: 'forbidden' }, 403);
 
   // validate payload
-  let payload: { email?: string; name?: string; slug?: string; role?: string; certified?: boolean };
+  let payload: {
+    email?: string; name?: string; slug?: string; role?: string; certified?: boolean; region?: string;
+  };
   try {
     payload = await req.json();
   } catch {
     return json({ error: 'invalid json' }, 400);
   }
-  const { email, name, slug, role, certified } = payload;
+  const { email, name, slug, role, certified, region } = payload;
+  // profiles.region の check 制約と同じ12区分。制約を変えるときは admin/src/lib/regions.ts と併せて更新する。
+  const REGIONS = [
+    '北海道', '東北', '関東', '甲信越', '北陸', '東海',
+    '近畿', '中国', '四国', '九州', '沖縄', '海外',
+  ];
   if (
     !email || !name || !slug ||
     !['writer', 'provider'].includes(role ?? '') ||
     !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug) ||
     (certified !== undefined && typeof certified !== 'boolean') ||
-    (certified && role !== 'provider')
+    (certified && role !== 'provider') ||
+    // 招待メール送信後に profile insert が制約違反で失敗するとロールバックになる(メールだけ届く)ので、ここで先に弾く
+    (region !== undefined && !REGIONS.includes(region))
   ) {
     return json(
-      { error: 'email, name, slug, and role (writer|provider) are required; certified is only valid for provider' },
+      { error: 'email, name, slug, and role (writer|provider) are required; certified is only valid for provider; region must be one of the 12 areas' },
       400,
     );
   }
@@ -67,6 +76,7 @@ Deno.serve(async (req) => {
     slug,
     name,
     certified: role === 'provider' ? !!certified : false,
+    region: region ?? null,
   });
   if (profileError) {
     await admin.auth.admin.deleteUser(invited.user.id);

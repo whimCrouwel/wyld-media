@@ -167,6 +167,11 @@ describe('validateInviteInput', () => {
   it('writer に certified: true を指定すると弾く', () => {
     expect(validateInviteInput({ ...ok, role: 'writer', certified: true })).toContain('認定');
   });
+  it('region は未指定なら OK、12区分なら OK、それ以外は弾く', () => {
+    expect(validateInviteInput(ok)).toBeNull();
+    expect(validateInviteInput({ ...ok, region: '関東' })).toBeNull();
+    expect(validateInviteInput({ ...ok, region: '中部' })).toContain('エリア');
+  });
 });
 
 describe('inviteUser', () => {
@@ -195,6 +200,13 @@ describe('inviteUser', () => {
     const certifiedInput = { ...input, role: 'provider' as const, certified: true };
     await inviteUser(supabase, certifiedInput);
     expect(calls[0]).toEqual(['invite-user', { body: certifiedInput }]);
+  });
+
+  it('region を含むペイロードもそのまま送る', async () => {
+    const { supabase, calls } = stubInvoke({ error: null });
+    const regionInput = { ...input, region: '関東' };
+    await inviteUser(supabase, regionInput);
+    expect(calls[0]).toEqual(['invite-user', { body: regionInput }]);
   });
 
   it('EF のエラー本文を掘り出して throw する', async () => {

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { isRegion } from './regions';
 
 export type Role = 'admin' | 'writer' | 'provider';
 
@@ -78,6 +79,7 @@ export interface InviteInput {
   slug: string;
   role: 'writer' | 'provider';
   certified?: boolean;
+  region?: string;
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -89,6 +91,7 @@ export function validateInviteInput(input: InviteInput): string | null {
   if (!SLUG_RE.test(input.slug)) return 'スラッグは小文字英数字とハイフンで入力してください';
   if (input.role !== 'writer' && input.role !== 'provider') return '種別を選択してください';
   if (input.certified && input.role !== 'provider') return '認定はサービスプロバイダーにのみ設定できます';
+  if (input.region !== undefined && !isRegion(input.region)) return 'エリアを選択肢から選んでください';
   return null;
 }
 
