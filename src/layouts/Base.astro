@@ -118,8 +118,12 @@ const siteSchema = webSiteSchema({ name: siteName, url: siteUrl, inLanguage: 'ja
         <!-- 本文の外側に出したいもの(トップの Hero など)。無いページでは何も出ない -->
         <slot name="full" />
         <main class={padMain ? 'pt-32' : ''}><slot /></main>
-        <footer class="px-6 pb-10">
-          <MetaLabel>Wild Media — ライターと環境のためのプラットフォーム</MetaLabel>
+        <footer class="footer-row px-6 pb-10">
+          <MetaLabel>Wild Media</MetaLabel>
+          <div class="footer-right">
+            <a href="/privacy" class="footer-link"><MetaLabel class="footer-link-label">Privacy</MetaLabel></a>
+            <MetaLabel class="footer-copyright">&copy; {new Date().getFullYear()} Wild Card</MetaLabel>
+          </div>
         </footer>
       </div>
     </div>
@@ -146,5 +150,37 @@ const siteSchema = webSiteSchema({ name: siteName, url: siteUrl, inLanguage: 'ja
     .page-shift {
       padding-bottom: calc(2.5rem + env(safe-area-inset-bottom, 0px));
     }
+  }
+
+  .footer-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1.5rem;
+  }
+
+  .footer-right {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .footer-link {
+    display: flex;
+    align-items: center;
+  }
+
+  .footer-link-label {
+    color: var(--color-meta);
+    transition: color 0.2s ease;
+  }
+
+  .footer-link:hover :global(.footer-link-label) {
+    color: var(--color-accent);
+  }
+
+  .footer-copyright {
+    color: var(--color-meta);
   }
 </style>
