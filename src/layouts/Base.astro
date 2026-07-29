@@ -71,6 +71,11 @@ const siteUrl = Astro.site.href;
 const siteName = 'Wild Media';
 const orgSchema = organizationSchema({ name: siteName, url: siteUrl });
 const siteSchema = webSiteSchema({ name: siteName, url: siteUrl, inLanguage: 'ja' });
+
+// Google アナリティクス(GA4)。dev サーバーの閲覧を計測に混ぜないよう本番ビルドのみ。
+// ID を変える/止めるときは /privacy 第7条(アクセス解析の記載)も併せて見直すこと。
+const GA_MEASUREMENT_ID = 'G-P6LNXRK8T9';
+const enableAnalytics = import.meta.env.PROD;
 ---
 <!doctype html>
 <html lang="ja">
@@ -91,6 +96,17 @@ const siteSchema = webSiteSchema({ name: siteName, url: siteUrl, inLanguage: 'ja
     <slot name="head" />
     <JsonLd data={orgSchema} />
     <JsonLd data={siteSchema} />
+    {enableAnalytics && (
+      <>
+        <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}></script>
+        <script is:inline define:vars={{ GA_MEASUREMENT_ID }}>
+          window.dataLayer = window.dataLayer || [];
+          function gtag() { dataLayer.push(arguments); }
+          gtag('js', new Date());
+          gtag('config', GA_MEASUREMENT_ID);
+        </script>
+      </>
+    )}
     <!-- keep any existing font/style links below this line -->
   </head>
   <body>
