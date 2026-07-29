@@ -63,7 +63,9 @@ export function initImageUploadWidget(
       const img = document.createElement('img');
       img.src = hidden.value;
       img.alt = '現在の画像';
-      img.style.maxWidth = '240px';
+      // 768px = 公開サイトの記事ページでカバー画像が実際に表示される幅に合わせる。
+      // inline style は preflight の img { max-width: 100% } に勝つので min() で抑える。
+      img.style.maxWidth = 'min(768px, 100%)';
       currentEl.appendChild(img);
     } else {
       currentEl.textContent = emptyLabel;
