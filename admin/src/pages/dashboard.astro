@@ -20,6 +20,9 @@ const title = 'ダッシュボード | Wild Media CMS';
         >＋ 新しい記事を作成</a
       >
     </div>
+    <p id="no-published-notice" class="mb-3 text-sm text-muted-foreground" hidden>
+      公開済みの記事がまだありません。1本公開すると、あなたのプロフィールが読者向けサイトに表示されます。
+    </p>
     <p id="publish-cooldown-notice" class="mb-3 text-sm text-muted-foreground" hidden></p>
     <p id="article-list-message" role="alert" class="mb-3 text-sm text-destructive"></p>
     <ul id="article-list" class="article-list"><li>読み込み中…</li></ul>
@@ -361,8 +364,11 @@ const title = 'ダッシュボード | Wild Media CMS';
         const listEl = document.getElementById('article-list')!;
         const listMessageEl = document.getElementById('article-list-message')!;
         const cooldownEl = document.getElementById('publish-cooldown-notice')!;
+        const noPublishedEl = document.getElementById('no-published-notice')!;
         try {
           const articles = await fetchMyArticles(supabaseBrowser);
+          const hasPublished = articles.some((a) => a.status === 'published' && !a.moderationHold);
+          noPublishedEl.hidden = hasPublished;
           try {
             const settings = await fetchSettings(supabaseBrowser);
             const nextDate = nextEligiblePublishDate(articles, settings.postIntervalDays);

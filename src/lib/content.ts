@@ -34,6 +34,7 @@ export interface ArticleDetail extends ArticleSummary {
 export interface WriterSummary {
   slug: string;
   name: string;
+  title: string | null;
   bio: string;
   avatarUrl: string | null;
   region: string | null;
@@ -252,15 +253,20 @@ export async function fetchArticleBySlug(
 }
 
 export async function fetchWriters(db: SupabaseClient): Promise<WriterSummary[]> {
+  // 公開記事(status=published かつ moderation_hold=false)を1本も持たないライターは
+  // プロフィール自体を公開サイトに出さない(articles!inner で絞り込み)。
   const { data, error } = await db
     .from('profiles')
-    .select('slug, name, bio, avatar_url, region, location')
+    .select('slug, name, title, bio, avatar_url, region, location, articles!articles_author_id_fkey!inner(id)')
     .eq('role', 'writer')
+    .eq('articles.status', 'published')
+    .eq('articles.moderation_hold', false)
     .order('name');
   if (error) throw error;
   return (data ?? []).map((row) => ({
     slug: row.slug,
     name: row.name,
+    title: row.title ?? null,
     bio: row.bio,
     avatarUrl: safeUrl(row.avatar_url),
     region: row.region ?? null,
@@ -275,7 +281,7 @@ export async function fetchWriterBySlug(
   const { data: profile, error } = await db
     .from('profiles')
     .select(
-      'id, slug, name, bio, avatar_url, cover_image_url, region, location, homepage_url, sns_links, contact_url',
+      'id, slug, name, title, bio, avatar_url, cover_image_url, region, location, homepage_url, sns_links, contact_url',
     )
     .eq('role', 'writer')
     .eq('slug', slug)
@@ -305,6 +311,7 @@ export async function fetchWriterBySlug(
   return {
     slug: profile.slug,
     name: profile.name,
+    title: profile.title ?? null,
     bio: profile.bio,
     avatarUrl: safeUrl(profile.avatar_url),
     coverImageUrl: safeUrl(profile.cover_image_url),

@@ -159,6 +159,52 @@ a {
   }
 }
 
+/* エリア/拠点などの属性チップ。writer/provider 一覧カードで「北陸 石川県金沢市」の
+   ように無ラベルで地の文と並べていたのを、ラベル付きピルに切り出す。 */
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background-color: var(--color-panel);
+  color: var(--color-ink);
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  line-height: 1;
+}
+
+.chip-label {
+  font-family: var(--font-accent);
+  font-weight: 600;
+  font-size: 6pt;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-meta);
+}
+
+.chip-value {
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 600;
+}
+
+/* 拠点チップだけ主情報として差し色で強調する */
+.chip-accent {
+  background-color: color-mix(in srgb, var(--color-accent) 18%, var(--color-card));
+  color: var(--color-accent-hover);
+}
+
+.chip-accent .chip-label {
+  color: var(--color-accent-hover);
+  opacity: 0.75;
+}
+
 /* Tiny uppercase meta text — the only text style outside hero/article prose */
 .meta {
   font-family: var(--font-accent);

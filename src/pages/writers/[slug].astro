@@ -106,14 +106,23 @@ const crumbsLd = breadcrumbListSchema(crumbs, siteUrl);
         >
           {writer.name}
         </h1>
-        <p class="mt-2">
-          <MetaLabel>
-            @{writer.slug}
-            {(writer.region || writer.location) && (
-              <span> ・ {[writer.region, writer.location].filter(Boolean).join(' ')}</span>
+        {writer.title && <p class="text-meta mt-1">{writer.title}</p>}
+        {(writer.region || writer.location) && (
+          <span class="chip-row mt-2">
+            {writer.region && (
+              <span class="chip">
+                <span class="chip-label">Area</span>
+                <span class="chip-value">{writer.region}</span>
+              </span>
             )}
-          </MetaLabel>
-        </p>
+            {writer.location && (
+              <span class="chip chip-accent">
+                <span class="chip-label">Location</span>
+                <span class="chip-value">{writer.location}</span>
+              </span>
+            )}
+          </span>
+        )}
       </div>
     </div>
 

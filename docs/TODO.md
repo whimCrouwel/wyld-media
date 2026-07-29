@@ -6,6 +6,8 @@
 
 ## Open
 
+- [ ] `profiles.title`(肩書き)がプロバイダー側(`src/pages/providers/index.astro`・`src/pages/providers/[slug].astro`、`src/lib/content.ts` の `ProviderSummary`/`ProviderDetail`)にまだ未反映 — ライター側(`WriterSummary`/`WriterDetail` と writers の一覧・詳細ページ)は本対応で反映済み(2026-07-29)。同じパターンで `select` に `title` を足し、名前の下に表示すればよい。
+- [ ] `src/pages/providers/index.astro` のカードレイアウトが、ライター一覧で直した「AREA/LOCATIONチップ + 2カラムグリッド」デザイン以前の古い1カラム横並び行のまま(2026-07-29、ライター一覧のカードデザイン改修時に気付いた)。
 - [ ] 添付ファイル(PDF、`kind: 'file'`)は `media` テーブルに記録されない — `admin/src/lib/block-uploads.ts` の `insertFileBlock` が `uploadToR2` 直呼びで `recordMedia` を通らないため。(1) メディアライブラリに出ない=再利用できない、(2) 週次の `cleanup-orphaned-media` は `media` 行ベースなので、記事から外した後の PDF は R2 に永久に残る(誤削除はされないが掃除もされない)。ライブラリで画像とファイルを区別して表示する UI(`admin/src/lib/media-picker.ts` は現状 `<img>` 前提)もセットで要検討。(2026-07-28、カバー画像のライブラリ選択対応中に気付いた)
 - [ ] admin のサイト設定画面で「設定の読み込みに失敗しました」と表示される — `admin/src/pages/settings.astro:71`
 - [ ] 同じ設定画面で、現在の設定値がフォームに表示されない(空欄になる) — 取得: `admin/src/lib/admin.ts:110-119`(`fetchSettings`)、フォームへの反映: `admin/src/pages/settings.astro:67-69`
@@ -16,7 +18,6 @@
 
 - [ ] `supabase/tests/database/11_search_articles_hybrid.test.sql:65` のコメントが記事F(離れた記事)のベクトル距離を「≈0.5527」としているが、実測(`'[1,0]'::vector(2) <=> '[0.3,0.7]'::vector(2)`)は0.6061で、コメントの数値が古い/誤り。テスト自体のアサーションは実際の距離(0.6061)を前提に正しく動いている(2026-07-28、`20260728120000_search_articles_hybrid_relax_threshold.sql` の閾値変更検証中に気付いた)。コメント修正のみ、動作影響なし。
 
-- [ ] プロバイダー⇔ライターの依頼トークン制フロー(設計中、`docs/superpowers/specs/` に依頼トークン設計spec予定)で、両者がプロセス(依頼→トークン発行→オフライン交渉→公開時にトークン入力)を理解できるよう説明するポップアップUIが必要。今回のスコープでは見送り、実装は次回。対象になりそうな箇所: プロバイダー側の依頼UI(新規)、`admin/src/pages/articles/new.astro`・`edit.astro` のトークン入力欄まわり。
 
 - [ ] Supabase の DB コンテナが再起動すると、`dev:all` を再起動せずに使い続けているとトップページの WORKS/FEATURED セクションが記事0件のまま表示される(サイドバーの地域件数は正しく出るので、DB自体・`getAreaLinks` は無関係)。おそらくトップページ側の記事取得も同様のモジュールレベルの1回きりメモ化パターンで、DB再起動でその瞬間のクエリが失敗/空振りした結果がプロセス生存中ずっとキャッシュされていると見られる(再現待ち・要確認)。回避策: `npm run dev:all` を再起動すれば直る。
 
@@ -37,6 +38,8 @@
 - [ ] `public.media` テーブルに `service_role` への GRANT がなく(`20260709120500_media_library.sql` は `authenticated` にのみ select/insert/delete を付与)、service role keyで `media` を読もうとすると `permission denied for table media` になる(2026-07-28、WP記事インポートスクリプトの動作確認中に気付いた。`authenticated` セッション経由では正常に読める)。ビルド時など service role でmediaを参照する処理は現状ないため実害はないが、今後そういう処理を足すなら要 GRANT 追加。
 
 ## Done
+
+- [x] ライター側の依頼トークン入力欄(`admin/src/pages/articles/new.astro`・`edit.astro`)に説明ポップアップを追加 — 汎用の`InfoButton`(「?」アイコン)+`InfoDialog`(中央モーダル、`AdminLayout.astro`にグローバル配置)を新設し、`Field.astro`に`slot="info"`を追加してラベル横に配置。説明文は`admin/src/lib/editor-helpers.ts`の`COMMISSION_TOKEN_INFO_TITLE`/`_BODY`に集約(両ページで共有)。プロバイダー側の依頼UI(新規)はまだ存在しないため、そちらの説明表示は別途そのUIを作る際に対応(2026-07-29)。
 
 - [x] 検索結果に検索語と無関係な記事が混ざる(関連度の足切りがない) — `20260724100200_search_articles_hybrid_threshold.sql` でベクトルCTEに `max_distance`(既定0.5)を導入して解消済み。ただしこの既定値0.5がキツすぎ、キーワードが本文と一致しない自然文クエリで本来ヒットすべき記事まで除外する偽陰性の副作用を確認(2026-07-28、Chrome実機確認+実embedding距離計測: 「森林保全の取り組み」と `企業の森づくり最前線` の距離0.5331が0.5をわずかに超過し除外→0件)。`20260728120000_search_articles_hybrid_relax_threshold.sql` で0.6へ緩和して修正・確認済み(pgTAPテスト・実edge function・ブラウザとも確認)。根本的には「距離の固定カットオフ」自体が seed のごく少数の記事構成に基づくヒューリスティックなので、記事数が増えたら再チューニングが要る可能性は残る。
 - [x] **インタビュー・ブロックを自己完結にし、発言/ブロック単位の削除UIを追加** — (1) 中で `/` を押してもスラッシュメニューを発火させない(`admin/src/lib/insert-menu.ts` に `isInsideInterview` 述語を追加し `Suggestion.allow` で除外+`initInsertButton` の `＋` も interview 内では非表示)、(2) 各発言(turn)の右上に×ボタン(hover表示)、`turn--only` decoration + CSS で最後の 1 発言では隠す・実行時ガード付き、(3) 話者ツールバーに「ブロックを削除」ボタン(`window.confirm` 付き)。テスト 5 件追加(admin/tests/insert-menu.test.ts, admin/tests/interview-nodeview.test.ts)。E2Eで動作確認済み(2026-07-27)。
