@@ -158,10 +158,10 @@ describe('buildCrumbs', () => {
     ]);
   });
 
-  it('provider crumbs: Home → Providers → name', () => {
+  it('provider crumbs: Home → Changemakers → name', () => {
     expect(buildCrumbs.provider({ name: 'Forest Co', slug: 'forest' })).toEqual([
       { name: 'Home', url: '/' },
-      { name: 'Providers', url: '/providers' },
+      { name: 'Changemakers', url: '/providers' },
       { name: 'Forest Co', url: '/providers/forest' },
     ]);
   });
