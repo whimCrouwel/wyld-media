@@ -18,8 +18,8 @@ const { id, label, hint, accept = 'image/jpeg,image/png,image/webp' } = Astro.pr
   <legend id={`${id}-label`} class="px-1 text-sm font-medium">{label}</legend>
   {hint && <p class="mb-2 text-sm text-muted-foreground">{hint}</p>}
   {/* 全画像共通のブランディングガイドライン。掲載画像の世界観を揃えるため全アップロード欄に常時表示する。 */}
-  <p class="mb-2 text-sm text-muted-foreground">
-    メディアの世界観を統一するため、文字入れなどの加工をした画像やAI生成画像は使用できません。撮影したままの写真をお使いください。
+  <p class="mb-2 text-xs text-orange-600">
+    ※メディアの世界観を統一するため、文字入れなどの加工をした画像やAI生成画像は使用できません。撮影したままの写真をお使いください。
   </p>
   <input type="hidden" id={id} />
   <p id={`${id}-current`} class="mb-2"></p>
