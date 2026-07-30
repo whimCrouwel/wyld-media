@@ -13,6 +13,13 @@ export const COMMISSION_TOKEN_INFO_LINK = {
   label: '「依頼の仕組み」と重要な注意を読む →',
 };
 
+export const EDITOR_HELP_INFO_TITLE = '編集画面の使い方';
+export const EDITOR_HELP_INFO_BODY = `本文欄で「/」を入力すると、見出し・箇条書き・引用・区切り線・画像・ファイル添付・埋め込み(YouTube/X/Vimeo)・インタビュー(会話)・目次といったブロックをその場で挿入できます。
+
+テキストを選択すると、選択範囲の上に太字・見出し・リンクなどを設定できるツールバーが表示されます。
+
+画像は「/」から「画像を挿入」を選ぶと新しくアップロードでき、「メディアから選ぶ」を選ぶと過去にアップロードした画像を再利用できます。`;
+
 export function isValidArticleSlug(slug: string): boolean {
   return SLUG_RE.test(slug);
 }

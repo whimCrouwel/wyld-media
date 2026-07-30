@@ -58,6 +58,10 @@ const title = '記事の編集 | Wild Media CMS';
         <div id="toc-panel"></div>
       </aside>
       <div class="min-w-0 flex-1">
+        <div class="mb-2 flex items-center gap-2">
+          <p class="text-sm font-medium text-muted-foreground">本文</p>
+          <InfoButton id="editor-help-info" label="編集画面の使い方" />
+        </div>
         <div id="bubble-toolbar" hidden>
           <button type="button" data-action="headingH2" aria-pressed="false">見出し2</button>
           <button type="button" data-action="headingH3" aria-pressed="false">見出し3</button>
@@ -142,6 +146,8 @@ const title = '記事の編集 | Wild Media CMS';
         COMMISSION_TOKEN_INFO_TITLE,
         COMMISSION_TOKEN_INFO_BODY,
         COMMISSION_TOKEN_INFO_LINK,
+        EDITOR_HELP_INFO_TITLE,
+        EDITOR_HELP_INFO_BODY,
       } from '../../lib/editor-helpers';
       import { initInfoDialog } from '../../lib/info-dialog';
       import { initCoverWidget } from '../../lib/cover-widget';
@@ -182,6 +188,9 @@ const title = '記事の編集 | Wild Media CMS';
         const infoDialog = initInfoDialog(document.getElementById('info-dialog') as HTMLDialogElement);
         document.getElementById('commission-info')!.addEventListener('click', () => {
           infoDialog.show(COMMISSION_TOKEN_INFO_TITLE, COMMISSION_TOKEN_INFO_BODY, COMMISSION_TOKEN_INFO_LINK);
+        });
+        document.getElementById('editor-help-info')!.addEventListener('click', () => {
+          infoDialog.show(EDITOR_HELP_INFO_TITLE, EDITOR_HELP_INFO_BODY);
         });
 
         const article = await fetchArticleForEdit(supabaseBrowser, id);
