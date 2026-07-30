@@ -153,7 +153,7 @@ erDiagram
 | `guard_commission_token_revoke()` | トリガー | `revoked_at` の null→非null 変更のみ許可し、使用済みトークンの取消を拒否 |
 | `validate_commission_token(token, article_id)` | RPC | 依頼トークンの実在チェック(呼び出し本人宛て・未取消・未使用〈article_idは自分自身を除外〉のみ応答) |
 | `resolve_commission_token()` | トリガー | 記事保存時、`commission_token_input` から `commissioned_by`/`commission_token_id` を解決 |
-| `enforce_publish_rules()` | トリガー | 公開条件(投稿間隔・本文必須など)を強制 |
+| `enforce_publish_rules()` | トリガー | 公開条件(投稿間隔・本文必須など)を強制。投稿間隔チェックはtrusted フラグ(`auth.uid() is null or is_admin()`)で除外されるため、admin は他ライターの下書きを即座に公開可能 |
 | `enforce_body_image_rules()` | トリガー | 本文中の画像枚数・ホスト許可を強制 |
 | `enforce_body_embed_rules()` | トリガー | 本文中の埋め込み(YouTube/Vimeo/X)ホスト許可を強制 |
 | `block_media_in_use()` | トリガー | 記事から参照中の `media` 行の削除を禁止 |

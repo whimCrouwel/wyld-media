@@ -51,7 +51,8 @@ Wild Media の「いまの姿」の地図。意思決定の経緯は [設計ス�
   HTML 化は `packages/blocks-renderer/` の `renderBlocksToHtml()`(非同期、`Promise<string>` を返す)に
   一本化されており、公開サイトのビルド時にこれを呼ぶ。CMS のエディタは同パッケージのブロック定義
   (`extensions.ts`)を共有する WYSIWYG のため、別途プレビュー機能は持たない
-- 通常記事の公開は同一著者につき `post_interval_days`(初期値10)日に1回。依頼記事(`commissioned_by` 非null)は対象外
+- 通常記事の公開は同一著者につき `post_interval_days`(初期値10)日に1回。依頼記事(`commissioned_by` 非null)は対象外。
+  ただし、admin(trusted フラグ有: `auth.uid() is null or is_admin()`)は投稿間隔ルールを無視して他ライターの下書きを即座に公開できる
 - 依頼トークン: プロバイダーが特定のライター宛てに発行する使い切りの文字列(`WM-XXXXXXXX`)。
   ライターがエディタで入力すると `commissioned_by` が解決される。プロバイダー1人につき
   複数のライター・複数の依頼を並行して持てる(1トークン=1記事)。実在チェックは
