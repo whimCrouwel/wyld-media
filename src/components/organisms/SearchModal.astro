@@ -148,7 +148,11 @@ import MetaLabel from '../atoms/MetaLabel.astro';
   }
 
   .search-modal :global(.result-excerpt) {
-    display: block;
+    /* チャンク全文が返ってくるので、2行に切り詰めて一致箇所の雰囲気だけ見せる */
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
     margin-top: 0.6rem;
     font-size: 13px;
     line-height: 1.8;

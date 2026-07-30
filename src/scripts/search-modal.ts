@@ -11,15 +11,9 @@ const resultsEl = document.getElementById('search-results') as HTMLUListElement 
 const statusEl = document.getElementById('search-status');
 
 // supabase/functions/search-articles/index.ts のレスポンス形式に合わせる。
-// excerptHtml は search_articles_hybrid()(supabase/migrations/
-// 20260713100100_search_articles_hybrid.sql)内で
-// extensions.pgroonga_highlight_html(pc.content, pgroonga_query_extract_keywords(query_text))
-// により生成される。pgroonga_highlight_html は本文をHTMLエスケープした上で
-// マッチしたキーワードだけを <span class="keyword"> で囲む PGroonga 組込み関数
-// であり、ユーザーの生クエリ文字列はキーワード抽出(pgroonga_query_extract_keywords)
-// を経由するのみで、出力にそのまま現れることはない。そのためそのまま innerHTML に
-// 差し込んでよい。一方 title はユーザー入力を経由しないが、念のため常に
-// エスケープしてから差し込む。
+// excerptHtml(pgroonga_highlight_html によるハイライト付き抜粋)も返ってくるが、
+// 結果はタイトル+メタ行のみの表示にしたため使っていない。
+// title はユーザー入力を経由しないが、念のため常にエスケープしてから差し込む。
 interface SearchResult {
   slug: string;
   title: string;
@@ -93,7 +87,6 @@ if (modal && openBtns.length && input && resultsEl && statusEl) {
             <span class="meta">${escapeHtml(r.authorName)}</span>
             ${r.region ? `<span class="meta">${escapeHtml(r.region)}</span>` : ''}
           </span>
-          <span class="result-excerpt">${r.excerptHtml}</span>
         </a>
       </li>`,
       )
