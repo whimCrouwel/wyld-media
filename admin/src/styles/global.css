@@ -263,9 +263,11 @@
     @apply block rounded px-2 py-1 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground;
   }
 
-  /* Editor: media modal(interview modal と同じ「淡い全画面オーバーレイ+中央カード」構成) */
+  /* Editor: media modal(interview modal と同じ「淡い全画面オーバーレイ+中央カード」構成)。
+     interview modal(z-50)の中からもライブラリを開けるため、DOM順に関係なく
+     常に手前に出るよう z-index を一段上げる。 */
   #media-modal:not([hidden]) {
-    @apply fixed inset-0 z-50 overflow-auto bg-background/95 p-6 backdrop-blur-sm;
+    @apply fixed inset-0 z-[60] overflow-auto bg-background/95 p-6 backdrop-blur-sm;
   }
   #media-modal > div {
     @apply mx-auto w-full max-w-4xl space-y-4 rounded-xl border bg-card p-6 text-card-foreground shadow-sm;

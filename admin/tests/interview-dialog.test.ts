@@ -172,6 +172,50 @@ describe('initInterviewDialog', () => {
     expect(roleA.value).toBe('既存肩書き');
   });
 
+  it('does not render the library-pick button when pickFromLibrary is not provided', () => {
+    const { modalEl, formEl, addBtn, saveBtn, cancelBtn } = setup();
+    const dialog = initInterviewDialog(fakeSupabase, {
+      modalEl, formEl, addBtn, saveBtn, cancelBtn, myProfile: null,
+      imageBaseUrl: 'https://img.test/',
+    });
+    dialog.open();
+    expect(formEl.querySelector('[data-pick-library="A"]')).toBeNull();
+  });
+
+  it('sets the avatar to the picked library URL and re-renders', () => {
+    const { modalEl, formEl, addBtn, saveBtn, cancelBtn } = setup();
+    const dialog = initInterviewDialog(fakeSupabase, {
+      modalEl, formEl, addBtn, saveBtn, cancelBtn, myProfile: null,
+      imageBaseUrl: 'https://img.test/',
+      pickFromLibrary: (onPick) => onPick('https://img.test/from-library.webp'),
+    });
+    dialog.open();
+    const pickBtn = formEl.querySelector('[data-pick-library="A"]') as HTMLButtonElement;
+    expect(pickBtn).not.toBeNull();
+    pickBtn.click();
+    const avatar = formEl.querySelector('[data-speaker-card="A"] img.speaker-card__avatar') as HTMLImageElement;
+    expect(avatar.src).toBe('https://img.test/from-library.webp');
+  });
+
+  it('preserves edited name/role when picking from the library mid-edit', () => {
+    const { modalEl, formEl, addBtn, saveBtn, cancelBtn } = setup();
+    let capturedPick: ((url: string) => void) | null = null;
+    const dialog = initInterviewDialog(fakeSupabase, {
+      modalEl, formEl, addBtn, saveBtn, cancelBtn, myProfile: null,
+      imageBaseUrl: 'https://img.test/',
+      pickFromLibrary: (onPick) => { capturedPick = onPick; },
+    });
+    dialog.open();
+    const nameA = formEl.querySelector('[data-speaker-card="A"] [name="name"]') as HTMLInputElement;
+    nameA.value = '編集中の名前';
+    (formEl.querySelector('[data-pick-library="A"]') as HTMLButtonElement).click();
+    capturedPick!('https://img.test/picked.webp');
+    const avatar = formEl.querySelector('[data-speaker-card="A"] img.speaker-card__avatar') as HTMLImageElement;
+    expect(avatar.src).toBe('https://img.test/picked.webp');
+    const nameAAfter = formEl.querySelector('[data-speaker-card="A"] [name="name"]') as HTMLInputElement;
+    expect(nameAAfter.value).toBe('編集中の名前');
+  });
+
   it('rejects save with empty name and marks the field', () => {
     const { modalEl, formEl, addBtn, saveBtn, cancelBtn } = setup();
     const dialog = initInterviewDialog(fakeSupabase, {

@@ -20,6 +20,10 @@ export interface InterviewDialogOptions {
   cancelBtn: HTMLButtonElement;
   myProfile: { name: string; avatarUrl: string | null } | null;
   imageBaseUrl: string;
+  // 既存の MediaPicker を呼び出すためのフック。渡された場合のみ「ライブラリから
+  // 選ぶ」ボタンを表示する(記事ページ側で MediaPicker と配線する。テスト等
+  // 未指定でも動くよう任意項目にする)。
+  pickFromLibrary?: (onPick: (url: string) => void) => void;
 }
 
 const KEYS: Array<'A' | 'B' | 'C' | 'D'> = ['A', 'B', 'C', 'D'];
@@ -40,7 +44,7 @@ export function initInterviewDialog(
   supabase: SupabaseClient,
   opts: InterviewDialogOptions,
 ): InterviewDialogController {
-  const { modalEl, formEl, addBtn, saveBtn, cancelBtn, myProfile, imageBaseUrl } = opts;
+  const { modalEl, formEl, addBtn, saveBtn, cancelBtn, myProfile, imageBaseUrl, pickFromLibrary } = opts;
   let currentResolve: ((v: Speaker[] | null) => void) | null = null;
   let workingSpeakers: Speaker[] = [];
   // プロフィール画像が settings.image_base_url 配下でないと DB トリガーで IMAGE_HOST_NOT_ALLOWED になる。
@@ -72,6 +76,9 @@ export function initInterviewDialog(
               画像をアップロード
               <input type="file" accept="image/*" data-upload-avatar="${s.key}" hidden />
             </label>
+            ${pickFromLibrary
+              ? `<button type="button" data-pick-library="${s.key}" class="speaker-card__link-btn">ライブラリから選ぶ</button>`
+              : ''}
             ${myProfile?.avatarUrl
               ? (profileAvatarUsable
                   ? `<button type="button" data-use-profile="${s.key}" class="speaker-card__link-btn">自分のプロフィール画像を使う</button>`
@@ -149,6 +156,7 @@ export function initInterviewDialog(
     const removeKey = target.getAttribute('data-remove-speaker');
     const useProfileKey = target.getAttribute('data-use-profile');
     const clearKey = target.getAttribute('data-clear-avatar');
+    const pickKey = target.getAttribute('data-pick-library');
     if (removeKey) {
       readFromDom();
       const idx = workingSpeakers.findIndex((s) => s.key === removeKey);
@@ -172,6 +180,15 @@ export function initInterviewDialog(
         workingSpeakers[idx].avatarUrl = '';
         render();
       }
+    } else if (pickKey && pickFromLibrary) {
+      readFromDom();
+      pickFromLibrary((url) => {
+        const idx = workingSpeakers.findIndex((s) => s.key === pickKey);
+        if (idx >= 0) {
+          workingSpeakers[idx].avatarUrl = url;
+          render();
+        }
+      });
     }
   });
 

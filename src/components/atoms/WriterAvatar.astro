@@ -7,9 +7,9 @@ interface Props {
 const { src, name, size = 64 } = Astro.props;
 ---
 
-{/* 素の丸サムネイル。顔写真がない場合は細い罫線の円に名前の頭文字 */}
+{/* 角丸スクエアのサムネイル。顔写真がない場合は細い罫線の角丸スクエアに名前の頭文字 */}
 <span
-  class="block shrink-0 overflow-hidden rounded-full"
+  class="rounded-card block shrink-0 overflow-hidden"
   style={`width: ${size}px; height: ${size}px;`}
 >
   {
@@ -25,7 +25,7 @@ const { src, name, size = 64 } = Astro.props;
       />
     ) : (
       <span
-        class="bg-card border-hairline text-meta flex h-full w-full items-center justify-center rounded-full border"
+        class="bg-card border-hairline text-meta rounded-card flex h-full w-full items-center justify-center border"
         style={`font-family: var(--font-heading); font-size: ${Math.round(size * 0.4)}px;`}
       >
         {name.trim().charAt(0)}

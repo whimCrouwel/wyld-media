@@ -300,6 +300,7 @@ const title = '記事の編集 | Wild Media CMS';
             cancelBtn: document.getElementById('interview-cancel') as HTMLButtonElement,
             myProfile: myProfile ? { name: myProfile.name, avatarUrl: myProfile.avatarUrl } : null,
             imageBaseUrl,
+            pickFromLibrary: (onPick) => picker.open(onPick),
           });
           const interviewPlugin = createInterviewPlugin(interviewDialog);
 

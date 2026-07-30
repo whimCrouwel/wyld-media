@@ -171,6 +171,7 @@ const title = '新しい記事 | Wild Media CMS';
           cancelBtn: document.getElementById('interview-cancel') as HTMLButtonElement,
           myProfile,
           imageBaseUrl,
+          pickFromLibrary: (onPick) => picker.open(onPick),
         });
         const interviewPlugin = createInterviewPlugin(interviewDialog);
 
