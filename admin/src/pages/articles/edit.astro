@@ -177,7 +177,8 @@ const title = '記事の編集 | Wild Media CMS';
         if (myRole === 'provider') {
           redirectTo('/dashboard');
         } else {
-        const id = new URLSearchParams(window.location.search).get('id') ?? '';
+        const searchParams = new URLSearchParams(window.location.search);
+        const id = searchParams.get('id') ?? '';
         const $ = (elId: string) => document.getElementById(elId) as HTMLInputElement & HTMLTextAreaElement & HTMLSelectElement;
         const messageEl = document.getElementById('message')!;
         const statusLabel = document.getElementById('status-label')!;
@@ -219,6 +220,17 @@ const title = '記事の編集 | Wild Media CMS';
             setButtonVariant(saveDraftBtn, isDraft ? 'secondary' : 'default');
           };
           renderStatusUI(article.status);
+
+          // 新規ページの「作成して公開」からの遷移結果を表示する。
+          // リロード時の再表示を防ぐため、表示後に URL からクエリを落とす。
+          const publishError = searchParams.get('publishError');
+          if (publishError) {
+            messageEl.textContent = `下書きは保存されましたが、公開に失敗しました: ${publishError}`;
+            history.replaceState(null, '', `${window.location.pathname}?id=${id}`);
+          } else if (searchParams.get('published') === '1') {
+            messageEl.textContent = '公開しました。';
+            history.replaceState(null, '', `${window.location.pathname}?id=${id}`);
+          }
 
           // 依頼記事(依頼トークンあり)は投稿間隔の対象外なので、通常記事として
           // 公開しようとしている場合だけ「次にいつ投稿できるか」を案内する。

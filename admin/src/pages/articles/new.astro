@@ -98,8 +98,11 @@ const title = '新しい記事 | Wild Media CMS';
 
     <div class="flex flex-wrap gap-3 border-t pt-4">
       <Button type="button" id="create-draft">下書きを作成して編集へ</Button>
+      <Button type="button" id="create-publish" variant="secondary">作成して公開</Button>
     </div>
-    <p class="text-sm text-muted-foreground">公開は、下書き作成後の編集ページから行います。</p>
+    <p class="text-sm text-muted-foreground">
+      「作成して公開」で公開できなかった場合も下書きは保存され、編集ページから公開をやり直せます。
+    </p>
   </form>
   <p id="message" role="alert" class="mt-4 text-sm text-destructive"></p>
 
@@ -107,7 +110,7 @@ const title = '新しい記事 | Wild Media CMS';
       import { supabaseBrowser } from '../../lib/supabase-browser';
       import { redirectTo } from '../../lib/auth';
       import { initShellChrome } from '../../lib/shell';
-      import { createDraft, validateCommissionToken, checkSlugAvailable } from '../../lib/articles';
+      import { createDraft, saveArticle, validateCommissionToken, checkSlugAvailable } from '../../lib/articles';
       import {
         translateSaveError,
         isValidArticleSlug,
@@ -300,15 +303,27 @@ const title = '新しい記事 | Wild Media CMS';
         });
 
         const draftBtn = document.getElementById('create-draft') as HTMLButtonElement;
-        let draftInFlight = false;
+        const publishBtn = document.getElementById('create-publish') as HTMLButtonElement;
+        let inFlight = false;
 
-        const create = async () => {
-          if (draftInFlight) return;
+        const withLock = async (fn: () => Promise<void>) => {
+          if (inFlight) return;
+          inFlight = true;
+          draftBtn.disabled = true;
+          publishBtn.disabled = true;
+          try {
+            await fn();
+          } finally {
+            inFlight = false;
+            draftBtn.disabled = false;
+            publishBtn.disabled = false;
+          }
+        };
+
+        draftBtn.addEventListener('click', () => withLock(async () => {
           messageEl.textContent = '';
           const input = collect();
           if (!input.title.trim()) { messageEl.textContent = 'タイトルを入力してください'; return; }
-          draftInFlight = true;
-          draftBtn.disabled = true;
           try {
             const id = await createDraft(supabaseBrowser, input);
             triggerChunking(supabaseBrowser, id);
@@ -316,13 +331,35 @@ const title = '新しい記事 | Wild Media CMS';
           } catch (err) {
             messageEl.textContent = translateSaveError(err);
             console.error(err);
-          } finally {
-            draftInFlight = false;
-            draftBtn.disabled = false;
           }
-        };
+        }));
 
-        draftBtn.addEventListener('click', () => create());
+        publishBtn.addEventListener('click', () => withLock(async () => {
+          messageEl.textContent = '';
+          const input = collect();
+          if (!input.title.trim()) { messageEl.textContent = 'タイトルを入力してください'; return; }
+          if (!isValidArticleSlug(input.slug.trim())) {
+            messageEl.textContent = '公開にはスラッグが必要です(小文字英数字とハイフン)'; return;
+          }
+          let id: string;
+          try {
+            id = await createDraft(supabaseBrowser, input);
+            triggerChunking(supabaseBrowser, id);
+          } catch (err) {
+            messageEl.textContent = translateSaveError(err);
+            console.error(err);
+            return;
+          }
+          // 下書き作成はここで確定済み。公開だけ失敗しても記事は失われない
+          // (編集ページへ理由付きで遷移し、そこから公開をやり直せる)。
+          try {
+            await saveArticle(supabaseBrowser, id, input, true);
+            redirectTo(`/articles/edit?id=${id}&published=1`);
+          } catch (err) {
+            console.error(err);
+            redirectTo(`/articles/edit?id=${id}&publishError=${encodeURIComponent(translateSaveError(err))}`);
+          }
+        }));
         }
       }
     </script>
