@@ -82,6 +82,14 @@ const enableAnalytics = import.meta.env.PROD;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    {/* 常設サイドバー(NavDrawer.astro)の開閉状態を localStorage から復元する。
+        本文描画前に同期実行することで、開いた状態が一瞬見えてから閉じる
+        ちらつきを防ぐ(nav-drawer.ts が書き込む側)。 */}
+    <script is:inline>
+      if (localStorage.getItem('nav-drawer-closed') === '1') {
+        document.documentElement.classList.add('drawer-closed');
+      }
+    </script>
     <SEO
       title={title}
       description={description}

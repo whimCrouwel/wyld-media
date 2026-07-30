@@ -3,21 +3,23 @@ import MetaLabel from '../atoms/MetaLabel.astro';
 import SocialIcon from '../atoms/SocialIcon.astro';
 
 // 現在地のハイライト用。Writers/Changemakers はそれぞれ配下のプロフィールページも
-// 含めて「現在地」とみなす。トップ(Works相当)へのリンクはロゴが兼ねているため
-// ナビ項目としては持たない。
+// 含めて「現在地」とみなす。トップ(Works相当)へはロゴでも戻れるが、デスクトップの
+// テキストリンク列・モバイルのドロップダウンからも直接戻れるよう home アイコン/
+// リンクを Writers の手前に置いている。
 const pathname = Astro.url.pathname;
 const isWritersActive = pathname.startsWith('/writers');
 const isChangemakersActive = pathname.startsWith('/providers');
 ---
 
 {/* デスクトップ: ロゴとメニュー開閉ボタンは常設サイドバー(NavDrawer.astro)側に
-    あるので、ここはライター一覧・認定プロバイダー一覧への直接リンクだけ
-    (justify-end)。トップへの導線はロゴが兼ねるため、Works的なリンクは置かない。
+    あるので、ここは home アイコン + ライター一覧・認定プロバイダー一覧への
+    直接リンク(justify-end)。home アイコンは NavDrawer のロゴと同じ役割の
+    近道で、Writers/Changemakers の手前(左)に置く。
     プロバイダー一覧へのリンクは表示文言だけ「Changemakers」にしている
     (リンク先は変わらず /providers。ロールとしては「provider」だが、単なる企業
     ディレクトリではなく環境活動そのものへの導線に見えるよう表示文言だけ変えた)。
     モバイル(768px未満): ロゴ + ハンバーガーボタンだけを出す。
-    Writers/Changemakers はハンバーガーの先にある小さなドロップダウン
+    Home/Writers/Changemakers はハンバーガーの先にある小さなドロップダウン
     (#mobile-menu)に格納する。検索・地域(地図シート開閉)はここには置かず、
     画面下部の MobileTabBar.astro(アプリのタブバー)に移した。
     地色(--color-bg)を上から下へのグラデーションで乗せているのは、writers/providers
@@ -33,6 +35,12 @@ const isChangemakersActive = pathname.startsWith('/providers');
   </a>
 
   <nav class="hidden items-center gap-6 md:flex">
+    <a href="/" aria-label="トップページに戻る" class="icon-btn flex">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 10.5 12 3l9 7.5" />
+        <path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5" />
+      </svg>
+    </a>
     <a href="/writers" class:list={['nav-link', { 'is-active': isWritersActive }]}
       ><MetaLabel class="nav-link-label">Writers</MetaLabel></a
     >
@@ -69,6 +77,9 @@ const isChangemakersActive = pathname.startsWith('/providers');
 </header>
 
 <nav id="mobile-menu" class="mobile-menu md:hidden" aria-label="メニュー">
+  <a href="/" class="mobile-menu-link"
+    ><MetaLabel class="nav-link-label">Home</MetaLabel></a
+  >
   <a href="/writers" class:list={['mobile-menu-link', { 'is-active': isWritersActive }]}
     ><MetaLabel class="nav-link-label">Writers</MetaLabel></a
   >
