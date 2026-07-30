@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(12);
+select plan(16);
 
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-00000000000c', 'hard-writer@test.local'),
@@ -146,6 +146,56 @@ select throws_like(
     where id = '40000000-0000-0000-0000-000000000003'$$,
   '%POST_INTERVAL_NOT_ELAPSED%',
   'republishing as a normal (uncommissioned) post goes through the rate limit again');
+
+-- 7) admin (trusted) can force-publish another author's draft even when that
+--    author's normal-post interval has not elapsed. The author themself
+--    remains rate-limited afterwards (the override does not create a chain
+--    of exemptions).
+set local role postgres;
+select set_config('request.jwt.claims', '', true);
+insert into auth.users (id, email) values
+  ('00000000-0000-0000-0000-00000000000e', 'hard-admin@test.local');
+insert into profiles (id, role, slug, name) values
+  ('00000000-0000-0000-0000-00000000000e', 'admin', 'hard-admin', 'Admin');
+
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000c","role":"authenticated"}', true);
+set local role authenticated;
+
+select lives_ok(
+  $$insert into articles (id, author_id, slug, title, status, body, region)
+    values ('40000000-0000-0000-0000-000000000005',
+            '00000000-0000-0000-0000-00000000000c',
+            'hard-d', 'fourth post (draft)', 'draft',
+            '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb, '関東')$$,
+  'writer can always save a new draft regardless of the interval');
+
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000e","role":"authenticated"}', true);
+set local role authenticated;
+
+select lives_ok(
+  $$update articles set status = 'published'
+    where id = '40000000-0000-0000-0000-000000000005'$$,
+  'admin can publish another author''s draft even though the interval has not elapsed');
+
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000000c","role":"authenticated"}', true);
+set local role authenticated;
+
+select lives_ok(
+  $$insert into articles (id, author_id, slug, title, status, body, region)
+    values ('40000000-0000-0000-0000-000000000006',
+            '00000000-0000-0000-0000-00000000000c',
+            'hard-e', 'fifth post (draft)', 'draft',
+            '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb, '関東')$$,
+  'writer can save another new draft');
+
+select throws_like(
+  $$update articles set status = 'published'
+    where id = '40000000-0000-0000-0000-000000000006'$$,
+  '%POST_INTERVAL_NOT_ELAPSED%',
+  'the author themself is still rate-limited even though admin just force-published for them');
 
 select * from finish();
 rollback;
