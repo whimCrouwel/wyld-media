@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateLoginInput, validateResetEmail, translateAuthError } from '../src/lib/auth';
+import { validateLoginInput, validateResetEmail, translateAuthError, getRecoveryTokenHash, getAuthErrorMessageFromHash } from '../src/lib/auth';
 
 describe('validateLoginInput', () => {
   it('returns null for a valid email + non-empty password', () => {
@@ -56,5 +56,33 @@ describe('translateAuthError', () => {
   it('未知のエラーは汎用メッセージ', () => {
     expect(translateAuthError(new Error('boom'))).toContain('エラーが発生しました');
     expect(translateAuthError(undefined)).toContain('エラーが発生しました');
+  });
+});
+
+describe('getRecoveryTokenHash', () => {
+  it('type=recovery の token_hash を取り出す', () => {
+    expect(getRecoveryTokenHash('?token_hash=pkce_abc123&type=recovery')).toBe('pkce_abc123');
+  });
+  it('type が recovery 以外なら null', () => {
+    expect(getRecoveryTokenHash('?token_hash=abc&type=invite')).toBeNull();
+  });
+  it('token_hash が無ければ null', () => {
+    expect(getRecoveryTokenHash('?type=recovery')).toBeNull();
+    expect(getRecoveryTokenHash('')).toBeNull();
+  });
+});
+
+describe('getAuthErrorMessageFromHash', () => {
+  it('otp_expired を期限切れメッセージにする', () => {
+    expect(getAuthErrorMessageFromHash('#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid'))
+      .toContain('有効期限');
+  });
+  it('その他の error は汎用メッセージ', () => {
+    expect(getAuthErrorMessageFromHash('#error=server_error&error_code=unexpected_failure'))
+      .toContain('エラー');
+  });
+  it('エラーが無ければ null', () => {
+    expect(getAuthErrorMessageFromHash('')).toBeNull();
+    expect(getAuthErrorMessageFromHash('#access_token=xyz')).toBeNull();
   });
 });
