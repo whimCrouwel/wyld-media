@@ -40,9 +40,9 @@ const title = 'ユーザー管理 | Wild Media CMS';
       <h2 class="mb-4 text-lg font-semibold tracking-tight">ユーザー一覧</h2>
       <table class="admin-table">
         <thead>
-          <tr><th>名前</th><th>スラッグ</th><th>種別</th><th>認定</th></tr>
+          <tr><th>名前</th><th>スラッグ</th><th>種別</th><th>認定</th><th>操作</th></tr>
         </thead>
-        <tbody id="user-rows"><tr><td colspan="4">読み込み中…</td></tr></tbody>
+        <tbody id="user-rows"><tr><td colspan="5">読み込み中…</td></tr></tbody>
       </table>
     </Card>
 
@@ -55,8 +55,10 @@ const title = 'ユーザー管理 | Wild Media CMS';
       import {
         fetchAllProfiles, updateUserRole, updateProviderCertification,
         validateInviteInput, inviteUser, translateInviteError,
+        deleteUser, translateDeleteUserError,
       } from '../lib/admin';
       import { initShellChrome } from '../lib/shell';
+      import { initConfirmDialog } from '../lib/confirm-dialog';
 
       const { data: { session } } = await supabaseBrowser.auth.getSession();
       if (!session) {
@@ -74,6 +76,10 @@ const title = 'ユーザー管理 | Wild Media CMS';
         const messageEl = document.getElementById('message')!;
         const tbody = document.getElementById('user-rows')!;
         const $ = (id: string) => document.getElementById(id) as HTMLInputElement & HTMLSelectElement;
+        const myId = session.user.id;
+        const confirmDialog = initConfirmDialog(
+          document.getElementById('confirm-dialog') as HTMLDialogElement,
+        );
 
         const renderRows = async () => {
           const profiles = await fetchAllProfiles(supabaseBrowser);
@@ -152,10 +158,42 @@ const title = 'ユーザー管理 | Wild Media CMS';
               certifiedTd.appendChild(toggleBtn);
             }
 
+            const actionsTd = document.createElement('td');
+            if (p.id !== myId) {
+              const delBtn = document.createElement('button');
+              delBtn.type = 'button';
+              delBtn.textContent = '削除';
+              delBtn.addEventListener('click', async () => {
+                messageEl.textContent = '';
+                const ok = await confirmDialog.confirm({
+                  title: 'ユーザーを削除しますか?',
+                  body: `「${p.name}」を削除します。この操作は取り消せません。`,
+                  confirmLabel: '削除する',
+                });
+                if (!ok) return;
+                try {
+                  await deleteUser(supabaseBrowser, p.id);
+                } catch (err) {
+                  messageEl.textContent = translateDeleteUserError(err);
+                  console.error(err);
+                  return;
+                }
+                messageEl.textContent = `${p.name} を削除しました。`;
+                try {
+                  await renderRows();
+                } catch (err) {
+                  messageEl.textContent += ' 一覧の再読み込みに失敗しました。ページを再読み込みしてください。';
+                  console.error(err);
+                }
+              });
+              actionsTd.appendChild(delBtn);
+            }
+
             tr.appendChild(nameTd);
             tr.appendChild(slugTd);
             tr.appendChild(roleTd);
             tr.appendChild(certifiedTd);
+            tr.appendChild(actionsTd);
             tbody.appendChild(tr);
           }
         };
@@ -163,7 +201,7 @@ const title = 'ユーザー管理 | Wild Media CMS';
         try {
           await renderRows();
         } catch (err) {
-          tbody.innerHTML = '<tr><td colspan="4">読み込みに失敗しました。</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="5">読み込みに失敗しました。</td></tr>';
           console.error(err);
         }
 
