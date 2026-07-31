@@ -143,9 +143,9 @@ select lives_ok(
   'admin can delete media even when referenced by a real markdown image'
 );
 
--- ユーザー削除の cascade(auth.users -> media.owner_id on delete cascade)は
--- MEDIA_IN_USE に阻まれてはならない。さもないと、使用中の画像を持つ書き手を
--- 一切削除できなくなる。
+-- 記事を持つユーザーの削除は articles_author_id_fkey(restrict)で拒否される
+-- (ユーザー削除機能の設計: 誤削除防止のため記事ありユーザーは削除不可)。
+-- MEDIA_IN_USE より先に FK 違反で止まるため、メディアも記事も無傷で残る。
 set local role postgres;
 select set_config('request.jwt.claims', '', true);
 insert into auth.users (id, email)
@@ -168,16 +168,16 @@ values ('00000000-0000-0000-0000-0000000000c4', 'cascade target',
 set local role postgres;
 select set_config('request.jwt.claims', '', true);
 
-select lives_ok(
+select throws_ok(
   $$delete from auth.users where id = '00000000-0000-0000-0000-0000000000c4'$$,
-  'deleting the owning user cascades through in-use media without MEDIA_IN_USE'
+  '23503', null, 'deleting a user with an article is blocked by the restrict FK'
 );
 
 select is(
   (select count(*) from media
     where url = 'https://img.test/00000000-0000-0000-0000-0000000000c4/cascade.webp')::int,
-  0,
-  'cascaded media row is gone after the owning user is deleted'
+  1,
+  'the article-owning user and its media survive the blocked deletion'
 );
 
 -- uid の直後に '/' が来ない偽装キーは拒否されなければならない
