@@ -45,7 +45,7 @@ erDiagram
 
     articles {
         uuid id PK
-        uuid author_id FK "-> profiles.id, cascade delete"
+        uuid author_id FK "-> profiles.id, restrict delete(記事があれば著者を削除不可)"
         text slug UK "公開時のみ必須"
         text title
         jsonb body "Tiptapブロック配列"
