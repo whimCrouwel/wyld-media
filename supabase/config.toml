@@ -257,13 +257,6 @@ otp_expiry = 3600
 # subject = "You have been invited"
 # content_path = "./supabase/templates/invite.html"
 
-# パスワード再設定メール。ConfirmationURL ではなく token_hash リンクを使う
-# (メールスキャナのプリフェッチでワンタイムトークンが消費される問題の対策。
-#  本番は Dashboard/Management API 側の Reset Password テンプレートも同じ内容にする)。
-[auth.email.template.recovery]
-subject = "Wild Mediaのパスワードを再設定"
-content_path = "./supabase/templates/recovery.html"
-
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]
 # enabled = true

@@ -22,26 +22,6 @@ export function validateResetEmail(email: string): string | null {
   return null;
 }
 
-// 再設定メールのリンク(?token_hash=...&type=recovery)から token_hash を取り出す。
-// メールスキャナ対策で、リンクを開いただけではトークンを消費せず、
-// フォーム送信時に verifyOtp で消費する(set-password.astro 参照)。
-export function getRecoveryTokenHash(search: string): string | null {
-  const params = new URLSearchParams(search);
-  if (params.get('type') !== 'recovery') return null;
-  return params.get('token_hash') || null;
-}
-
-// GoTrue がリダイレクト時に付ける #error_code=... を日本語メッセージへ。
-// エラーが無ければ null。
-export function getAuthErrorMessageFromHash(hash: string): string | null {
-  const params = new URLSearchParams(hash.replace(/^#/, ''));
-  if (!params.get('error') && !params.get('error_code')) return null;
-  if (params.get('error_code') === 'otp_expired') {
-    return 'リンクの有効期限が切れているか、既に使用されています。ログイン画面から再設定メールをもう一度請求してください。';
-  }
-  return 'エラーが発生しました。ログイン画面から再設定メールをもう一度請求してください。';
-}
-
 // GoTrue の代表的なエラーメッセージを日本語へ。未知のものは汎用文言に落とす。
 export function translateAuthError(err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err ?? '');
