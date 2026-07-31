@@ -135,7 +135,7 @@ erDiagram
 | テーブル | アクセス範囲 | 備考 |
 |---|---|---|
 | `profiles` | RLS: 本人 or admin(select/update)。writer は全認証ユーザーに公開(select、依頼先選択用) | `role`(admin/writer/provider)。`certified` は admin のみ変更可(トリガー) |
-| `articles` | RLS: select/update/delete は著者 or admin。insert は著者(=自分)かつ writer roleのみ(admin・providerは記事を作成できない) | `body` は Tiptap ブロックJSON(`jsonb`)。公開条件・投稿間隔・画像/埋め込みルールはすべて DB トリガーで強制(`enforce_publish_rules`・`enforce_body_image_rules`・`enforce_body_embed_rules` など)。`moderation_hold` はadmin専用の審査ホールドで、`status`とは独立に公開サイト・検索での可視性を上書きする(`protect_moderation_hold_columns`) |
+| `articles` | RLS: select/update/delete は著者 or admin。select は依頼したprovider(`commissioned_by = auth.uid()`)も可(依頼一覧でのトークン使用済み判定用)。insert は著者(=自分)かつ writer roleのみ(admin・providerは記事を作成できない) | `body` は Tiptap ブロックJSON(`jsonb`)。公開条件・投稿間隔・画像/埋め込みルールはすべて DB トリガーで強制(`enforce_publish_rules`・`enforce_body_image_rules`・`enforce_body_embed_rules` など)。`moderation_hold` はadmin専用の審査ホールドで、`status`とは独立に公開サイト・検索での可視性を上書きする(`protect_moderation_hold_columns`) |
 | `settings` | RLS: authenticated 全員read、admin write | シングルトン(`id=1`固定)。`image_base_url` は空文字が既定(fail closed) |
 | `pricing_items` | RLS: writer 本人 or admin(select/insert/update/delete)。CMS内で他人の料金は見えない | ライターの公開プロフィール(`/writers/[slug]`)に載せる料金プラン。`published=true` の行を `sort_order` 昇順で表示。公開サイトのビルドは service role で読むので RLS はバイパスされる |
 | `media` | RLS: 所有者 or admin | R2にアップロード済み画像のURL記録のみ。記事から参照中の画像は削除不可(`block_media_in_use`) |
