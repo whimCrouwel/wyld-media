@@ -15,6 +15,19 @@ export function redirectTo(path: string): void {
   window.location.assign(path);
 }
 
+// 招待・再設定リンクは本来 /set-password に着地するが、Supabase ダッシュボードから
+// 送るメールは redirect_to を指定できず Site URL(= ルート)に飛ぶ。その場合フラグメントに
+// type=recovery|invite が載るので、ダッシュボードではなくパスワード設定画面へ回す。
+const PASSWORD_SETUP_TYPES = new Set(['recovery', 'invite']);
+
+export function resolveRootRedirect(authHash: string, hasSession: boolean): string {
+  if (!hasSession) {
+    return '/login';
+  }
+  const type = new URLSearchParams(authHash.replace(/^#/, '')).get('type');
+  return type && PASSWORD_SETUP_TYPES.has(type) ? '/set-password' : '/dashboard';
+}
+
 export function validateResetEmail(email: string): string | null {
   if (!email || !EMAIL_RE.test(email)) {
     return 'メールアドレスを正しく入力してください';

@@ -9,6 +9,10 @@ if (!url || !anonKey) {
   );
 }
 
+// createClient より前に必ず読むこと。クライアントは初期化時に URL フラグメントから
+// セッションを取り込んだ後それを消してしまうため、後から読むと空になる。
+export const initialAuthHash = typeof window === 'undefined' ? '' : window.location.hash;
+
 // ブラウザ専用クライアント。anon キー + ユーザーセッション(localStorage)。
 // service role キーはここに絶対に入れないこと。
 export const supabaseBrowser = createClient(url, anonKey, {

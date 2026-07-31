@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { validateLoginInput, validateResetEmail, translateAuthError } from '../src/lib/auth';
+import {
+  validateLoginInput,
+  validateResetEmail,
+  translateAuthError,
+  resolveRootRedirect,
+} from '../src/lib/auth';
 
 describe('validateLoginInput', () => {
   it('returns null for a valid email + non-empty password', () => {
@@ -25,6 +30,29 @@ describe('validateResetEmail', () => {
   });
   it('rejects a malformed email', () => {
     expect(validateResetEmail('not-an-email')).toMatch(/メール/);
+  });
+});
+
+describe('resolveRootRedirect', () => {
+  it('セッションが無ければログイン画面へ', () => {
+    expect(resolveRootRedirect('', false)).toBe('/login');
+    expect(resolveRootRedirect('#access_token=x&type=recovery', false)).toBe('/login');
+  });
+  it('通常のセッションはダッシュボードへ', () => {
+    expect(resolveRootRedirect('', true)).toBe('/dashboard');
+  });
+  it('再設定リンク経由ならパスワード設定画面へ', () => {
+    expect(resolveRootRedirect('#access_token=x&type=recovery', true)).toBe('/set-password');
+  });
+  it('招待リンク経由でもパスワード設定画面へ', () => {
+    expect(resolveRootRedirect('#access_token=x&type=invite', true)).toBe('/set-password');
+  });
+  it('先頭の # が無いフラグメントも読める', () => {
+    expect(resolveRootRedirect('access_token=x&type=recovery', true)).toBe('/set-password');
+  });
+  it('関係ない type やフラグメントはダッシュボードへ', () => {
+    expect(resolveRootRedirect('#access_token=x&type=signup', true)).toBe('/dashboard');
+    expect(resolveRootRedirect('#section-1', true)).toBe('/dashboard');
   });
 });
 
