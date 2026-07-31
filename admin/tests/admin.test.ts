@@ -282,9 +282,7 @@ describe('translateDeleteUserError', () => {
     expect(translateDeleteUserError(new Error('cannot delete yourself')))
       .toContain('自分自身');
     expect(translateDeleteUserError(new Error('forbidden'))).toContain('管理者のみ');
-    expect(translateDeleteUserError(
-      new Error('update or delete on table "profiles" violates foreign key constraint "articles_author_id_fkey" on table "articles"'),
-    )).toContain('記事');
+    expect(translateDeleteUserError(new Error('user has articles'))).toContain('記事');
   });
   it('未知は汎用メッセージ', () => {
     expect(translateDeleteUserError(new Error('boom'))).toContain('削除に失敗');

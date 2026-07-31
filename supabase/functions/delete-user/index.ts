@@ -45,11 +45,20 @@ Deno.serve(async (req) => {
     return json({ error: 'cannot delete yourself' }, 400);
   }
 
+  // 記事を持つユーザーは articles_author_id_fkey(restrict)で本来ブロックされるが、
+  // GoTrue はその DB エラーを 500 の AuthRetryableFetchError に丸めてしまい
+  // メッセージが失われる。わかりやすいエラーを返すため先に件数チェックする
+  // (実際の強制力は引き続き DB 側の制約が担保する)。
+  const { count, error: countError } = await admin
+    .from('articles')
+    .select('id', { count: 'exact', head: true })
+    .eq('author_id', userId);
+  if (countError) return json({ error: countError.message }, 500);
+  if ((count ?? 0) > 0) return json({ error: 'user has articles' }, 400);
+
   const { error } = await admin.auth.admin.deleteUser(userId);
   if (error) {
-    // 記事を持つユーザーは articles_author_id_fkey の restrict 制約で
-    // 削除に失敗する。GoTrue はその DB エラーメッセージをそのまま返す。
-    return json({ error: error.message }, 400);
+    return json({ error: 'failed to delete user' }, 400);
   }
 
   return json({ ok: true });

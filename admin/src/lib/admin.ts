@@ -134,7 +134,7 @@ export function translateDeleteUserError(err: unknown): string {
   const msg = err instanceof Error ? err.message : '';
   if (msg.includes('cannot delete yourself')) return '自分自身のアカウントは削除できません。';
   if (msg.includes('forbidden')) return '管理者のみ実行できます。';
-  if (msg.includes('articles_author_id_fkey')) {
+  if (msg.includes('user has articles')) {
     return 'このユーザーは記事を持っているため削除できません。先に記事を削除してください。';
   }
   return '削除に失敗しました。時間をおいて再度お試しください。';
