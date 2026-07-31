@@ -95,16 +95,25 @@ export function validateInviteInput(input: InviteInput): string | null {
   return null;
 }
 
-export async function inviteUser(supabase: SupabaseClient, input: InviteInput): Promise<void> {
-  const { error } = await supabase.functions.invoke('invite-user', { body: input });
+// Edge Function のエラーを掘り出して throw する共通処理。
+// FunctionsHttpError の .message は汎用文言で、EF が返した { error: "..." } は
+// context(Response)側にある。invite-user / delete-user など admin 専用 EF 呼び出しで共有する。
+async function invokeAdminFunction(
+  supabase: SupabaseClient, name: string, body: unknown,
+): Promise<void> {
+  const { error } = await supabase.functions.invoke(name, { body });
   if (!error) return;
-  // FunctionsHttpError の .message は汎用文言。EF の { error: "..." } は context(Response)にある。
   const ctx = (error as { context?: Response }).context;
-  const body = ctx && typeof ctx.json === 'function'
+  const errBody = ctx && typeof ctx.json === 'function'
     ? await ctx.json().catch(() => null)
     : null;
-  const msg = body && typeof body === 'object' && 'error' in body ? String(body.error) : null;
+  const msg = errBody && typeof errBody === 'object' && 'error' in errBody
+    ? String(errBody.error) : null;
   throw new Error(msg ?? (error instanceof Error ? error.message : String(error)));
+}
+
+export async function inviteUser(supabase: SupabaseClient, input: InviteInput): Promise<void> {
+  await invokeAdminFunction(supabase, 'invite-user', input);
 }
 
 export function translateInviteError(err: unknown): string {
@@ -114,6 +123,21 @@ export function translateInviteError(err: unknown): string {
   if (msg.includes('forbidden')) return '管理者のみ実行できます。';
   if (msg.includes('required')) return '入力内容を確認してください。';
   return '招待に失敗しました。時間をおいて再度お試しください。';
+}
+
+export async function deleteUser(supabase: SupabaseClient, userId: string): Promise<void> {
+  if (!userId) throw new Error('USER_ID_REQUIRED');
+  await invokeAdminFunction(supabase, 'delete-user', { userId });
+}
+
+export function translateDeleteUserError(err: unknown): string {
+  const msg = err instanceof Error ? err.message : '';
+  if (msg.includes('cannot delete yourself')) return '自分自身のアカウントは削除できません。';
+  if (msg.includes('forbidden')) return '管理者のみ実行できます。';
+  if (msg.includes('articles_author_id_fkey')) {
+    return 'このユーザーは記事を持っているため削除できません。先に記事を削除してください。';
+  }
+  return '削除に失敗しました。時間をおいて再度お試しください。';
 }
 
 export interface AuditArticle {

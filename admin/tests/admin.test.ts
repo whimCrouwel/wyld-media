@@ -4,6 +4,7 @@ import {
   fetchMyRole, fetchMyProfile, fetchAllProfiles, updateUserRole,
   updateProviderCertification,
   validateInviteInput, inviteUser, translateInviteError,
+  deleteUser, translateDeleteUserError,
   fetchSettings, updateSettings,
   fetchAllArticlesForAudit, setModerationHold, updatePublishedAt,
 } from '../src/lib/admin';
@@ -238,6 +239,55 @@ describe('translateInviteError', () => {
   });
   it('未知は汎用メッセージ', () => {
     expect(translateInviteError(new Error('boom'))).toContain('招待に失敗');
+  });
+});
+
+describe('deleteUser', () => {
+  function stubInvoke(result: { error: unknown }) {
+    const calls: unknown[] = [];
+    const supabase = {
+      functions: {
+        invoke: async (name: string, opts: unknown) => {
+          calls.push([name, opts]);
+          return result;
+        },
+      },
+    } as unknown as SupabaseClient;
+    return { supabase, calls };
+  }
+
+  it('delete-user に userId を送る', async () => {
+    const { supabase, calls } = stubInvoke({ error: null });
+    await deleteUser(supabase, 'user-1');
+    expect(calls[0]).toEqual(['delete-user', { body: { userId: 'user-1' } }]);
+  });
+
+  it('EF のエラー本文を掘り出して throw する', async () => {
+    const err = Object.assign(new Error('Edge Function returned a non-2xx status code'), {
+      context: new Response(JSON.stringify({ error: 'forbidden' }), { status: 403 }),
+    });
+    const { supabase } = stubInvoke({ error: err });
+    await expect(deleteUser(supabase, 'user-1')).rejects.toThrow('forbidden');
+  });
+
+  it('userId が空文字なら呼び出さずに例外', async () => {
+    const { supabase, calls } = stubInvoke({ error: null });
+    await expect(deleteUser(supabase, '')).rejects.toThrow('USER_ID_REQUIRED');
+    expect(calls.length).toBe(0);
+  });
+});
+
+describe('translateDeleteUserError', () => {
+  it('既知のエラーを日本語にする', () => {
+    expect(translateDeleteUserError(new Error('cannot delete yourself')))
+      .toContain('自分自身');
+    expect(translateDeleteUserError(new Error('forbidden'))).toContain('管理者のみ');
+    expect(translateDeleteUserError(
+      new Error('update or delete on table "profiles" violates foreign key constraint "articles_author_id_fkey" on table "articles"'),
+    )).toContain('記事');
+  });
+  it('未知は汎用メッセージ', () => {
+    expect(translateDeleteUserError(new Error('boom'))).toContain('削除に失敗');
   });
 });
 
