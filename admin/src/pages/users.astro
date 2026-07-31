@@ -40,7 +40,7 @@ const title = 'ユーザー管理 | Wild Media CMS';
       <h2 class="mb-4 text-lg font-semibold tracking-tight">ユーザー一覧</h2>
       <table class="admin-table">
         <thead>
-          <tr><th>名前</th><th>スラッグ</th><th>種別</th><th>認定</th><th>操作</th></tr>
+          <tr><th>名前</th><th>スラッグ</th><th class="w-72">種別</th><th class="w-56">認定</th><th class="w-24">操作</th></tr>
         </thead>
         <tbody id="user-rows"><tr><td colspan="5">読み込み中…</td></tr></tbody>
       </table>
@@ -89,12 +89,14 @@ const title = 'ユーザー管理 | Wild Media CMS';
             const nameTd = document.createElement('td');
             nameTd.textContent = p.name;
             const slugTd = document.createElement('td');
+            slugTd.className = 'whitespace-nowrap';
             slugTd.textContent = p.slug;
             const roleTd = document.createElement('td');
             if (p.role === 'admin') {
               roleTd.textContent = '管理者';
             } else {
               const sel = document.createElement('select');
+              sel.className = 'w-44';
               for (const [value, label] of [['writer', 'ライター'], ['provider', 'サービスプロバイダー']] as const) {
                 const o = document.createElement('option');
                 o.value = value;
@@ -129,9 +131,10 @@ const title = 'ユーザー管理 | Wild Media CMS';
             const certifiedTd = document.createElement('td');
             if (p.role === 'provider') {
               const badge = document.createElement('span');
-              badge.className = 'rounded-full bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground';
+              badge.className = p.certified
+                ? 'inline-flex shrink-0 items-center rounded-full bg-success/15 px-2 py-0.5 text-xs font-medium text-success'
+                : 'inline-flex shrink-0 items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground';
               badge.textContent = p.certified ? '認定済み' : '未認定';
-              badge.hidden = !p.certified;
 
               const toggleBtn = document.createElement('button');
               toggleBtn.type = 'button';
@@ -154,14 +157,22 @@ const title = 'ユーザー管理 | Wild Media CMS';
                 }
               });
 
-              certifiedTd.appendChild(badge);
-              certifiedTd.appendChild(toggleBtn);
+              const certifiedWrap = document.createElement('div');
+              certifiedWrap.className = 'flex items-center gap-2';
+              certifiedWrap.appendChild(badge);
+              certifiedWrap.appendChild(toggleBtn);
+              certifiedTd.appendChild(certifiedWrap);
+            } else {
+              certifiedTd.textContent = '—';
+              certifiedTd.className = 'text-muted-foreground';
             }
 
             const actionsTd = document.createElement('td');
             if (p.id !== myId) {
               const delBtn = document.createElement('button');
               delBtn.type = 'button';
+              delBtn.className =
+                'border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground';
               delBtn.textContent = '削除';
               delBtn.addEventListener('click', async () => {
                 messageEl.textContent = '';
@@ -187,6 +198,9 @@ const title = 'ユーザー管理 | Wild Media CMS';
                 }
               });
               actionsTd.appendChild(delBtn);
+            } else {
+              actionsTd.textContent = '—';
+              actionsTd.className = 'text-muted-foreground';
             }
 
             tr.appendChild(nameTd);

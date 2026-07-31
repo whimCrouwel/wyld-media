@@ -130,6 +130,9 @@ const title = '記事の編集 | Wild Media CMS';
         class="ml-auto border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
       >削除</Button>
     </div>
+    <p class="text-sm text-muted-foreground">
+      公開・公開中の記事への変更は、サイトへの反映まで数分かかります(下書き保存では反映されません)。
+    </p>
   </form>
   <p id="message" role="alert" class="mt-4 text-sm text-destructive"></p>
 
@@ -221,7 +224,7 @@ const title = '記事の編集 | Wild Media CMS';
           };
           renderStatusUI(article.status);
 
-          // 新規ページの「作成して公開」からの遷移結果を表示する。
+          // 新規ページの「公開する」からの遷移結果を表示する。
           // リロード時の再表示を防ぐため、表示後に URL からクエリを落とす。
           const publishError = searchParams.get('publishError');
           if (publishError) {

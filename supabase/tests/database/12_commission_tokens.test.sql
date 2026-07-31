@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(39);
+select plan(41);
 
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-000000000010', 'tok-writer@test.local'),
@@ -303,6 +303,27 @@ select lives_ok(
   $$insert into commission_tokens (writer_id)
     values ('00000000-0000-0000-0000-000000000012')$$,
   'once the interval has elapsed, a new token to the same writer can be issued');
+
+-- 依頼したプロバイダーは、自分のトークンで公開された記事を読める
+-- (CMS の依頼一覧が articles(id, title) の埋め込みで「使用済み」を判定するため。
+--  見えないと使用済みトークンが pending 表示になる)
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-000000000011","role":"authenticated"}', true);
+set local role authenticated;
+
+select ok(
+  exists(select 1 from articles
+          where commission_token_id = '50000000-0000-0000-0000-000000000002'),
+  'the commissioning provider can read the article that used their token');
+
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-000000000013","role":"authenticated"}', true);
+set local role authenticated;
+
+select ok(
+  not exists(select 1 from articles
+              where commission_token_id = '50000000-0000-0000-0000-000000000002'),
+  'an unrelated provider cannot read another provider''s commissioned article');
 
 select * from finish();
 rollback;

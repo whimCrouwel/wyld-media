@@ -97,11 +97,12 @@ const title = '新しい記事 | Wild Media CMS';
     </div>
 
     <div class="flex flex-wrap gap-3 border-t pt-4">
-      <Button type="button" id="create-draft">下書きを作成して編集へ</Button>
-      <Button type="button" id="create-publish" variant="secondary">作成して公開</Button>
+      <Button type="button" id="create-draft" variant="secondary">下書き保存</Button>
+      <Button type="button" id="create-publish">公開する</Button>
     </div>
     <p class="text-sm text-muted-foreground">
-      「作成して公開」で公開できなかった場合も下書きは保存され、編集ページから公開をやり直せます。
+      「公開する」で公開できなかった場合も下書きは保存され、編集ページから公開をやり直せます。
+      公開後、サイトへの反映まで数分かかります(下書き保存では反映されません)。
     </p>
   </form>
   <p id="message" role="alert" class="mt-4 text-sm text-destructive"></p>
