@@ -137,6 +137,9 @@ export function translateDeleteUserError(err: unknown): string {
   if (msg.includes('user has articles')) {
     return 'このユーザーは記事を持っているため削除できません。先に記事を削除してください。';
   }
+  if (msg.includes('user has commission tokens')) {
+    return 'このユーザーは依頼のやり取り履歴があるため削除できません。';
+  }
   return '削除に失敗しました。時間をおいて再度お試しください。';
 }
 

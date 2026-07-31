@@ -283,6 +283,7 @@ describe('translateDeleteUserError', () => {
       .toContain('自分自身');
     expect(translateDeleteUserError(new Error('forbidden'))).toContain('管理者のみ');
     expect(translateDeleteUserError(new Error('user has articles'))).toContain('記事');
+    expect(translateDeleteUserError(new Error('user has commission tokens'))).toContain('依頼');
   });
   it('未知は汎用メッセージ', () => {
     expect(translateDeleteUserError(new Error('boom'))).toContain('削除に失敗');

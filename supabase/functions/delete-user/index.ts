@@ -56,6 +56,15 @@ Deno.serve(async (req) => {
   if (countError) return json({ error: countError.message }, 500);
   if ((count ?? 0) > 0) return json({ error: 'user has articles' }, 400);
 
+  // commission_tokens.provider_id / writer_id も profiles への FK(on delete 指定なし = restrict)。
+  // 依頼のやり取り履歴があるユーザーは同様に削除前に検出してわかりやすいエラーを返す。
+  const { count: tokenCount, error: tokenCountError } = await admin
+    .from('commission_tokens')
+    .select('id', { count: 'exact', head: true })
+    .or(`provider_id.eq.${userId},writer_id.eq.${userId}`);
+  if (tokenCountError) return json({ error: tokenCountError.message }, 500);
+  if ((tokenCount ?? 0) > 0) return json({ error: 'user has commission tokens' }, 400);
+
   const { error } = await admin.auth.admin.deleteUser(userId);
   if (error) {
     return json({ error: 'failed to delete user' }, 400);
