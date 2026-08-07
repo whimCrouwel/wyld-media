@@ -17,8 +17,8 @@ const sampleDoc = {
         ],
       },
       content: [
-        { type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'text', text: 'こんにちは' }] },
-        { type: 'turn', attrs: { speaker: 'B' }, content: [{ type: 'text', text: 'よろしく' }] },
+        { type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'paragraph', content: [{ type: 'text', text: 'こんにちは' }] }] },
+        { type: 'turn', attrs: { speaker: 'B' }, content: [{ type: 'paragraph', content: [{ type: 'text', text: 'よろしく' }] }] },
       ],
     },
   ],
@@ -60,10 +60,62 @@ describe('interview node', () => {
       onContentError: ({ error }) => { contentError = error; },
       content: {
         type: 'doc',
-        content: [{ type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'text', text: 'x' }] }],
+        content: [{ type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'paragraph', content: [{ type: 'text', text: 'x' }] }] }],
       },
     });
     expect(contentError).not.toBeNull();  // schema rejected the top-level turn
+    editor.destroy();
+  });
+
+  it('keeps a multi-paragraph paste inside the same turn instead of splitting the interview block', () => {
+    // 回帰テスト: Turn.content が 'inline*' だった頃は、クリップボードHTMLが
+    // 改行を別々の<p>として書き出すアプリ(macOSの各種エディタ・Notion等)から
+    // 貼り付けると、turn にも interview にも収まらない段落が
+    // ドキュメント直下まで押し出され、1つの interview が
+    // 「interview → 段落 → interview」に分裂していた。
+    const el = document.createElement('div');
+    document.body.appendChild(el);
+    const editor = new Editor({
+      element: el,
+      extensions: blockExtensions,
+      content: {
+        type: 'doc',
+        content: [{
+          type: 'interview',
+          attrs: {
+            speakers: [
+              { key: 'A', name: '米田', role: '', avatarUrl: null },
+              { key: 'B', name: '川崎', role: '', avatarUrl: null },
+            ],
+          },
+          content: [{ type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'paragraph', content: [{ type: 'text', text: 'hi' }] }] }],
+        }],
+      },
+    });
+    // turn 内の段落末尾("hi"の直後)の位置を求める
+    let endOfHi = -1;
+    editor.state.doc.descendants((node, pos) => {
+      if (node.isText && node.text === 'hi') endOfHi = pos + node.text.length;
+    });
+    expect(endOfHi).toBeGreaterThan(-1);
+    // クリップボードHTMLが2つの<p>として書き出す複数行貼り付けを模す
+    editor.commands.insertContentAt(endOfHi, [
+      { type: 'paragraph', content: [{ type: 'text', text: 'line2' }] },
+      { type: 'paragraph', content: [{ type: 'text', text: 'line3' }] },
+    ]);
+    const json = editor.getJSON();
+    const interviews = (json.content ?? []).filter((n) => n.type === 'interview');
+    expect(interviews).toHaveLength(1);  // interview が分裂していない
+    // TrailingNode 拡張が末尾に足す空段落は許容するが、貼り付けた文字列が
+    // そこ(=ドキュメント直下)に漏れ出していないことを確認する
+    for (const n of json.content ?? []) {
+      if (n.type === 'paragraph') expect(n.content ?? []).toHaveLength(0);
+    }
+    const turn = interviews[0].content?.[0];
+    expect(turn?.type).toBe('turn');
+    // カーソル位置で段落が割れるため "hi" / "line2" / "line3" の3段落になるが、
+    // 重要なのはこれが turn 1個の中に収まっている(外に漏れていない)こと
+    expect(turn?.content?.length).toBe(3);
     editor.destroy();
   });
 });
@@ -100,9 +152,9 @@ describe('renderBlocksToHtml — interview', () => {
   it('wraps each turn text in a bubble div for chat-style styling', async () => {
     const html = await renderBlocksToHtml(sampleDoc, 'https://img.test');
     expect(html).toContain('class="turn__bubble"');
-    // 発話テキストが bubble の中にある
-    expect(html).toMatch(/class="turn__bubble">\s*こんにちは\s*<\/div>/);
-    expect(html).toMatch(/class="turn__bubble">\s*よろしく\s*<\/div>/);
+    // 発話テキストが bubble の中の <p> にある (Turn.content = paragraph+)
+    expect(html).toMatch(/class="turn__bubble">\s*<p>こんにちは<\/p>\s*<\/div>/);
+    expect(html).toMatch(/class="turn__bubble">\s*<p>よろしく<\/p>\s*<\/div>/);
   });
 
   it('marks consecutive same-speaker turns with turn--cont and skips avatar/name reinjection', async () => {
@@ -117,10 +169,10 @@ describe('renderBlocksToHtml — interview', () => {
           ],
         },
         content: [
-          { type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'text', text: 'first-a' }] },
-          { type: 'turn', attrs: { speaker: 'B' }, content: [{ type: 'text', text: 'first-b' }] },
-          { type: 'turn', attrs: { speaker: 'B' }, content: [{ type: 'text', text: 'second-b' }] },
-          { type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'text', text: 'back-to-a' }] },
+          { type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'paragraph', content: [{ type: 'text', text: 'first-a' }] }] },
+          { type: 'turn', attrs: { speaker: 'B' }, content: [{ type: 'paragraph', content: [{ type: 'text', text: 'first-b' }] }] },
+          { type: 'turn', attrs: { speaker: 'B' }, content: [{ type: 'paragraph', content: [{ type: 'text', text: 'second-b' }] }] },
+          { type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'paragraph', content: [{ type: 'text', text: 'back-to-a' }] }] },
         ],
       }],
     };
@@ -155,7 +207,7 @@ describe('renderBlocksToHtml — interview', () => {
               { key: 'B', name: '川崎', role: 'Kaeru', avatarUrl: 'https://img.test/b.webp' },
             ],
           },
-          content: [{ type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'text', text: 'hi' }] }],
+          content: [{ type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'paragraph', content: [{ type: 'text', text: 'hi' }] }] }],
         },
         { type: 'paragraph' },  // TrailingNode がエディタで足す空段落
       ],
@@ -177,8 +229,8 @@ describe('renderBlocksToHtml — interview', () => {
           ],
         },
         content: [
-          { type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'text', text: 'hi' }] },
-          { type: 'turn', attrs: { speaker: 'B' }, content: [{ type: 'text', text: 'hey' }] },
+          { type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'paragraph', content: [{ type: 'text', text: 'hi' }] }] },
+          { type: 'turn', attrs: { speaker: 'B' }, content: [{ type: 'paragraph', content: [{ type: 'text', text: 'hey' }] }] },
         ],
       }],
     };

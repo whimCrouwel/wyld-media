@@ -444,6 +444,15 @@
     border-top-left-radius: 1rem;
     border-top-right-radius: 4px;   /* tail 右上 */
   }
+  /* Turn.content が paragraph+ になったため、bubble 内は <p> で包まれる。
+     .ProseMirror p の既定 margin (my-2) がバブル内で余白になるのを打ち消す。
+     複数段落(改行ペースト等)のときだけ段落間に少し間隔を空ける。 */
+  .ProseMirror [data-block="turn"] .turn__bubble p {
+    @apply my-0;
+  }
+  .ProseMirror [data-block="turn"] .turn__bubble p + p {
+    @apply mt-2;
+  }
 
   /* 発言(turn)ごとの削除ボタン: 通常は隠しておき、hover で表示 */
   .ProseMirror [data-block="turn"] .turn__delete {

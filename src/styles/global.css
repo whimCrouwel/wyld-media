@@ -441,6 +441,15 @@ a {
   background-color: var(--color-panel);
   border-radius: 16px 4px 16px 16px;  /* tail 右上 */
 }
+/* Turn.content が paragraph+ になったため、bubble 内は <p> で包まれる。
+   .article-body p の既定 margin (1.5em) がバブル内で余白になるのを打ち消す。
+   複数段落(改行ペースト等)のときだけ段落間に少し間隔を空ける。 */
+.article-body .interview-block .turn__bubble p {
+  margin: 0;
+}
+.article-body .interview-block .turn__bubble p + p {
+  margin-top: 0.75em;
+}
 
 /* 連続同話者: アバター/名前を隠して bubble のみ、間隔を詰める。
    非連続時の border-radius は tail 付き。連続時は tail なしのフル角丸に。 */

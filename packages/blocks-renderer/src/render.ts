@@ -98,7 +98,7 @@ function injectInterviewSpeakers(html: string): string {
       const byKey = new Map(speakers.map((s) => [s.key, s]));
       // 直前の turn と同じ話者なら「連続発言」として class="turn--cont" を追記し、
       // アバター/名前の再注入は省略する(CSS 側で bubble のみ表示するよう畳む)。
-      // Turn.content は inline* なので inner に <div> は入らない → 非貪欲 <\/div> で安全に閉じられる。
+      // Turn.content は paragraph+ (中身は <p> のみ、<div> は入らない) → 非貪欲 <\/div> で安全に閉じられる。
       let prevKey: string | null = null;
       const rewritten = inner.replace(
         /<div([^>]*data-block="turn"[^>]*data-speaker="([^"]+)"[^>]*)>([\s\S]*?)<\/div>/g,

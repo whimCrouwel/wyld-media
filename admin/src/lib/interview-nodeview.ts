@@ -334,7 +334,8 @@ function buildSpeakerToolbar(
     const finalInterview = tr.doc.nodeAt(interviewPos);
     if (finalInterview && finalInterview.childCount === 0) {
       const turnType = editor.schema.nodes.turn;
-      tr.insert(interviewPos + 1, turnType.create({ speaker: 'A' }));
+      const paragraphType = editor.schema.nodes.paragraph;
+      tr.insert(interviewPos + 1, turnType.create({ speaker: 'A' }, paragraphType.create()));
     }
     editor.view.dispatch(tr);
   });
@@ -383,7 +384,8 @@ function buildAddTurnButton(editor: Editor, interviewPos: number, speakers: Spea
       if (!node) return;
       const insertAt = interviewPos + node.nodeSize - 1;
       const turnType = editor.schema.nodes.turn;
-      const tr = editor.state.tr.insert(insertAt, turnType.create({ speaker: s.key }));
+      const paragraphType = editor.schema.nodes.paragraph;
+      const tr = editor.state.tr.insert(insertAt, turnType.create({ speaker: s.key }, paragraphType.create()));
       editor.view.dispatch(tr);
     });
     wrapper.appendChild(btn);
@@ -400,7 +402,8 @@ export function insertInterviewBlock(editor: Editor, speakers: Speaker[]): void 
     .insertContent({
       type: 'interview',
       attrs: { speakers },
-      content: [{ type: 'turn', attrs: { speaker: 'A' }, content: [] }],
+      // turn は paragraph+ なので、空の turn ではなく空段落を1つ持たせる。
+      content: [{ type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'paragraph' }] }],
     })
     .run();
 }

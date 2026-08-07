@@ -169,15 +169,21 @@ function mdBodyToBlocks(bodyText, imageUrlByFilename) {
       }
       const speakerKey = qLine ? 'A' : 'B';
       const textPart = (qLine ? qLine[1] : aLine[1]).trim();
-      currentInterview.content.push({ type: 'turn', attrs: { speaker: speakerKey }, content: parseInline(textPart) });
+      // turn は paragraph+ (2026-08-07修正)。text を直接ではなく paragraph に包んで積む。
+      currentInterview.content.push({
+        type: 'turn',
+        attrs: { speaker: speakerKey },
+        content: [{ type: 'paragraph', content: parseInline(textPart) }],
+      });
       continue;
     }
 
     if (currentInterview) {
       const lastTurn = currentInterview.content[currentInterview.content.length - 1];
       if (lastTurn) {
-        lastTurn.content.push({ type: 'text', text: ' ' });
-        lastTurn.content.push(...parseInline(line));
+        const lastParagraph = lastTurn.content[lastTurn.content.length - 1];
+        lastParagraph.content.push({ type: 'text', text: ' ' });
+        lastParagraph.content.push(...parseInline(line));
       }
       continue;
     }

@@ -178,13 +178,13 @@ describe('createSlashCommandsExtension popup', () => {
       content: [{
         type: 'interview',
         attrs: { speakers: [{ key: 'A', name: '米田', role: '', avatarUrl: null }] },
-        content: [{ type: 'turn', attrs: { speaker: 'A' }, content: [] }],
+        content: [{ type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'paragraph', content: [] }] }],
       }],
       extraExtensions: [createSlashCommandsExtension(testCommands)],
     });
 
-    // Move the caret inside the (empty) turn's inline content (pos 2 = inside turn).
-    editor.commands.setTextSelection(2);
+    // Move the caret inside the (empty) turn's paragraph (pos 3 = inside turn > paragraph).
+    editor.commands.setTextSelection(3);
     editor.commands.insertContent('/');
     await flushMicrotasks();
 
@@ -201,11 +201,11 @@ describe('isInsideInterview', () => {
       content: [{
         type: 'interview',
         attrs: { speakers: [{ key: 'A', name: 'X', role: '', avatarUrl: null }] },
-        content: [{ type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'text', text: 'hi' }] }],
+        content: [{ type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'paragraph', content: [{ type: 'text', text: 'hi' }] }] }],
       }],
       extraExtensions: [],
     });
-    editor.commands.setTextSelection(3);  // 中の text の中
+    editor.commands.setTextSelection(4);  // 中の text の中(turn > paragraph > text)
     expect(isInsideInterview(editor.state)).toBe(true);
     editor.destroy();
   });

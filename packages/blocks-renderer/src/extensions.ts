@@ -139,7 +139,15 @@ const Turn = Node.create({
   name: 'turn',
   // 意図的にグループ指定なし: doc の 'block+' から漏れ出ないようにする。
   // Interview.content = 'turn+' が型名で直接参照するため、これでも問題ない。
-  content: 'inline*',
+  //
+  // content は 'inline*' ではなく 'paragraph+' にする(2026-08-07修正)。
+  // 'inline*' のままだと、クリップボードのHTMLが改行を別々の<p>として書き出す
+  // アプリ(macOSの各種エディタ・Notion等)からペーストしたとき、turn(inline*)にも
+  // interview(turn+)にも段落を収められず、ProseMirrorが段落をドキュメント直下まで
+  // 押し出してしまい、1つのinterviewブロックが「interview→段落→interview」に
+  // 分裂して見えるバグがあった。paragraph+ にすることで複数行ペーストがそのまま
+  // turn内の複数paragraphとして収まる。
+  content: 'paragraph+',
   defining: true,
   addAttributes() {
     return {

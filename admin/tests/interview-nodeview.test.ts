@@ -46,7 +46,7 @@ describe('interview-nodeview', () => {
             ],
           },
           content: [
-            { type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'text', text: 'hi' }] },
+            { type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'paragraph', content: [{ type: 'text', text: 'hi' }] }] },
           ],
         }],
       },
@@ -78,8 +78,8 @@ describe('interview-nodeview', () => {
             ],
           },
           content: [
-            { type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'text', text: 'first-a' }] },
-            { type: 'turn', attrs: { speaker: 'B' }, content: [{ type: 'text', text: 'first-b' }] },
+            { type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'paragraph', content: [{ type: 'text', text: 'first-a' }] }] },
+            { type: 'turn', attrs: { speaker: 'B' }, content: [{ type: 'paragraph', content: [{ type: 'text', text: 'first-b' }] }] },
           ],
         }],
       },
@@ -107,7 +107,7 @@ describe('interview-nodeview', () => {
         content: [{
           type: 'interview',
           attrs: { speakers: [{ key: 'A', name: '米田', role: '', avatarUrl: null }] },
-          content: [{ type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'text', text: 'x' }] }],
+          content: [{ type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'paragraph', content: [{ type: 'text', text: 'x' }] }] }],
         }],
       },
     });
@@ -130,7 +130,7 @@ describe('interview-nodeview', () => {
         content: [{
           type: 'interview',
           attrs: { speakers: [{ key: 'A', name: '米田', role: '', avatarUrl: null }] },
-          content: [{ type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'text', text: 'x' }] }],
+          content: [{ type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'paragraph', content: [{ type: 'text', text: 'x' }] }] }],
         }],
       },
     });
@@ -167,9 +167,9 @@ describe('interview-nodeview', () => {
             ],
           },
           content: [
-            { type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'text', text: 'first-a' }] },
-            { type: 'turn', attrs: { speaker: 'B' }, content: [{ type: 'text', text: 'first-b' }] },
-            { type: 'turn', attrs: { speaker: 'B' }, content: [{ type: 'text', text: 'second-b' }] },
+            { type: 'turn', attrs: { speaker: 'A' }, content: [{ type: 'paragraph', content: [{ type: 'text', text: 'first-a' }] }] },
+            { type: 'turn', attrs: { speaker: 'B' }, content: [{ type: 'paragraph', content: [{ type: 'text', text: 'first-b' }] }] },
+            { type: 'turn', attrs: { speaker: 'B' }, content: [{ type: 'paragraph', content: [{ type: 'text', text: 'second-b' }] }] },
           ],
         }],
       },
