@@ -164,16 +164,22 @@ const title = 'ユーザー管理 | Wild Media CMS';
                 resendBtn.addEventListener('click', async () => {
                   messageEl.textContent = '';
                   resendBtn.disabled = true;
+                  resendBtn.textContent = '送信中…';
                   try {
                     await resendInvite(supabaseBrowser, p.id);
                     messageEl.textContent = `${p.name} に招待メールを再送信しました。`;
+                    resendBtn.textContent = '送信済み';
+                    // ボタン自体にも一瞬結果を出す(メッセージ欄がテーブル外で遠いため)。
+                    setTimeout(() => {
+                      resendBtn.textContent = '再送信';
+                      resendBtn.disabled = false;
+                    }, 2000);
                   } catch (err) {
                     messageEl.textContent = translateResendInviteError(err);
                     console.error(err);
+                    resendBtn.textContent = '再送信';
                     resendBtn.disabled = false;
-                    return;
                   }
-                  resendBtn.disabled = false;
                 });
                 wrap.appendChild(resendBtn);
               }

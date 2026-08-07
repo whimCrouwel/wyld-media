@@ -179,7 +179,8 @@
   }
   .admin-table button {
     @apply inline-flex h-9 items-center rounded-md border border-input bg-background px-3
-      text-sm font-medium hover:bg-accent hover:text-accent-foreground;
+      text-sm font-medium hover:bg-accent hover:text-accent-foreground
+      disabled:pointer-events-none disabled:opacity-50 disabled:hover:bg-background;
   }
 
   /* Editor: bubble toolbar (tiptap positions it; we only style appearance) */
