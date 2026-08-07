@@ -353,6 +353,12 @@ const areas = areaLinks ?? (await getAreaLinks(supabaseServer));
       width: 100%;
       max-width: 26rem;
       height: auto;
+      /* dvh や min() を解釈できないブラウザ(古い Android WebView・アプリ内
+         ブラウザ等)ではその行だけ丸ごと無効になり max-height が外れて
+         シートが正しく収まらなくなる。先に vh 版を書いて確実に効かせておき、
+         対応ブラウザでは後段の dvh 版で上書き(アドレスバー分を除いた
+         高さで計算)させる段階的フォールバックにする。 */
+      max-height: min(80vh, 640px);
       max-height: min(80dvh, 640px);
       border-radius: 20px 20px 0 0;
       transform: translate(-50%, 100%);
@@ -365,6 +371,7 @@ const areas = areaLinks ?? (await getAreaLinks(supabaseServer));
     }
 
     .nav-drawer-inner {
+      max-height: min(80vh, 640px);
       max-height: min(80dvh, 640px);
       padding: 0.6rem 1.1rem 1.5rem;
     }

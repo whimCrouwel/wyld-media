@@ -35,6 +35,8 @@
 
 - [ ] (環境起因、`02_rls` テスト11と同類)`supabase test db` で `18_announcements.test.sql` の4件(テスト6・9・13・14)が失敗する — seed 済みのお知らせ3件(`34bf9ae` で追加)がローカルDBに残っており、テストが期待する「クリーンな状態+挿入分だけ」という件数前提が崩れるため(2026-07-28、掃除機能のテスト実行時に確認。`19_orphaned_media_cleanup.test.sql` 自体は9件全パス)。DBリセット後は再現しないはず。
 
+- [ ] モバイル幅で固定ヘッダー(`src/components/organisms/SiteHeader.astro`、`position:fixed; top:0`)の背景が透けて見える — スクロール後、直下の見出し文字(例: `/providers` の「CHANGEMAKERS」)がヘッダーロゴの真下に重なって薄く読める状態になる(本番 `zine.wyld-crd.org` の `/providers` で実機幅エミュレーションにて確認、スクロール後3秒待っても解消せず)。エリアパネルの自動スクロール調査(2026-08-08)中に偶然発見。ヘッダーの背景色/不透明度を確認して直す必要あり。
+
 - [ ] `public.media` テーブルに `service_role` への GRANT がなく(`20260709120500_media_library.sql` は `authenticated` にのみ select/insert/delete を付与)、service role keyで `media` を読もうとすると `permission denied for table media` になる(2026-07-28、WP記事インポートスクリプトの動作確認中に気付いた。`authenticated` セッション経由では正常に読める)。ビルド時など service role でmediaを参照する処理は現状ないため実害はないが、今後そういう処理を足すなら要 GRANT 追加。
 
 ## Done

@@ -38,7 +38,11 @@ export function unlockPageScroll() {
   document.body.style.top = '';
   document.body.style.width = '';
   document.body.style.paddingRight = '';
-  window.scrollTo(0, savedScrollY);
+  // behavior未指定だと html の scroll-behavior:smooth (global.css) を継承し、
+  // 保存位置まで毎回アニメーション付きでスクロールしてしまう(= 開閉のたびに
+  // 「勝手に自動スクロールする」ように見えるバグの直接原因だった)。即座に
+  // 位置を復元したいのでここだけ明示的に instant にする。
+  window.scrollTo({ top: savedScrollY, left: 0, behavior: 'instant' });
   const lenis = getLenis();
   lenis?.start();
   // Lenis は内部に自前の位置を持つので、再開前に合わせないと
