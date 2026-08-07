@@ -9,7 +9,10 @@ import { REGIONS } from '../lib/regions';
 const title = 'プロフィール編集 | Wild Media CMS';
 ---
 <AdminShell title={title} wide>
-  <h1 id="profile-heading" class="mb-6 text-2xl font-semibold tracking-tight">基本情報の編集</h1>
+  <h1 id="profile-heading" class="mb-2 text-2xl font-semibold tracking-tight">基本情報の編集</h1>
+  <p id="admin-edit-notice" hidden class="mb-4 text-sm text-muted-foreground">
+    管理者操作として他のユーザーのプロフィールを編集しています。
+  </p>
   <div class="mb-4 flex items-center gap-2" role="tablist">
     <Button type="button" id="tab-basic" variant="outline" size="sm" role="tab" aria-selected="true">基本情報</Button>
     <Button type="button" id="tab-service" variant="outline" size="sm" role="tab" aria-selected="false" hidden>主要サービス</Button>
@@ -97,17 +100,34 @@ const title = 'プロフィール編集 | Wild Media CMS';
         // ロールと一緒に certified もプロフィール読み込み前に確定させる。
         const { role: myRole } = await initShellChrome(supabaseBrowser);
 
-        // 現在のプロフィールをロード(RLS: 自分の行のみ取得可)
+        // admin は ?id=<userId> で他ユーザーのプロフィールを編集できる(RLS: id = auth.uid() OR is_admin())。
+        // admin 以外が付けてきた ?id= は無視して自分の行にフォールバックする(誤操作・URL 手打ち対策)。
+        const requestedId = new URLSearchParams(location.search).get('id');
+        const isAdminEditingOther = myRole === 'admin' && !!requestedId && requestedId !== session!.user.id;
+        const targetId = isAdminEditingOther ? requestedId! : session!.user.id;
+
         const { data: profile, error: loadError } = await supabaseBrowser
           .from('profiles')
           .select(
             'name, title, bio, avatar_url, cover_image_url, region, location, homepage_url, sns_links, ' +
-            'contact_url, service_name, service_description, service_url, service_image_url, certified',
+            'contact_url, service_name, service_description, service_url, service_image_url, certified, role',
           )
-          .eq('id', session!.user.id)
+          .eq('id', targetId)
           .single();
 
-        const fieldLabels = getProfileFieldLabels(myRole, profile?.certified ?? false);
+        // ラベルの出し分けは「編集対象本人」のロールに従う(admin が provider を編集するときは
+        // provider 向け表記になる)。読み込みに失敗した場合だけ myRole にフォールバックする。
+        const fieldLabels = getProfileFieldLabels(
+          (profile?.role as typeof myRole) ?? myRole, profile?.certified ?? false,
+        );
+
+        if (isAdminEditingOther) {
+          const noticeEl = document.getElementById('admin-edit-notice') as HTMLElement;
+          noticeEl.hidden = false;
+          noticeEl.textContent = profile
+            ? `「${profile.name}」のプロフィールを編集しています(管理者操作)。`
+            : '管理者操作として他のユーザーのプロフィールを編集しています。';
+        }
         document.getElementById('name-label')!.textContent = fieldLabels.name;
         document.getElementById('bio-label')!.textContent = fieldLabels.bio;
         document.getElementById('avatar-label')!.textContent = fieldLabels.avatar;
@@ -218,11 +238,11 @@ const title = 'プロフィール編集 | Wild Media CMS';
           });
           if (!payload.name) { messageEl.textContent = '名前を入力してください'; return; }
 
-          // RLS: 自分の行のみ更新可。role/commission_code は payload に含めない(トリガーが変更を拒否)
+          // RLS: 自分の行 or admin なら任意の行を更新可。role/certified は payload に含めない(トリガーが変更を拒否)
           const { error } = await supabaseBrowser
             .from('profiles')
             .update(payload)
-            .eq('id', session!.user.id);
+            .eq('id', targetId);
           if (error) {
             console.error(error);
             messageEl.textContent = '保存に失敗しました。時間をおいて再度お試しください。';
@@ -233,7 +253,8 @@ const title = 'プロフィール編集 | Wild Media CMS';
 
         // ================= 料金プランタブ =================
         // 初回開いたときだけロードする(基本情報タブから来たときの余計な fetch を避ける)。
-        const writerId = session!.user.id;
+        // admin が他ライターを編集している場合は targetId(= 相手の行)を使う。
+        const writerId = targetId;
         const pricingRowsEl = document.getElementById('pricing-rows') as HTMLElement;
         const pricingAddBtn = document.getElementById('pricing-add-btn') as HTMLButtonElement;
         const pricingMessageEl = document.getElementById('pricing-message') as HTMLElement;

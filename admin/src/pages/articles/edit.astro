@@ -199,7 +199,11 @@ const title = '記事の編集 | Wild Media CMS';
 
         const article = await fetchArticleForEdit(supabaseBrowser, id);
         if (!article) {
-          messageEl.textContent = '記事が見つかりません(自分の記事のみ編集できます)。';
+          // admin は全記事を読めるので「見つからない」= 本当に存在しない。
+          // writer は自分の記事以外にヒットしない(RLS)ため、その旨を添える。
+          messageEl.textContent = myRole === 'admin'
+            ? '記事が見つかりません。'
+            : '記事が見つかりません(自分の記事のみ編集できます)。';
           (document.getElementById('article-form') as HTMLElement).hidden = true;
         } else {
           $('title').value = article.title;

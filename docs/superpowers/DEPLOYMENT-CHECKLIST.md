@@ -32,6 +32,7 @@ supabase functions deploy invite-user r2-upload-url
 ## Edge Functions
 - [ ] `CMS_URL` シークレットを admin サブドメインに設定(未設定だと招待リンクが localhost:4322 にフォールバックする)
 - [ ] `invite-user` / `r2-upload-url` を deploy
+- [ ] `resend-invite` / `user-auth-status` を deploy(`supabase functions deploy resend-invite user-auth-status`。`CMS_URL` を共有するので追加シークレット不要)
 - [ ] R2 実バケット作成 + APIトークン → `r2-upload-url` の env 設定(`R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com`・`R2_REGION=auto`・`R2_BUCKET`・`R2_ACCESS_KEY_ID`・`R2_SECRET_ACCESS_KEY`。旧 `R2_ACCOUNT_ID`・`R2_PUBLIC_BASE_URL` は廃止)
 - [ ] R2 バケットに CORS ポリシーを設定(admin サブドメインのオリジンから PUT / Content-Type ヘッダを許可。これが無いとブラウザからのアップロードが CORS で失敗する)
 - [ ] R2 がサイズ/タイプ不一致の PUT を 403 で拒否することを実バケットで確認

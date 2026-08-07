@@ -6,6 +6,7 @@
 
 ## Open
 
+- [ ] `docs/superpowers/DEPLOYMENT-CHECKLIST.md` の Edge Functions 節に `delete-user` のデプロイ手順が抜けている(`invite-user`/`r2-upload-url`/`r2-delete-object`/`cleanup-orphaned-media`/`resend-invite`/`user-auth-status` は記載あり)。本番に `delete-user` を未デプロイのままだと `admin/src/pages/users.astro` の削除ボタンが 404 になる(2026-08-08、招待状況バッジ/再送信機能の追加作業中に気付いた)。
 - [ ] `profiles.title`(肩書き)がプロバイダー側(`src/pages/providers/index.astro`・`src/pages/providers/[slug].astro`、`src/lib/content.ts` の `ProviderSummary`/`ProviderDetail`)にまだ未反映 — ライター側(`WriterSummary`/`WriterDetail` と writers の一覧・詳細ページ)は本対応で反映済み(2026-07-29)。同じパターンで `select` に `title` を足し、名前の下に表示すればよい。
 - [ ] `src/pages/providers/index.astro` のカードレイアウトが、ライター一覧で直した「AREA/LOCATIONチップ + 2カラムグリッド」デザイン以前の古い1カラム横並び行のまま(2026-07-29、ライター一覧のカードデザイン改修時に気付いた)。
 - [ ] 添付ファイル(PDF、`kind: 'file'`)は `media` テーブルに記録されない — `admin/src/lib/block-uploads.ts` の `insertFileBlock` が `uploadToR2` 直呼びで `recordMedia` を通らないため。(1) メディアライブラリに出ない=再利用できない、(2) 週次の `cleanup-orphaned-media` は `media` 行ベースなので、記事から外した後の PDF は R2 に永久に残る(誤削除はされないが掃除もされない)。ライブラリで画像とファイルを区別して表示する UI(`admin/src/lib/media-picker.ts` は現状 `<img>` 前提)もセットで要検討。(2026-07-28、カバー画像のライブラリ選択対応中に気付いた)
@@ -28,8 +29,6 @@
 
 - [ ] 記事編集画面にネイティブダイアログ(`window.prompt`/`window.confirm`)がまだ残っている — 削除確認は `ConfirmDialog` に移行済みだが、(1) 審査理由の入力 `admin/src/pages/articles/edit.astro:214`、(2) 埋め込みURLの入力(同ファイルの embed コマンド)、(3) 下書きバックアップ復元の確認(同 `:235` 付近)、(4) インタビューブロック削除の確認(`admin/src/lib/interview-nodeview.ts` 側)がネイティブのまま。入力を伴う (1)(2) は `ConfirmDialog` にテキスト入力欄を足した派生コンポーネントが必要。
 
-- [ ] インタビュー・ブロックの発言テキストが `<p>` で包まれず、`src/styles/global.css` の `.article-body .interview-block .turn p` バブル背景ルールが効かない。`Turn.content` を `'paragraph+'` に変えるか、`packages/blocks-renderer/src/render.ts` の `injectInterviewSpeakers` で turn 内テキストを `<p>` で包む対応が必要。関連: `packages/blocks-renderer/src/extensions.ts` の Turn ノード定義、`src/styles/global.css` の該当 CSS。
-
 - [ ] **【要調査・データ破損】** ローカルDBの本物の記事5件すべての `body` が、同一のテスト用インタビューブロック内容(話者「米田」「川崎」、発言「プラスチックを拾ったきっかけは?…」)に上書きされている: `kaigan-seisou`・`kigyou-no-mori`・`kawabe-kansatsu`・`koke-no-mori`・`toshi-no-yachou`(2026-07-28、Chrome実機確認+DB直接クエリで確認)。決め手は `updated_at`: `kaigan-seisou`/`kigyou-no-mori`/`kawabe-kansatsu` の3件がミリ秒まで完全一致(`2026-07-26 07:20:30.343902`)しており、個別編集ではあり得ないため、インタビューブロック機能(`admin/src/pages/articles/edit.astro`・`admin/src/lib/interview-nodeview.ts`、当時未コミットで変更中だった)の保存処理に、複数記事へ同一ペイロードを書き込んでしまうバグがあった可能性が高い。`interview-e2e-test` 記事(2026-07-27作成)を使ったテスト中に発生したと推測されるが、リポジトリ内に該当する自動テスト/スクリプトは見当たらず、原因未特定。このため `tests/content.test.ts` の DB 依存テスト3件も失敗する。`supabase db reset` はローカルルールで禁止されているため未対応 — **他の並行作業が完全に終わったのを確認してから**、(1) 原因(保存処理のどこが複数記事に書き込んでいるか)を特定、(2) 安全なタイミングで `npm run seed` によるリセットを検討。目次カード機能(2026-07-28)の `extractHeadings` 関連ユニットテストはこの影響を受けず5件とも成功している。
 
 - [ ] 未使用画像の週次自動掃除(pg_cron + Edge Function `cleanup-orphaned-media`、2026-07-28実装)の**本番セットアップ**が未実施 — 次回デプロイ時に `supabase functions deploy cleanup-orphaned-media` + Vault シークレット2件(`project_url` / `service_role_key`)の登録 + 動作確認。手順: `docs/superpowers/DEPLOYMENT-CHECKLIST.md` の Edge Functions 節。未セットアップの間、cron ジョブは毎週静かにスキップする(実害なし)。ローカルでの Edge Function 実機疎通(curl)も未実施(検出・削除ロジック自体は pgTAP `19_orphaned_media_cleanup.test.sql` で9件検証済み)。
@@ -39,6 +38,8 @@
 - [ ] `public.media` テーブルに `service_role` への GRANT がなく(`20260709120500_media_library.sql` は `authenticated` にのみ select/insert/delete を付与)、service role keyで `media` を読もうとすると `permission denied for table media` になる(2026-07-28、WP記事インポートスクリプトの動作確認中に気付いた。`authenticated` セッション経由では正常に読める)。ビルド時など service role でmediaを参照する処理は現状ないため実害はないが、今後そういう処理を足すなら要 GRANT 追加。
 
 ## Done
+
+- [x] インタビュー・ブロックの発言テキストが `<p>` で包まれず(1)`.article-body .interview-block .turn p` 系のバブルCSSが効かない、(2)`turn` が `inline*` しか受け付けないため、改行を別々の`<p>`として書き出すアプリ(macOS各種エディタ・Notion等)からのペーストで interview が「interview→段落→interview」に分裂する、という2つの不具合の根本原因になっていた。`packages/blocks-renderer/src/extensions.ts` の `Turn.content` を `'inline*'` → `'paragraph+'` に変更して解消。付随修正: `admin/src/lib/interview-nodeview.ts`(新規turn作成箇所3か所を空paragraph付きに)、`admin/src/styles/global.css`・`src/styles/global.css`(bubble内`p`のmargin打ち消し)、`scripts/import-wp-articles.mjs`(turn.content生成をparagraph包みに)。テスト更新: `admin/tests/interview-nodeview.test.ts`・`admin/tests/insert-menu.test.ts`・`packages/blocks-renderer/test/interview.test.ts`(分裂しないことを検証する回帰テスト追加)。DB側 `enforce_interview_structure` トリガーは turn.content の形を見ないため変更不要(2026-08-07)。
 
 - [x] ライター側の依頼トークン入力欄(`admin/src/pages/articles/new.astro`・`edit.astro`)に説明ポップアップを追加 — 汎用の`InfoButton`(「?」アイコン)+`InfoDialog`(中央モーダル、`AdminLayout.astro`にグローバル配置)を新設し、`Field.astro`に`slot="info"`を追加してラベル横に配置。説明文は`admin/src/lib/editor-helpers.ts`の`COMMISSION_TOKEN_INFO_TITLE`/`_BODY`に集約(両ページで共有)。プロバイダー側の依頼UI(新規)はまだ存在しないため、そちらの説明表示は別途そのUIを作る際に対応(2026-07-29)。
 

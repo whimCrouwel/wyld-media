@@ -98,18 +98,30 @@ export function validateInviteInput(input: InviteInput): string | null {
 // Edge Function のエラーを掘り出して throw する共通処理。
 // FunctionsHttpError の .message は汎用文言で、EF が返した { error: "..." } は
 // context(Response)側にある。invite-user / delete-user など admin 専用 EF 呼び出しで共有する。
-async function invokeAdminFunction(
-  supabase: SupabaseClient, name: string, body: unknown,
-): Promise<void> {
-  const { error } = await supabase.functions.invoke(name, { body });
-  if (!error) return;
+async function extractFunctionError(error: unknown): Promise<Error> {
   const ctx = (error as { context?: Response }).context;
   const errBody = ctx && typeof ctx.json === 'function'
     ? await ctx.json().catch(() => null)
     : null;
   const msg = errBody && typeof errBody === 'object' && 'error' in errBody
     ? String(errBody.error) : null;
-  throw new Error(msg ?? (error instanceof Error ? error.message : String(error)));
+  return new Error(msg ?? (error instanceof Error ? error.message : String(error)));
+}
+
+async function invokeAdminFunction(
+  supabase: SupabaseClient, name: string, body: unknown,
+): Promise<void> {
+  const { error } = await supabase.functions.invoke(name, { body });
+  if (error) throw await extractFunctionError(error);
+}
+
+// invokeAdminFunction と同じだが、EF が返す JSON をそのまま返す(user-auth-status 等)。
+async function invokeAdminFunctionData<T>(
+  supabase: SupabaseClient, name: string, body: unknown,
+): Promise<T> {
+  const { data, error } = await supabase.functions.invoke(name, { body });
+  if (error) throw await extractFunctionError(error);
+  return data as T;
 }
 
 export async function inviteUser(supabase: SupabaseClient, input: InviteInput): Promise<void> {
@@ -141,6 +153,33 @@ export function translateDeleteUserError(err: unknown): string {
     return 'このユーザーは依頼のやり取り履歴があるため削除できません。';
   }
   return '削除に失敗しました。時間をおいて再度お試しください。';
+}
+
+export interface UserAuthStatus {
+  // auth.users.confirmed_at の有無(=招待/再設定リンクを一度でも完了したか)。
+  // CMS は anon key しか持たないため、この値は admin 専用 EF(user-auth-status)経由でしか取れない。
+  confirmed: boolean;
+  lastSignInAt: string | null;
+}
+
+// キーは profiles.id(= auth.users.id)。行に存在しないユーザーは呼び出し側で「不明」扱いにする。
+export async function fetchUserAuthStatus(
+  supabase: SupabaseClient,
+): Promise<Record<string, UserAuthStatus>> {
+  return invokeAdminFunctionData<Record<string, UserAuthStatus>>(supabase, 'user-auth-status', {});
+}
+
+export async function resendInvite(supabase: SupabaseClient, userId: string): Promise<void> {
+  if (!userId) throw new Error('USER_ID_REQUIRED');
+  await invokeAdminFunction(supabase, 'resend-invite', { userId });
+}
+
+export function translateResendInviteError(err: unknown): string {
+  const msg = err instanceof Error ? err.message : '';
+  if (msg.includes('already confirmed')) return 'このユーザーは既にメールを確認済みです。';
+  if (msg.includes('forbidden')) return '管理者のみ実行できます。';
+  if (msg.includes('user not found')) return 'ユーザーが見つかりません。';
+  return '招待メールの再送信に失敗しました。時間をおいて再度お試しください。';
 }
 
 export interface AuditArticle {

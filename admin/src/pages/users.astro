@@ -40,9 +40,9 @@ const title = 'ユーザー管理 | Wild Media CMS';
       <h2 class="mb-4 text-lg font-semibold tracking-tight">ユーザー一覧</h2>
       <table class="admin-table">
         <thead>
-          <tr><th>名前</th><th>スラッグ</th><th class="w-72">種別</th><th class="w-56">認定</th><th class="w-24">操作</th></tr>
+          <tr><th>名前</th><th>スラッグ</th><th class="w-72">種別</th><th class="w-40">招待状況</th><th class="w-56">認定</th><th class="w-32">プロフィール</th><th class="w-24">操作</th></tr>
         </thead>
-        <tbody id="user-rows"><tr><td colspan="5">読み込み中…</td></tr></tbody>
+        <tbody id="user-rows"><tr><td colspan="7">読み込み中…</td></tr></tbody>
       </table>
     </Card>
 
@@ -56,6 +56,8 @@ const title = 'ユーザー管理 | Wild Media CMS';
         fetchAllProfiles, updateUserRole, updateProviderCertification,
         validateInviteInput, inviteUser, translateInviteError,
         deleteUser, translateDeleteUserError,
+        fetchUserAuthStatus, resendInvite, translateResendInviteError,
+        type UserAuthStatus,
       } from '../lib/admin';
       import { initShellChrome } from '../lib/shell';
       import { initConfirmDialog } from '../lib/confirm-dialog';
@@ -83,6 +85,14 @@ const title = 'ユーザー管理 | Wild Media CMS';
 
         const renderRows = async () => {
           const profiles = await fetchAllProfiles(supabaseBrowser);
+          // 招待状況は「あれば嬉しい」補助情報なので、取得に失敗してもユーザー一覧自体は表示する
+          // (EF未デプロイ・一時的なネットワーク障害でページ全体を壊さない)。
+          let authStatus: Record<string, UserAuthStatus> = {};
+          try {
+            authStatus = await fetchUserAuthStatus(supabaseBrowser);
+          } catch (err) {
+            console.error(err);
+          }
           tbody.innerHTML = '';
           for (const p of profiles) {
             const tr = document.createElement('tr');
@@ -128,6 +138,48 @@ const title = 'ユーザー管理 | Wild Media CMS';
               roleTd.appendChild(btn);
             }
 
+            const inviteStatusTd = document.createElement('td');
+            const status = authStatus[p.id];
+            if (!status) {
+              inviteStatusTd.textContent = '—';
+              inviteStatusTd.className = 'text-muted-foreground';
+            } else {
+              const badge = document.createElement('span');
+              badge.className = status.confirmed
+                ? 'inline-flex shrink-0 items-center rounded-full bg-success/15 px-2 py-0.5 text-xs font-medium text-success'
+                : 'inline-flex shrink-0 items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground';
+              badge.textContent = status.confirmed ? '確認済み' : '未確認';
+              if (status.lastSignInAt) {
+                badge.title = `最終ログイン: ${new Date(status.lastSignInAt).toLocaleString('ja-JP')}`;
+              }
+
+              const wrap = document.createElement('div');
+              wrap.className = 'flex items-center gap-2';
+              wrap.appendChild(badge);
+
+              if (!status.confirmed) {
+                const resendBtn = document.createElement('button');
+                resendBtn.type = 'button';
+                resendBtn.textContent = '再送信';
+                resendBtn.addEventListener('click', async () => {
+                  messageEl.textContent = '';
+                  resendBtn.disabled = true;
+                  try {
+                    await resendInvite(supabaseBrowser, p.id);
+                    messageEl.textContent = `${p.name} に招待メールを再送信しました。`;
+                  } catch (err) {
+                    messageEl.textContent = translateResendInviteError(err);
+                    console.error(err);
+                    resendBtn.disabled = false;
+                    return;
+                  }
+                  resendBtn.disabled = false;
+                });
+                wrap.appendChild(resendBtn);
+              }
+              inviteStatusTd.appendChild(wrap);
+            }
+
             const certifiedTd = document.createElement('td');
             if (p.role === 'provider') {
               const badge = document.createElement('span');
@@ -166,6 +218,13 @@ const title = 'ユーザー管理 | Wild Media CMS';
               certifiedTd.textContent = '—';
               certifiedTd.className = 'text-muted-foreground';
             }
+
+            const profileTd = document.createElement('td');
+            const profileLink = document.createElement('a');
+            profileLink.href = `/profile?id=${p.id}`;
+            profileLink.textContent = p.id === myId ? '自分の編集画面へ' : 'プロフィールを編集';
+            profileLink.className = 'text-sm font-medium text-primary underline-offset-4 hover:underline';
+            profileTd.appendChild(profileLink);
 
             const actionsTd = document.createElement('td');
             if (p.id !== myId) {
@@ -206,7 +265,9 @@ const title = 'ユーザー管理 | Wild Media CMS';
             tr.appendChild(nameTd);
             tr.appendChild(slugTd);
             tr.appendChild(roleTd);
+            tr.appendChild(inviteStatusTd);
             tr.appendChild(certifiedTd);
+            tr.appendChild(profileTd);
             tr.appendChild(actionsTd);
             tbody.appendChild(tr);
           }
@@ -215,7 +276,7 @@ const title = 'ユーザー管理 | Wild Media CMS';
         try {
           await renderRows();
         } catch (err) {
-          tbody.innerHTML = '<tr><td colspan="5">読み込みに失敗しました。</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="7">読み込みに失敗しました。</td></tr>';
           console.error(err);
         }
 
