@@ -6,6 +6,8 @@ import {
   fetchArticleBySlug,
   fetchWriters,
   fetchWriterBySlug,
+  fetchProviders,
+  fetchProviderBySlug,
   fetchPageSize,
   safeUrl,
   extractHeadings,
@@ -175,6 +177,35 @@ describe('content data layer (requires seeded local Supabase)', () => {
     for (const a of all) {
       expect(typeof a.region).toBe('string');
       expect(a.region).not.toBe('');
+    }
+  });
+
+  it('認定済みかつサービス登録済みのプロバイダーのみ一覧に出す', async () => {
+    const providers = await fetchProviders(db);
+    expect(providers.map((p) => p.slug)).toEqual(['certified-partners']);
+  });
+
+  it('サービス未入力(service_name 未設定)の認定プロバイダーは一覧・詳細から除外する', async () => {
+    const { data: before, error: beforeError } = await db
+      .from('profiles')
+      .select('service_name')
+      .eq('slug', 'certified-partners')
+      .single();
+    if (beforeError) throw beforeError;
+    try {
+      const { error } = await db
+        .from('profiles')
+        .update({ service_name: null })
+        .eq('slug', 'certified-partners');
+      if (error) throw error;
+      expect(await fetchProviders(db)).toEqual([]);
+      expect(await fetchProviderBySlug(db, 'certified-partners')).toBeNull();
+    } finally {
+      const { error } = await db
+        .from('profiles')
+        .update({ service_name: before.service_name })
+        .eq('slug', 'certified-partners');
+      if (error) throw error;
     }
   });
 

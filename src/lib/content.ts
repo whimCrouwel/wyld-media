@@ -334,12 +334,14 @@ export async function fetchWriterBySlug(
 
 // 認定プロバイダーのみ(未認定は一覧にも詳細にも出さない — certified の意味を
 // 薄めないため。詳細ページ側も同じ条件で絞るので、URL を直接叩かれても出ない)。
+// service_name が未入力(サービス登録が未完了)のプロバイダーも同様に除外する。
 export async function fetchProviders(db: SupabaseClient): Promise<ProviderSummary[]> {
   const { data, error } = await db
     .from('profiles')
     .select('slug, name, bio, avatar_url, region, location, service_name, service_image_url')
     .eq('role', 'provider')
     .eq('certified', true)
+    .not('service_name', 'is', null)
     .order('name');
   if (error) throw error;
   return (data ?? []).map((row) => ({
@@ -366,6 +368,7 @@ export async function fetchProviderBySlug(
     )
     .eq('role', 'provider')
     .eq('certified', true)
+    .not('service_name', 'is', null)
     .eq('slug', slug)
     .maybeSingle();
   if (error) throw error;
