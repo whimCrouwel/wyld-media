@@ -481,12 +481,29 @@ a {
     border-radius: 8px;
     grid-column: 1;
   }
-  .article-body .interview-block .turn__who {
+  /* B/C/D 側の「話者ごとに左右で分ける」ルール(このメディアクエリより上、
+     非 media 内で定義)は `.turn--B .turn__who` のように詳細度(4クラス)が
+     高く、単なる `.turn__who`(3クラス)の上書きでは負けて grid-column: 1
+     (アバター用40px列)に潰れてしまう。turn--B/C/D を明示的に含めて詳細度を
+     揃え、モバイルでは全話者を単一の左寄せ列に統一する(意図した挙動)。 */
+  .article-body .interview-block .turn__who,
+  .article-body .interview-block .turn--B .turn__who,
+  .article-body .interview-block .turn--C .turn__who,
+  .article-body .interview-block .turn--D .turn__who {
     grid-column: 2;
     justify-content: flex-start;
     padding: 0;
+    /* 名前+肩書を横並びのままにすると、モバイル幅では2つのテキストが
+       127.5px 程度の列を取り合って共倒れし、1文字ずつ折り返す(表示崩れ)。
+       縦積みにしてそれぞれに列の全幅を使わせる。 */
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
   }
-  .article-body .interview-block .turn__bubble {
+  .article-body .interview-block .turn__bubble,
+  .article-body .interview-block .turn--B .turn__bubble,
+  .article-body .interview-block .turn--C .turn__bubble,
+  .article-body .interview-block .turn--D .turn__bubble {
     grid-column: 2;
     justify-self: start;
     max-width: none;
