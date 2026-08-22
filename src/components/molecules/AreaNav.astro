@@ -35,8 +35,10 @@ const tiles = areas
   .filter((a) => PLACEMENT[a.slug])
   .map((a) => ({ ...a, ...PLACEMENT[a.slug] }));
 
-// 海外は陸地ではないので地図に描かず、「すべて」と並べて地図の下に置く
+// 海外は陸地タイルと描き方が違う(地球儀アイコンの黒チップ)ので PLACEMENT には
+// 混ぜず、関東の下の空きマス(太平洋)に専用マークアップで浮かべる
 const overseas = areas.find((a) => a.slug === 'overseas');
+const overseasCount = overseas ? String(overseas.count).padStart(2, '0') : '';
 ---
 
 <nav aria-label="地域から探す" id={isFilter ? 'area-filter' : undefined}>
@@ -86,6 +88,52 @@ const overseas = areas.find((a) => a.slug === 'overseas');
           <polyline points="5,62 45,62 95,8" vector-effect="non-scaling-stroke" />
         </svg>
       </div>
+      {/* 海外。文字ラベルは出さず地球儀アイコンだけで語り、名前は aria-label と
+          title(ツールチップ)で持つ */}
+      {
+        overseas &&
+          (overseas.count === 0 ? (
+            <div class="area-tile is-overseas is-empty" aria-disabled="true" title="海外">
+              <svg class="area-globe" viewBox="0 0 16 16" aria-hidden="true">
+                <circle cx="8" cy="8" r="6.3" />
+                <ellipse cx="8" cy="8" rx="2.9" ry="6.3" />
+                <line x1="1.7" y1="8" x2="14.3" y2="8" />
+              </svg>
+              <span class="area-tile-count tabular-nums">{overseasCount}</span>
+            </div>
+          ) : isFilter ? (
+            <button
+              type="button"
+              data-region={overseas.region}
+              aria-pressed="false"
+              class="area-tile is-overseas"
+              aria-label={`海外 ${overseas.count}件`}
+              title="海外"
+            >
+              <svg class="area-globe" viewBox="0 0 16 16" aria-hidden="true">
+                <circle cx="8" cy="8" r="6.3" />
+                <ellipse cx="8" cy="8" rx="2.9" ry="6.3" />
+                <line x1="1.7" y1="8" x2="14.3" y2="8" />
+              </svg>
+              <span class="area-tile-count tabular-nums">{overseasCount}</span>
+            </button>
+          ) : (
+            <a
+              href={overseas.href}
+              class:list={['area-tile', 'is-overseas', { 'is-active': overseas.slug === activeSlug }]}
+              aria-label={`海外 ${overseas.count}件`}
+              title="海外"
+              aria-current={overseas.slug === activeSlug ? 'page' : undefined}
+            >
+              <svg class="area-globe" viewBox="0 0 16 16" aria-hidden="true">
+                <circle cx="8" cy="8" r="6.3" />
+                <ellipse cx="8" cy="8" rx="2.9" ry="6.3" />
+                <line x1="1.7" y1="8" x2="14.3" y2="8" />
+              </svg>
+              <span class="area-tile-count tabular-nums">{overseasCount}</span>
+            </a>
+          ))
+      }
     </div>
   </div>
 
@@ -100,22 +148,6 @@ const overseas = areas.find((a) => a.slug === 'overseas');
           すべて
         </Chip>
       )
-    }
-    {
-      overseas &&
-        (overseas.count === 0 ? (
-          <span class="area-foot-muted" aria-disabled="true">
-            海外 <span class="tabular-nums">{String(overseas.count).padStart(2, '0')}</span>
-          </span>
-        ) : isFilter ? (
-          <Chip data-region={overseas.region} aria-pressed="false">
-            海外 <span class="tabular-nums">{String(overseas.count).padStart(2, '0')}</span>
-          </Chip>
-        ) : (
-          <Chip href={overseas.href} active={overseas.slug === activeSlug}>
-            海外 <span class="tabular-nums">{String(overseas.count).padStart(2, '0')}</span>
-          </Chip>
-        ))
     }
   </div>
 </nav>
@@ -246,6 +278,60 @@ const overseas = areas.find((a) => a.slug === 'overseas');
     color: color-mix(in srgb, var(--color-meta) 55%, transparent);
   }
 
+  /* 海外: 陸地ではないのでモザイクには混ぜず、関東の下の空きマス(太平洋)に
+     インク反転の黒チップ(記事カードの PR バッジと同じ語彙)として浮かべる。
+     place-self: end で地図フレームの右下角へ寄せ、「地図の隅=枠外」の気配を出す */
+  .area-tile.is-overseas {
+    grid-column: 4 / 6;
+    grid-row: 7 / 9;
+    place-self: end;
+    gap: 2px;
+    padding: 5px 11px;
+    background-color: var(--color-ink);
+    color: var(--color-bg);
+  }
+
+  .area-globe {
+    width: 15px;
+    height: 15px;
+  }
+
+  .area-globe circle,
+  .area-globe ellipse,
+  .area-globe line {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.4;
+  }
+
+  .area-tile.is-overseas .area-tile-count {
+    font-size: 7px;
+    color: color-mix(in srgb, var(--color-bg) 65%, transparent);
+  }
+
+  /* 通常タイルのホバー(紙色に差し色を混ぜる)だと黒チップが白飛びするので、
+     黒のまま少しだけ明るくする */
+  a.area-tile.is-overseas:hover:not(.is-active),
+  button.area-tile.is-overseas:hover:not(.is-active) {
+    background-color: color-mix(in srgb, var(--color-bg) 12%, var(--color-ink));
+    color: var(--color-bg);
+  }
+
+  a.area-tile.is-overseas:hover:not(.is-active) .area-tile-count,
+  button.area-tile.is-overseas:hover:not(.is-active) .area-tile-count {
+    color: color-mix(in srgb, var(--color-bg) 90%, transparent);
+  }
+
+  /* 0件の海外。他の0件タイルと同じく、残すが淡く・押せなく */
+  .area-tile.is-overseas.is-empty {
+    background-color: color-mix(in srgb, var(--color-ink) 40%, transparent);
+    color: color-mix(in srgb, var(--color-bg) 60%, transparent);
+  }
+
+  .area-tile.is-overseas.is-empty .area-tile-count {
+    color: color-mix(in srgb, var(--color-bg) 45%, transparent);
+  }
+
   /* 2列×2行に収めることで、参考図と同じ立った角度の折れ線になる。
      1行に寝かせると角度が浅くなり、囲いではなく下線に見えてしまう。 */
   .area-inset-rule {
@@ -277,15 +363,6 @@ const overseas = areas.find((a) => a.slug === 'overseas');
     margin-top: 0.75rem;
     padding-top: 0.5rem;
     border-top: 1px solid color-mix(in srgb, var(--color-bg) 15%, transparent);
-  }
-
-  /* 記事0件の海外。地図の0件タイルと同じく、出すが押せない */
-  .area-foot-muted {
-    font-family: var(--font-accent);
-    font-size: 11px;
-    letter-spacing: 0.08em;
-    color: var(--color-meta);
-    opacity: 0.5;
   }
 
   @media (prefers-reduced-motion: reduce) {
