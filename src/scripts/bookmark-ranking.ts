@@ -17,7 +17,7 @@ async function render(): Promise<void> {
   if (!section || !list) return;
   let top: TopBookmarkedArticle[];
   try {
-    top = await fetchTopBookmarkedArticles(supabaseBrowser, 30, 5);
+    top = await fetchTopBookmarkedArticles(supabaseBrowser, 30, 3);
   } catch (err) {
     console.error('[bookmark-ranking] 取得に失敗', err);
     return;

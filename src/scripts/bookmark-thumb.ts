@@ -7,19 +7,25 @@ const PLACEHOLDER_ICON =
   '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/>' +
   '<path d="M21 15l-5-5L5 20"/></svg>';
 
-export function makeThumb(coverImageUrl: string | null): HTMLElement {
-  if (coverImageUrl) {
-    const img = document.createElement('img');
-    img.className = 'bookmark-thumb';
-    img.src = coverImageUrl;
-    img.alt = '';
-    img.loading = 'lazy';
-    img.decoding = 'async';
-    return img;
-  }
+function emptyThumb(): HTMLSpanElement {
   const ph = document.createElement('span');
   ph.className = 'bookmark-thumb bookmark-thumb--empty';
   ph.setAttribute('aria-hidden', 'true');
   ph.innerHTML = PLACEHOLDER_ICON;
   return ph;
+}
+
+export function makeThumb(coverImageUrl: string | null): HTMLElement {
+  if (!coverImageUrl) return emptyThumb();
+
+  const img = document.createElement('img');
+  img.className = 'bookmark-thumb';
+  img.src = coverImageUrl;
+  img.alt = '';
+  img.loading = 'lazy';
+  img.decoding = 'async';
+  // カバーURLはあるが読み込みに失敗した(404・ネットワーク・ブロック等)場合は、
+  // 空白のまま残さずアイコン枠に差し替える(「サムネイルが出ない」を防ぐ)。
+  img.addEventListener('error', () => img.replaceWith(emptyThumb()), { once: true });
+  return img;
 }
