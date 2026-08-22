@@ -108,11 +108,11 @@ const areas = areaLinks ?? (await getAreaLinks(supabaseServer));
       </div>
 
       {/* 自分が保存した記事。localStorage の記事IDを bookmark-saved.ts が読み、公開中の
-          記事だけをサムネイル付きで描画する。保存が無ければ非表示。 */}
+          記事だけをカバー画像主役の横カルーセルで描画する。保存が無ければ非表示。 */}
       <div id="bookmark-saved" class="bookmark-section mt-10" hidden>
         <MetaLabel class="area-heading-en">Saved</MetaLabel>
         <span class="area-heading-ja">保存した記事</span>
-        <ol id="bookmark-saved-list" class="bookmark-list"></ol>
+        <ol id="bookmark-saved-list" class="bookmark-carousel"></ol>
       </div>
 
       {/* 読者によく保存されている記事(今月)のランキング。bookmark-ranking.ts が anon で
@@ -258,6 +258,67 @@ const areas = areaLinks ?? (await getAreaLinks(supabaseServer));
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     color: color-mix(in srgb, var(--color-bg) 55%, transparent);
+  }
+
+  /* 「保存した記事」はカバー画像主役の横カルーセル。狭いサイドバー内でも次カードが
+     少し覗くカード幅にして、スワイプ(モバイル)/トラックパッド(デスクトップ)で
+     送れるようにする。スクロールバーは墨地で目立つので隠し、覗くカードを送りの手掛かりにする。 */
+  .bookmark-carousel {
+    display: flex;
+    gap: 0.625rem;
+    list-style: none;
+    padding: 0 0 0.25rem;
+    margin: 0.9rem 0 0;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .bookmark-carousel::-webkit-scrollbar { display: none; }
+  /* 幅の制御は flex アイテムである <li> に置く(.bookmark-cara-card は
+     flex コンテナの直接の子ではないため効かず、カードが潰れる)。 */
+  :global(.bookmark-carousel > li) {
+    flex: 0 0 8.25rem;
+    max-width: 8.25rem;
+    scroll-snap-align: start;
+  }
+  :global(.bookmark-cara-card) {
+    text-decoration: none;
+    color: var(--color-bg);
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    transition: opacity 0.2s ease;
+  }
+  :global(.bookmark-cara-card:hover) { opacity: 0.7; }
+  :global(.bookmark-cara-cover) {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: color-mix(in srgb, var(--color-bg) 12%, transparent);
+    display: block;
+  }
+  :global(.bookmark-cara-cover img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  :global(.bookmark-cara-cover--empty) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: color-mix(in srgb, var(--color-bg) 42%, transparent);
+  }
+  :global(.bookmark-cara-title) {
+    font-size: 11px;
+    line-height: 1.35;
+    color: var(--color-bg);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
   .nav-head-actions {
