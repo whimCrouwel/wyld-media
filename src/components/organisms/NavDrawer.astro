@@ -246,6 +246,16 @@ const areas = areaLinks ?? (await getAreaLinks(supabaseServer));
     font-variant-numeric: tabular-nums;
     color: color-mix(in srgb, var(--color-bg) 60%, transparent);
   }
+  /* 「読者に人気」の順位番号。ランキングであることを示す(保存した記事一覧には付かない)。 */
+  :global(.bookmark-rank) {
+    flex-shrink: 0;
+    width: 14px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: color-mix(in srgb, var(--color-bg) 55%, transparent);
+  }
 
   .nav-head-actions {
     display: flex;

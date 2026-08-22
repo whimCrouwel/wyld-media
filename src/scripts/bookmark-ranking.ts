@@ -28,11 +28,16 @@ async function render(): Promise<void> {
   }
 
   list.innerHTML = '';
-  for (const a of top) {
+  top.forEach((a, i) => {
     const li = document.createElement('li');
     const link = document.createElement('a');
     link.href = `/articles/${a.slug}`;
     link.className = 'bookmark-item';
+
+    // 「読者に人気」はランキングなので順位番号を付ける(保存した記事一覧には付けない)。
+    const rank = document.createElement('span');
+    rank.className = 'bookmark-rank';
+    rank.textContent = String(i + 1);
 
     const title = document.createElement('span');
     title.className = 'bookmark-title';
@@ -42,10 +47,10 @@ async function render(): Promise<void> {
     count.className = 'bookmark-count';
     count.textContent = `♡ ${a.bookmarkCount}`;
 
-    link.append(thumb(a), title, count);
+    link.append(rank, thumb(a), title, count);
     li.appendChild(link);
     list.appendChild(li);
-  }
+  });
   section.hidden = false;
 }
 
