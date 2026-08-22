@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
 import {
   getClientToken, getLocalBookmarks, isBookmarkedLocal,
-  toggleBookmark, fetchBookmarkCount, fetchTopBookmarkedArticles,
+  toggleBookmark, fetchBookmarkCount, fetchTopBookmarkedArticles, fetchSavedArticles,
 } from '../src/lib/bookmarks';
 
 // --- localStorage の純粋ロジック(mock Storage) ---
@@ -97,13 +97,25 @@ describe('bookmarks server (RPC / view)', () => {
     expect(isBookmarkedLocal(publishedId, storage)).toBe(false);
   });
 
-  it('ランキングに保存した公開記事が現れる', async () => {
+  it('ランキングに保存した公開記事が現れる(カバー画像フィールド付き)', async () => {
     const storage = mockStorage({ wm_bookmark_token: TEST_TOKEN });
     await toggleBookmark(anonClient, publishedId, storage);
     const top = await fetchTopBookmarkedArticles(anonClient, 30, 20);
-    expect(top.some((a) => a.slug === publishedSlug)).toBe(true);
+    const hit = top.find((a) => a.slug === publishedSlug);
+    expect(hit).toBeDefined();
+    expect(hit).toHaveProperty('coverImageUrl'); // null 可。フィールドが存在すること
     // 後始末
     await toggleBookmark(anonClient, publishedId, storage);
+  });
+
+  it('fetchSavedArticles は公開記事を返し、下書きIDは落ちる', async () => {
+    const saved = await fetchSavedArticles(anonClient, [publishedId, draftId]);
+    expect(saved.some((a) => a.slug === publishedSlug)).toBe(true);
+    expect(saved.some((a) => a.id === draftId)).toBe(false);
+  });
+
+  it('fetchSavedArticles は空配列で即 [] を返す', async () => {
+    expect(await fetchSavedArticles(anonClient, [])).toEqual([]);
   });
 
   it('下書き記事はブックマークできない(RPCが拒否)', async () => {

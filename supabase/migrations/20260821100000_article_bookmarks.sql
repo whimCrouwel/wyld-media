@@ -85,21 +85,40 @@ $$;
 grant execute on function public.toggle_bookmark(uuid, text) to anon, authenticated;
 
 -- 左カラムのランキング用: 直近 p_days 日でよく保存された公開記事を上位 p_lim 件。
--- 公開記事の公開フィールド(slug/title)＋件数だけを返す。
+-- 公開記事の公開フィールド(slug/title/カバー画像)＋件数だけを返す。
 create or replace function public.top_bookmarked_articles(p_days int default 30, p_lim int default 5)
-returns table (slug text, title text, bookmark_count int)
+returns table (slug text, title text, cover_image_url text, bookmark_count int)
 language sql
 stable
 security definer
 set search_path = public
 as $$
-  select a.slug, a.title, count(b.id)::int as bookmark_count
+  select a.slug, a.title, a.cover_image_url, count(b.id)::int as bookmark_count
   from article_bookmarks b
   join articles a on a.id = b.article_id and a.status = 'published'
   where b.created_at >= now() - make_interval(days => greatest(p_days, 1))
-  group by a.slug, a.title
+  group by a.slug, a.title, a.cover_image_url
   order by count(b.id) desc, max(b.created_at) desc
   limit greatest(p_lim, 1);
 $$;
 
 grant execute on function public.top_bookmarked_articles(int, int) to anon, authenticated;
+
+-- 「保存した記事」一覧用: 読者のブラウザ(localStorage)が持つ記事IDの配列を渡すと、
+-- そのうち公開中の記事の公開フィールド(id/slug/title/カバー画像)だけを返す。
+-- anon は articles テーブルを直接 select できないため、公開記事に限って露出するこの
+-- SECURITY DEFINER 関数を通す。並び順は呼び出し側(localStorage の保存順)で決める。
+create or replace function public.bookmarked_articles(p_ids uuid[])
+returns table (id uuid, slug text, title text, cover_image_url text)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select a.id, a.slug, a.title, a.cover_image_url
+  from articles a
+  where a.status = 'published'
+    and a.id = any(coalesce(p_ids, '{}'::uuid[]));
+$$;
+
+grant execute on function public.bookmarked_articles(uuid[]) to anon, authenticated;

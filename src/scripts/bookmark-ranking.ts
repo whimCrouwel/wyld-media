@@ -1,44 +1,68 @@
-// 左カラム(NavDrawer)の「よく保存されている記事(今月)」ランキング。
-// anon で top_bookmarked_articles RPC を呼び、上位を実行時に描画する。
-// 保存がまだ無ければセクションは隠したまま。編集部の Featured帯 とは別物(読者の反応)。
+// 左カラム(NavDrawer)の「読者に人気」ランキング。anon で top_bookmarked_articles RPC を
+// 呼び、上位をサムネイル＋タイトル＋保存数で描画する。保存がまだ無ければセクションは隠したまま。
+// 記事ページで保存が付け外しされたら(BOOKMARKS_CHANGED_EVENT)再取得する。
+// 編集部の Featured帯 とは別物(読者の反応)。
 import { supabaseBrowser } from '../lib/supabase-browser';
-import { fetchTopBookmarkedArticles } from '../lib/bookmarks';
+import {
+  fetchTopBookmarkedArticles, BOOKMARKS_CHANGED_EVENT, type TopBookmarkedArticle,
+} from '../lib/bookmarks';
 
 const section = document.getElementById('bookmark-ranking');
 const list = document.getElementById('bookmark-ranking-list');
 
+function thumb(a: TopBookmarkedArticle): HTMLElement {
+  if (a.coverImageUrl) {
+    const img = document.createElement('img');
+    img.className = 'bookmark-thumb';
+    img.src = a.coverImageUrl;
+    img.alt = '';
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    return img;
+  }
+  const ph = document.createElement('span');
+  ph.className = 'bookmark-thumb';
+  ph.setAttribute('aria-hidden', 'true');
+  return ph;
+}
+
+async function render(): Promise<void> {
+  if (!section || !list) return;
+  let top: TopBookmarkedArticle[];
+  try {
+    top = await fetchTopBookmarkedArticles(supabaseBrowser, 30, 5);
+  } catch (err) {
+    console.error('[bookmark-ranking] 取得に失敗', err);
+    return;
+  }
+  if (!top || top.length === 0) {
+    section.hidden = true; // 保存がゼロに戻ったら隠す
+    return;
+  }
+
+  list.innerHTML = '';
+  for (const a of top) {
+    const li = document.createElement('li');
+    const link = document.createElement('a');
+    link.href = `/articles/${a.slug}`;
+    link.className = 'bookmark-item';
+
+    const title = document.createElement('span');
+    title.className = 'bookmark-title';
+    title.textContent = a.title;
+
+    const count = document.createElement('span');
+    count.className = 'bookmark-count';
+    count.textContent = `♡ ${a.bookmarkCount}`;
+
+    link.append(thumb(a), title, count);
+    li.appendChild(link);
+    list.appendChild(li);
+  }
+  section.hidden = false;
+}
+
 if (section && list) {
-  (async () => {
-    let top;
-    try {
-      top = await fetchTopBookmarkedArticles(supabaseBrowser, 30, 5);
-    } catch (err) {
-      console.error('[bookmark-ranking] 取得に失敗', err);
-      return;
-    }
-    if (!top || top.length === 0) return; // 保存がまだ無い間は非表示のまま
-
-    list.innerHTML = '';
-    for (const a of top) {
-      const li = document.createElement('li');
-
-      const link = document.createElement('a');
-      link.href = `/articles/${a.slug}`;
-      link.className = 'flex items-center justify-between gap-2 text-sm transition-opacity hover:opacity-60';
-
-      const title = document.createElement('span');
-      title.className = 'text-ink truncate';
-      title.textContent = a.title;
-
-      const count = document.createElement('span');
-      count.className = 'text-meta shrink-0 tabular-nums';
-      count.textContent = `♡ ${a.bookmarkCount}`;
-
-      link.appendChild(title);
-      link.appendChild(count);
-      li.appendChild(link);
-      list.appendChild(li);
-    }
-    section.hidden = false;
-  })();
+  render();
+  window.addEventListener(BOOKMARKS_CHANGED_EVENT, () => void render());
 }

@@ -53,6 +53,16 @@ function removeLocalBookmark(articleId: string, storage: Storage): void {
   setLocalBookmarks(getLocalBookmarks(storage).filter((id) => id !== articleId), storage);
 }
 
+// ブックマークが変わったことを島(island)をまたいで知らせるイベント。記事ページの
+// ボタンが発火し、左サイドバーの「保存した記事」/「読者に人気」が再描画に使う。
+export const BOOKMARKS_CHANGED_EVENT = 'wm:bookmarks-changed';
+
+export function notifyBookmarksChanged(): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(BOOKMARKS_CHANGED_EVENT));
+  }
+}
+
 // --- サーバー ---
 
 export interface ToggleResult {
@@ -116,6 +126,7 @@ export async function fetchBookmarkCounts(
 export interface TopBookmarkedArticle {
   slug: string;
   title: string;
+  coverImageUrl: string | null;
   bookmarkCount: number;
 }
 
@@ -130,9 +141,43 @@ export async function fetchTopBookmarkedArticles(
     p_lim: limit,
   });
   if (error) throw error;
-  return (data ?? []).map((r: { slug: string; title: string; bookmark_count: number }) => ({
-    slug: r.slug,
-    title: r.title,
-    bookmarkCount: r.bookmark_count,
-  }));
+  return (data ?? []).map(
+    (r: { slug: string; title: string; cover_image_url: string | null; bookmark_count: number }) => ({
+      slug: r.slug,
+      title: r.title,
+      coverImageUrl: r.cover_image_url,
+      bookmarkCount: r.bookmark_count,
+    }),
+  );
+}
+
+export interface SavedArticle {
+  id: string;
+  slug: string;
+  title: string;
+  coverImageUrl: string | null;
+}
+
+// 「保存した記事」一覧用: localStorage が持つ記事ID群のうち、公開中の記事の
+// 公開フィールドを取得する。戻り順はDB任せなので、呼び出し側で localStorage の
+// 保存順(新しい順)に並べ替える。存在しない/非公開になったIDは自然に落ちる。
+export async function fetchSavedArticles(
+  supabase: SupabaseClient,
+  ids: string[],
+): Promise<SavedArticle[]> {
+  if (ids.length === 0) return [];
+  const { data, error } = await supabase.rpc('bookmarked_articles', { p_ids: ids });
+  if (error) throw error;
+  const byId = new Map(
+    (data ?? []).map((r: { id: string; slug: string; title: string; cover_image_url: string | null }) => [
+      r.id,
+      { id: r.id, slug: r.slug, title: r.title, coverImageUrl: r.cover_image_url } as SavedArticle,
+    ]),
+  );
+  // localStorage の保存順を保つ(末尾=最近保存を先頭に)。
+  return ids
+    .slice()
+    .reverse()
+    .map((id) => byId.get(id))
+    .filter((a): a is SavedArticle => a !== undefined);
 }

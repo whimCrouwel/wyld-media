@@ -1,25 +1,26 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(16);
+select plan(20);
 
 -- オブジェクトの存在
 select has_table('public', 'article_bookmarks', 'article_bookmarks テーブルが存在する');
 select has_view('public', 'article_bookmark_counts', '集計ビューが存在する');
 select has_function('public', 'toggle_bookmark', array['uuid', 'text'], 'toggle_bookmark 関数が存在する');
 select has_function('public', 'top_bookmarked_articles', array['integer', 'integer'], 'top_bookmarked_articles 関数が存在する');
+select has_function('public', 'bookmarked_articles', array['uuid[]'], 'bookmarked_articles 関数が存在する');
 
 -- セットアップ: ライター1人 + 公開記事1本 + 下書き1本
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-0000000000b1', 'bm-writer@test.local');
 insert into profiles (id, role, slug, name) values
   ('00000000-0000-0000-0000-0000000000b1', 'writer', 'bm-writer', 'BM Writer');
-insert into articles (id, author_id, title, slug, body, status, published_at, region) values
+insert into articles (id, author_id, title, slug, cover_image_url, body, status, published_at, region) values
   ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000b1',
-   '公開記事', 'bm-pub',
+   '公開記事', 'bm-pub', 'https://example.test/cover-a1.jpg',
    '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb,
    'published', now(), '関東'),
   ('00000000-0000-0000-0000-0000000000a2', '00000000-0000-0000-0000-0000000000b1',
-   '下書き記事', null,
+   '下書き記事', null, null,
    '[{"type":"paragraph","content":[{"type":"text","text":"body"}]}]'::jsonb,
    'draft', null, '関東');
 
@@ -78,6 +79,22 @@ select is(
   (select count(*)::int from public.top_bookmarked_articles(30, 5) where slug is null),
   0,
   'ランキングに下書き(slug null)は含まれない');
+select is(
+  (select cover_image_url from public.top_bookmarked_articles(30, 5) where slug = 'bm-pub'),
+  'https://example.test/cover-a1.jpg',
+  'ランキングはカバー画像URLを返す');
+
+-- 「保存した記事」一覧: 渡したIDのうち公開記事だけを返す
+select is(
+  (select slug from public.bookmarked_articles(
+     array['00000000-0000-0000-0000-0000000000a1']::uuid[])),
+  'bm-pub',
+  'bookmarked_articles は公開記事を返す');
+select is(
+  (select count(*)::int from public.bookmarked_articles(
+     array['00000000-0000-0000-0000-0000000000a2']::uuid[])),
+  0,
+  'bookmarked_articles は下書き記事を返さない');
 
 -- unique 制約(owner から直接 dup insert)
 set local role postgres;

@@ -169,5 +169,6 @@ erDiagram
 | `protect_moderation_hold_columns()` | トリガー | `moderation_hold`/`_at`/`_by` の変更をadminのみに制限し、変更時に `_at`/`_by` をサーバー側で自動設定・自動クリアする |
 | `search_articles_hybrid(query_embedding, query_text, match_count, max_distance)` | RPC(service role専用) | pgvector類似検索 + pgroonga全文検索をRRFでマージし、`articles.status='published' and not moderation_hold` をDB層で強制した上で上位記事を返す。ベクトル側は cosine distance が `max_distance`(既定0.5)以下のチャンクのみ候補にして、無関係な記事が kNN の下位に紛れ込まないようにする |
 | `toggle_bookmark(a_id, p_token)` | RPC(SECURITY DEFINER・anon/authenticated実行可) | `article_bookmarks` の付け外し。渡された `client_token` の行だけを操作し(全消し不可)、公開記事以外は拒否。戻り値は `(bookmarked boolean, bookmark_count int)`。クライアントはこの結果に localStorage を同期する |
-| `top_bookmarked_articles(p_days, p_lim)` | RPC(SECURITY DEFINER・anon/authenticated実行可) | 直近 `p_days` 日でよく保存された公開記事の上位 `p_lim` 件(slug/title/件数)。左カラムの「よく保存されている記事」ランキング用 |
+| `top_bookmarked_articles(p_days, p_lim)` | RPC(SECURITY DEFINER・anon/authenticated実行可) | 直近 `p_days` 日でよく保存された公開記事の上位 `p_lim` 件(slug/title/cover_image_url/件数)。左カラムの「読者に人気」ランキング用 |
+| `bookmarked_articles(p_ids)` | RPC(SECURITY DEFINER・anon/authenticated実行可) | 渡された記事ID配列(`uuid[]`)のうち公開中の記事の id/slug/title/cover_image_url だけを返す。anon は `articles` を直接 select できないため、公開記事に限って露出するこの関数を通す。左カラムの「保存した記事」一覧(localStorage が持つ記事IDの表示)用 |
 | `article_bookmark_counts`(ビュー) | ビュー(anon/authenticated read可) | 記事ごとの保存数の集計。生の `client_token` を晒さず件数だけを見せる。記事ページの「◯人が保存」・CMSのライター向け保存数表示に使用 |
