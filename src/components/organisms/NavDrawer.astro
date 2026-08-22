@@ -112,7 +112,7 @@ const areas = areaLinks ?? (await getAreaLinks(supabaseServer));
       <div id="bookmark-saved" class="bookmark-section mt-10" hidden>
         <MetaLabel class="area-heading-en">Saved</MetaLabel>
         <span class="area-heading-ja">保存した記事</span>
-        <ol id="bookmark-saved-list" class="bookmark-list mt-4"></ol>
+        <ol id="bookmark-saved-list" class="bookmark-list"></ol>
       </div>
 
       {/* 読者によく保存されている記事(今月)のランキング。bookmark-ranking.ts が anon で
@@ -121,7 +121,7 @@ const areas = areaLinks ?? (await getAreaLinks(supabaseServer));
       <div id="bookmark-ranking" class="bookmark-section mt-10" hidden>
         <MetaLabel class="area-heading-en">Popular</MetaLabel>
         <span class="area-heading-ja">読者に人気</span>
-        <ol id="bookmark-ranking-list" class="bookmark-list mt-4"></ol>
+        <ol id="bookmark-ranking-list" class="bookmark-list"></ol>
       </div>
     </div>
   </div>
@@ -163,7 +163,7 @@ const areas = areaLinks ?? (await getAreaLinks(supabaseServer));
     height: 100%;
     overflow-y: auto;
     overscroll-behavior: contain;
-    padding: 1.1rem 0.85rem 1.5rem;
+    padding: 1.1rem 1.25rem 1.5rem;
   }
 
   .nav-drawer-head {
@@ -201,7 +201,10 @@ const areas = areaLinks ?? (await getAreaLinks(supabaseServer));
     gap: 0.875rem;
     list-style: none;
     padding: 0;
-    margin: 0;
+    /* 見出し(Popular / Saved)と一覧の間隔。テンプレート側の mt-4 は Tailwind の
+       @layer utilities にあり、レイヤー外で書かれたこの生CSSに常に負けるため、
+       margin-top をここで直接持たせて隙間を確保する(area-heading-en の説明と同型)。 */
+    margin: 0.9rem 0 0;
   }
   :global(.bookmark-item) {
     display: flex;

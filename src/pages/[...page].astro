@@ -4,6 +4,7 @@ import Base from '../layouts/Base.astro';
 import SplashIntro from '../components/organisms/SplashIntro.astro';
 import Hero from '../components/organisms/Hero.astro';
 import FeaturedStrip from '../components/organisms/FeaturedStrip.astro';
+import SavedCarousel from '../components/organisms/SavedCarousel.astro';
 import MasonryGrid from '../components/organisms/MasonryGrid.astro';
 import LoadMore from '../components/molecules/LoadMore.astro';
 import SectionHeader from '../components/molecules/SectionHeader.astro';
@@ -48,7 +49,7 @@ const gridWorks = await Promise.all(
 */}
 <Base
   title={isFirstPage ? 'Wild Media' : `Wild Media — ${page.currentPage}ページ目`}
-  description="自然と暮らす、環境のメディア。森・山・海・街から、書き手それぞれの視点で綴る記事を毎週公開。"
+  description="自然と、豊かな暮らしのためのメディア。森・山・海・街から、書き手それぞれの視点で綴る記事を毎週公開。"
   canonicalPath={isFirstPage ? '/' : `/${page.currentPage}`}
   padMain={!isFirstPage}
 >
@@ -57,6 +58,7 @@ const gridWorks = await Promise.all(
       <SplashIntro />
       <Hero />
       <FeaturedStrip works={featuredWorks} />
+      <SavedCarousel />
     </Fragment>
   )}
   <section>
