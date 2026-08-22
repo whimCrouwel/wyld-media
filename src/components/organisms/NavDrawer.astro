@@ -106,6 +106,15 @@ const areas = areaLinks ?? (await getAreaLinks(supabaseServer));
       <div class="mt-3">
         <AreaNav areas={areas} activeSlug={activeAreaSlug} mode={areaMode} />
       </div>
+
+      {/* 読者によく保存されている記事(今月)。実行時に bookmark-ranking.ts が anon で
+          取得して描画する。保存がまだ無ければ非表示のまま。編集部の「おすすめ(Featured帯)」
+          とは別物 — こちらは読者の反応。 */}
+      <div id="bookmark-ranking" class="mt-8" hidden>
+        <MetaLabel class="area-heading-en">Reader Favorites</MetaLabel>
+        <span class="area-heading-ja">よく保存されている記事</span>
+        <ol id="bookmark-ranking-list" class="mt-3 flex flex-col gap-2"></ol>
+      </div>
     </div>
   </div>
 </aside>
@@ -114,6 +123,7 @@ const areas = areaLinks ?? (await getAreaLinks(supabaseServer));
   import '../../scripts/nav-drawer';
   import '../../scripts/area-sheet';
   import '../../scripts/announcement-banner';
+  import '../../scripts/bookmark-ranking';
 </script>
 
 <style>

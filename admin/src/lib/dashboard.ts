@@ -34,6 +34,20 @@ export async function fetchMyArticles(supabase: SupabaseClient): Promise<MyArtic
   }));
 }
 
+// 記事ごとの読者ブックマーク数(ライターのモチベ表示用)。集計ビューは authenticated に
+// select 許可済み。保存の無い記事は行が無いので、返り Map に無ければ 0 として扱う。
+export async function fetchBookmarkCounts(
+  supabase: SupabaseClient, articleIds: string[],
+): Promise<Map<string, number>> {
+  if (articleIds.length === 0) return new Map();
+  const { data, error } = await supabase
+    .from('article_bookmark_counts')
+    .select('article_id, bookmark_count')
+    .in('article_id', articleIds);
+  if (error) throw error;
+  return new Map((data ?? []).map((r) => [r.article_id as string, r.bookmark_count as number]));
+}
+
 // 依頼記事(commissioned_by あり)は投稿間隔の対象外(enforce_publish_rules トリガー参照)。
 // ここでは通常記事の直近公開日から次に投稿できる日を計算する(投稿可能なら null)。
 export function nextEligiblePublishDate(

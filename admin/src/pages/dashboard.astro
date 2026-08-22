@@ -79,7 +79,7 @@ const title = 'ダッシュボード | Wild Media CMS';
   <script>
       import { supabaseBrowser } from '../lib/supabase-browser';
       import { redirectTo } from '../lib/auth';
-      import { fetchMyArticles, nextEligiblePublishDate } from '../lib/dashboard';
+      import { fetchMyArticles, nextEligiblePublishDate, fetchBookmarkCounts } from '../lib/dashboard';
       import {
         fetchMyProfile, fetchAllArticlesForAudit, fetchSettings, updatePublishedAt, type AuditArticle,
       } from '../lib/admin';
@@ -369,6 +369,16 @@ const title = 'ダッシュボード | Wild Media CMS';
           const articles = await fetchMyArticles(supabaseBrowser);
           const hasPublished = articles.some((a) => a.status === 'published' && !a.moderationHold);
           noPublishedEl.hidden = hasPublished;
+          // 公開記事の読者ブックマーク数(取得失敗は無視 — 一覧本体は壊さない)。
+          let bookmarkCounts = new Map<string, number>();
+          try {
+            bookmarkCounts = await fetchBookmarkCounts(
+              supabaseBrowser,
+              articles.filter((a) => a.status === 'published').map((a) => a.id),
+            );
+          } catch (err) {
+            console.error(err);
+          }
           try {
             const settings = await fetchSettings(supabaseBrowser);
             const nextDate = nextEligiblePublishDate(articles, settings.postIntervalDays);
@@ -424,6 +434,16 @@ const title = 'ダッシュボード | Wild Media CMS';
                 const dateEl = document.createElement('span');
                 dateEl.textContent = new Date(a.publishedAt).toLocaleDateString('ja-JP');
                 meta.appendChild(dateEl);
+              }
+
+              // 読者の保存数(公開記事のみ)。ライターのモチベーション表示。
+              if (a.status === 'published') {
+                const count = bookmarkCounts.get(a.id) ?? 0;
+                const bm = document.createElement('span');
+                bm.className = 'inline-flex items-center gap-1';
+                bm.title = '読者がこの記事をブックマークした数';
+                bm.textContent = `♡ ${count} 保存`;
+                meta.appendChild(bm);
               }
 
               info.appendChild(titleEl);

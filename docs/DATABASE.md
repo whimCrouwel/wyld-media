@@ -14,6 +14,7 @@ erDiagram
     profiles |o--o{ articles : "commissioned_by (nullable)"
     profiles |o--o{ articles : "moderation_hold_by (nullable)"
     articles ||--o{ post_chunks : "article_id (cascade delete)"
+    articles ||--o{ article_bookmarks : "article_id (cascade delete)"
     profiles |o--o{ announcements : "created_by (nullable)"
 
     "auth.users" {
@@ -128,6 +129,13 @@ erDiagram
         timestamptz created_at
         timestamptz updated_at
     }
+
+    article_bookmarks {
+        uuid id PK
+        uuid article_id FK "-> articles.id, cascade delete"
+        text client_token "localStorage由来の匿名トークン。article_id+client_tokenで一意"
+        timestamptz created_at
+    }
 ```
 
 ## テーブルごとの補足
@@ -141,6 +149,7 @@ erDiagram
 | `media` | RLS: 所有者 or admin | R2にアップロード済み画像のURL記録のみ。記事から参照中の画像は削除不可(`block_media_in_use`) |
 | `announcements` | RLS: admin は全件CRUD。writer/providerはpublished=trueかつ自分のaudienceのみselect。anonはpublished=trueかつend_user向けのみselect | 公開サイトが初めてブラウザから直接(anon key + RLS)読むテーブル。他の公開データはビルド時にservice roleで読む |
 | `post_chunks` | RLS: ポリシーなし(service role専用) | ハイブリッド検索用。`embedding`(pgvector, 1536次元)+ `content`(pgroonga全文検索対象)。anon/authenticatedからは直接アクセス不可、`chunk-article`/`search-articles` Edge Function経由のみ |
+| `article_bookmarks` | RLS: 有効・ポリシーなし(base テーブルへの anon/authenticated 直接アクセスは不可)。付け外しは `toggle_bookmark()` RPC、件数は `article_bookmark_counts` ビュー経由のみ | 読者の匿名ブックマーク。ログイン不要で、各ブラウザが `client_token`(localStorage)を鍵にする。公開サイトが初めてブラウザから anon で**書き込む**対象(ただし直接insert/deleteではなくSECURITY DEFINER関数経由。全消し防止のため)。匿名ゆえトークン量産で水増し可能(監査精度は無く、モチベ表示用途) |
 
 ## 主なDB関数(トリガー・RPC)
 
@@ -159,3 +168,6 @@ erDiagram
 | `block_media_in_use()` | トリガー | 記事から参照中の `media` 行の削除を禁止 |
 | `protect_moderation_hold_columns()` | トリガー | `moderation_hold`/`_at`/`_by` の変更をadminのみに制限し、変更時に `_at`/`_by` をサーバー側で自動設定・自動クリアする |
 | `search_articles_hybrid(query_embedding, query_text, match_count, max_distance)` | RPC(service role専用) | pgvector類似検索 + pgroonga全文検索をRRFでマージし、`articles.status='published' and not moderation_hold` をDB層で強制した上で上位記事を返す。ベクトル側は cosine distance が `max_distance`(既定0.5)以下のチャンクのみ候補にして、無関係な記事が kNN の下位に紛れ込まないようにする |
+| `toggle_bookmark(a_id, p_token)` | RPC(SECURITY DEFINER・anon/authenticated実行可) | `article_bookmarks` の付け外し。渡された `client_token` の行だけを操作し(全消し不可)、公開記事以外は拒否。戻り値は `(bookmarked boolean, bookmark_count int)`。クライアントはこの結果に localStorage を同期する |
+| `top_bookmarked_articles(p_days, p_lim)` | RPC(SECURITY DEFINER・anon/authenticated実行可) | 直近 `p_days` 日でよく保存された公開記事の上位 `p_lim` 件(slug/title/件数)。左カラムの「よく保存されている記事」ランキング用 |
+| `article_bookmark_counts`(ビュー) | ビュー(anon/authenticated read可) | 記事ごとの保存数の集計。生の `client_token` を晒さず件数だけを見せる。記事ページの「◯人が保存」・CMSのライター向け保存数表示に使用 |

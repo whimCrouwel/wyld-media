@@ -97,6 +97,25 @@ const crumbsLd = breadcrumbListSchema(crumbs, siteUrl);
       {article.headings.length >= 2 && <TableOfContents headings={article.headings} />}
 
       <div class="article-body mt-12" set:html={article.bodyHtml} />
+
+      {/* 読者の匿名ブックマーク。ログイン不要(localStorage の token + toggle_bookmark RPC)。
+          初期状態は bookmark-button.ts が実行時に描画するため hidden で出す。 */}
+      <div class="mt-12 flex justify-center">
+        <button
+          id="bookmark-button"
+          type="button"
+          hidden
+          aria-pressed="false"
+          data-article-id={article.id}
+          class="border-hairline text-ink hover:bg-card inline-flex items-center gap-2 rounded-full border px-5 py-2.5 text-sm transition-colors [&.is-bookmarked]:border-transparent [&.is-bookmarked]:bg-ink [&.is-bookmarked]:text-bg"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="[.is-bookmarked_&]:fill-current">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+          </svg>
+          <span id="bookmark-label">保存する</span>
+          <span id="bookmark-count" class="text-meta tabular-nums">–</span>
+        </button>
+      </div>
     </div>
 
     {/* 記事本体とは別の器: 「この記事にまつわる付随情報」(著者・関連記事)を
@@ -119,4 +138,8 @@ const crumbsLd = breadcrumbListSchema(crumbs, siteUrl);
       <a href="/" class="transition-opacity hover:opacity-60"><MetaLabel>← Works</MetaLabel></a>
     </p>
   </article>
+
+  <script>
+    import '../../scripts/bookmark-button';
+  </script>
 </Base>
