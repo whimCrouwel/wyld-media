@@ -6,25 +6,12 @@ import { supabaseBrowser } from '../lib/supabase-browser';
 import {
   fetchTopBookmarkedArticles, BOOKMARKS_CHANGED_EVENT, type TopBookmarkedArticle,
 } from '../lib/bookmarks';
+import { makeThumb } from './bookmark-thumb';
 
 const section = document.getElementById('bookmark-ranking');
 const list = document.getElementById('bookmark-ranking-list');
 
-function thumb(a: TopBookmarkedArticle): HTMLElement {
-  if (a.coverImageUrl) {
-    const img = document.createElement('img');
-    img.className = 'bookmark-thumb';
-    img.src = a.coverImageUrl;
-    img.alt = '';
-    img.loading = 'lazy';
-    img.decoding = 'async';
-    return img;
-  }
-  const ph = document.createElement('span');
-  ph.className = 'bookmark-thumb';
-  ph.setAttribute('aria-hidden', 'true');
-  return ph;
-}
+const thumb = (a: TopBookmarkedArticle): HTMLElement => makeThumb(a.coverImageUrl);
 
 async function render(): Promise<void> {
   if (!section || !list) return;

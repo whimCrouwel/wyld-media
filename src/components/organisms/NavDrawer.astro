@@ -109,19 +109,19 @@ const areas = areaLinks ?? (await getAreaLinks(supabaseServer));
 
       {/* 自分が保存した記事。localStorage の記事IDを bookmark-saved.ts が読み、公開中の
           記事だけをサムネイル付きで描画する。保存が無ければ非表示。 */}
-      <div id="bookmark-saved" class="bookmark-section mt-8" hidden>
+      <div id="bookmark-saved" class="bookmark-section mt-10" hidden>
         <MetaLabel class="area-heading-en">Saved</MetaLabel>
         <span class="area-heading-ja">保存した記事</span>
-        <ol id="bookmark-saved-list" class="bookmark-list mt-3"></ol>
+        <ol id="bookmark-saved-list" class="bookmark-list mt-4"></ol>
       </div>
 
       {/* 読者によく保存されている記事(今月)のランキング。bookmark-ranking.ts が anon で
           取得して描画する。保存がまだ無ければ非表示。編集部の「おすすめ(Featured帯)」
           とは別物 — こちらは読者の反応。 */}
-      <div id="bookmark-ranking" class="bookmark-section mt-8" hidden>
+      <div id="bookmark-ranking" class="bookmark-section mt-10" hidden>
         <MetaLabel class="area-heading-en">Popular</MetaLabel>
         <span class="area-heading-ja">読者に人気</span>
-        <ol id="bookmark-ranking-list" class="bookmark-list mt-3"></ol>
+        <ol id="bookmark-ranking-list" class="bookmark-list mt-4"></ol>
       </div>
     </div>
   </div>
@@ -198,7 +198,7 @@ const areas = areaLinks ?? (await getAreaLinks(supabaseServer));
   .bookmark-list {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.875rem;
     list-style: none;
     padding: 0;
     margin: 0;
@@ -206,7 +206,7 @@ const areas = areaLinks ?? (await getAreaLinks(supabaseServer));
   :global(.bookmark-item) {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
     color: var(--color-bg);
     transition: opacity 0.2s ease;
   }
@@ -215,17 +215,25 @@ const areas = areaLinks ?? (await getAreaLinks(supabaseServer));
   }
   :global(.bookmark-thumb) {
     flex-shrink: 0;
-    width: 48px;
-    height: 34px;
+    width: 64px;
+    height: 44px;
     object-fit: cover;
-    border-radius: 6px;
-    background-color: color-mix(in srgb, var(--color-bg) 16%, transparent);
+    border-radius: 8px;
+    background-color: color-mix(in srgb, var(--color-bg) 12%, transparent);
+  }
+  /* カバー画像が無い記事のサムネイル枠。空の灰色箱だと読み込み失敗に見えるため、
+     控えめな画像アイコンを中央に置いて「意図的なプレースホルダ」に見せる。 */
+  :global(.bookmark-thumb--empty) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: color-mix(in srgb, var(--color-bg) 42%, transparent);
   }
   :global(.bookmark-title) {
     flex: 1 1 auto;
     min-width: 0;
-    font-size: 12px;
-    line-height: 1.35;
+    font-size: 12.5px;
+    line-height: 1.4;
     color: var(--color-bg);
     display: -webkit-box;
     -webkit-line-clamp: 2;
