@@ -1,0 +1,119 @@
+{/* モバイル専用の「保存/人気」シート。デスクトップでは左サイドバー(NavDrawer)に
+    並んでいる「保存した記事(Saved)」と「読者に人気(Popular)」は、モバイルでは
+    地図シートの下に埋もれて操作しづらいため、下部タブバーの Saved ボタンから
+    開くこの独立シートへ移す。
+
+    中身は複製しない — セクションのDOM(#bookmark-saved / #bookmark-ranking)は
+    NavDrawer 側に1つだけ存在し、bookmark-sheet.ts が画面幅に応じてここと
+    サイドバーの間で「移動」させる。IDが重複しないので bookmark-saved.ts /
+    bookmark-ranking.ts の描画先はどちらの場所でもそのまま効く。 */}
+<div id="bookmark-sheet-backdrop" class="bookmark-sheet-backdrop" aria-hidden="true"></div>
+<aside id="bookmark-sheet" class="bookmark-sheet" aria-label="保存した記事と人気の記事" aria-hidden="true">
+  <div class="bookmark-sheet-inner">
+    <span class="sheet-handle" aria-hidden="true"></span>
+    <div id="bookmark-sheet-body" class="bookmark-sheet-body">
+      {/* 保存も人気もまだ無いとき(両セクションが hidden)に出す案内。
+          bookmark-sheet.ts が開くたびに表示可否を判定する。 */}
+      <p id="bookmark-sheet-empty" class="bookmark-sheet-empty" hidden>
+        保存した記事はまだありません。記事ページの保存ボタンから追加できます。
+      </p>
+    </div>
+  </div>
+</aside>
+
+<script>
+  import '../../scripts/bookmark-sheet';
+</script>
+
+<style>
+  /* デスクトップでは存在しない(セクションはサイドバーに置いたまま)。 */
+  .bookmark-sheet,
+  .bookmark-sheet-backdrop {
+    display: none;
+  }
+
+  @media (max-width: 767px) {
+    /* 地図シート(NavDrawer)と同じ意匠・同じ重なり順にして、見た目と操作感を揃える。 */
+    .bookmark-sheet {
+      display: block;
+      position: fixed;
+      inset: auto auto 0 50%;
+      z-index: 70;
+      width: 100%;
+      max-width: 26rem;
+      /* dvh 非対応ブラウザ向けに vh 版を先に書く段階的フォールバック
+         (NavDrawer.astro のシートと同型)。 */
+      max-height: min(80vh, 640px);
+      max-height: min(80dvh, 640px);
+      border-radius: 20px 20px 0 0;
+      background-color: var(--color-ink);
+      color: var(--color-bg);
+      transform: translate(-50%, 100%);
+      transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+      box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    html.bookmark-sheet-open .bookmark-sheet {
+      transform: translate(-50%, 0);
+    }
+
+    .bookmark-sheet-inner {
+      max-height: min(80vh, 640px);
+      max-height: min(80dvh, 640px);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding: 0.6rem 1.1rem 1.5rem;
+    }
+
+    .sheet-handle {
+      display: block;
+      width: 2.5rem;
+      height: 4px;
+      margin: 0 auto 0.75rem;
+      border-radius: 999px;
+      background-color: color-mix(in srgb, var(--color-bg) 25%, transparent);
+    }
+
+    /* サイドバーから移してきた最初のセクションは、シート上端に余白を足す必要が
+       ないので mt-10(サイドバーでの見出し間隔)を打ち消す。 */
+    :global(#bookmark-sheet-body > .bookmark-section:first-of-type) {
+      margin-top: 0;
+    }
+
+    /* 見出しのアクセント色は NavDrawer 側で `.nav-drawer-body .area-heading-en`
+       に対して指定されている。移動先ではその祖先が無くなるので同じ指定を置く。 */
+    :global(.bookmark-sheet-body .area-heading-en) {
+      color: var(--color-accent);
+    }
+
+    .bookmark-sheet-empty {
+      margin: 1.5rem 0 1rem;
+      font-size: 12.5px;
+      line-height: 1.7;
+      color: color-mix(in srgb, var(--color-bg) 65%, transparent);
+    }
+
+    .bookmark-sheet-backdrop {
+      display: block;
+      position: fixed;
+      inset: 0;
+      z-index: 65;
+      background-color: rgba(20, 20, 19, 0.45);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.32s ease;
+    }
+
+    html.bookmark-sheet-open .bookmark-sheet-backdrop {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+
+  @media (max-width: 767px) and (prefers-reduced-motion: reduce) {
+    .bookmark-sheet,
+    .bookmark-sheet-backdrop {
+      transition: none;
+    }
+  }
+</style>

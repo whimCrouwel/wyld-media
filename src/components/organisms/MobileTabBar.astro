@@ -1,12 +1,14 @@
 {/* モバイル専用の下部タブバー(アプリのような固定ナビ)。検索・地域(地図シート
-    開閉)・お知らせの3項目。検索ボタンは search-modal.ts が拾う共有クラス
+    開閉)・保存/人気・お知らせの4項目。検索ボタンは search-modal.ts が拾う共有クラス
     search-open-trigger を持つ。地域ボタンは NavDrawer.astro 側の
     area-sheet.ts が id="area-sheet-open" で拾う(同じIDの要素はページ内に
     ここしかない)。お知らせボタンは announcement-banner.ts が
     id="mobile-announcement-open" で拾い、直接モーダルを開く(地図シートは
     経由しない)。公開中のお知らせが無い間は非表示(hidden)にしておき、
-    announcement-banner.ts が取得できたときだけ表示 + .has-news で3カラムに
-    切り替える。 */}
+    announcement-banner.ts が取得できたときだけ表示 + .has-news で4カラムに
+    切り替える。Saved ボタンは BookmarkSheet.astro のシートを
+    bookmark-sheet.ts が id="bookmark-sheet-open" で拾って開閉する(「保存した
+    記事」「読者に人気」は地図シートの下だと操作しづらいので別UIに分けた)。 */}
 <nav class="mobile-tab-bar md:hidden" aria-label="モバイルナビゲーション">
   <button type="button" class="tab-item search-open-trigger" aria-label="記事を検索">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -29,6 +31,19 @@
     </svg>
     <span class="tab-label">Area</span>
   </button>
+  <button
+    type="button"
+    id="bookmark-sheet-open"
+    class="tab-item"
+    aria-label="保存した記事と人気の記事を見る"
+    aria-expanded="false"
+    aria-controls="bookmark-sheet"
+  >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M6 4h12a1 1 0 0 1 1 1v15l-7-4-7 4V5a1 1 0 0 1 1-1Z" />
+    </svg>
+    <span class="tab-label">Saved</span>
+  </button>
   <button type="button" id="mobile-announcement-open" class="tab-item" aria-label="お知らせを見る" hidden>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9Z" />
@@ -46,7 +61,7 @@
   @media (max-width: 767px) {
     .mobile-tab-bar {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       position: fixed;
       right: 0;
       bottom: 0;
@@ -59,9 +74,9 @@
 
     /* お知らせが取得できた場合だけ announcement-banner.ts が付与する。
        hidden の News ボタンをそのままにすると空きカラムができるため、
-       表示するときは3カラムへ切り替える。 */
+       表示するときは4カラムへ切り替える。 */
     .mobile-tab-bar.has-news {
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
     }
 
     .tab-item {

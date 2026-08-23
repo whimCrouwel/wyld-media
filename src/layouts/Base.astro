@@ -4,6 +4,7 @@ import SEO from '../components/SEO.astro';
 import SiteHeader from '../components/organisms/SiteHeader.astro';
 import NavDrawer from '../components/organisms/NavDrawer.astro';
 import MobileTabBar from '../components/organisms/MobileTabBar.astro';
+import BookmarkSheet from '../components/organisms/BookmarkSheet.astro';
 import SearchModal from '../components/organisms/SearchModal.astro';
 import AnnouncementModal from '../components/organisms/AnnouncementModal.astro';
 import BgGrid from '../components/organisms/BgGrid.astro';
@@ -152,6 +153,7 @@ const enableAnalytics = import.meta.env.PROD;
       </div>
     </div>
     <MobileTabBar />
+    <BookmarkSheet />
     <SearchModal />
     <AnnouncementModal />
   </body>

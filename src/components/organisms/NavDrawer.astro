@@ -133,6 +133,7 @@ const areas = areaLinks ?? (await getAreaLinks(supabaseServer));
   import '../../scripts/announcement-banner';
   import '../../scripts/bookmark-saved';
   import '../../scripts/bookmark-ranking';
+  import '../../scripts/carousel-drag';
 </script>
 
 <style>
@@ -194,7 +195,7 @@ const areas = areaLinks ?? (await getAreaLinks(supabaseServer));
   }
 
   /* 保存した記事 / 読者に人気 の一覧。ドロワーは墨地(--color-ink)なので、
-     文字は --color-bg(淡色)にして可読性を確保する。サムネイル＋タイトル(＋件数)。 */
+     文字は --color-bg(淡色)にして可読性を確保する。サムネイル＋タイトル。 */
   .bookmark-list {
     display: flex;
     flex-direction: column;
@@ -243,12 +244,6 @@ const areas = areaLinks ?? (await getAreaLinks(supabaseServer));
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-  :global(.bookmark-count) {
-    flex-shrink: 0;
-    font-size: 11px;
-    font-variant-numeric: tabular-nums;
-    color: color-mix(in srgb, var(--color-bg) 60%, transparent);
-  }
   /* 「読者に人気」の順位番号。ランキングであることを示す(保存した記事一覧には付かない)。 */
   :global(.bookmark-rank) {
     flex-shrink: 0;
@@ -275,6 +270,10 @@ const areas = areaLinks ?? (await getAreaLinks(supabaseServer));
     scrollbar-width: none;
   }
   .bookmark-carousel::-webkit-scrollbar { display: none; }
+  /* マウス操作(carousel-drag.ts)。掴めることを示し、ドラッグ中に画像や
+     タイトルが選択されないようにする。 */
+  .bookmark-carousel { cursor: grab; }
+  .bookmark-carousel.is-dragging { cursor: grabbing; user-select: none; }
   /* 幅の制御は flex アイテムである <li> に置く(.bookmark-cara-card は
      flex コンテナの直接の子ではないため効かず、カードが潰れる)。 */
   :global(.bookmark-carousel > li) {

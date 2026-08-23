@@ -1,5 +1,5 @@
 // 左カラム(NavDrawer)の「読者に人気」ランキング。anon で top_bookmarked_articles RPC を
-// 呼び、上位をサムネイル＋タイトル＋保存数で描画する。保存がまだ無ければセクションは隠したまま。
+// 呼び、上位を順位＋サムネイル＋タイトルで描画する(保存数そのものは出さない)。保存がまだ無ければセクションは隠したまま。
 // 記事ページで保存が付け外しされたら(BOOKMARKS_CHANGED_EVENT)再取得する。
 // 編集部の Featured帯 とは別物(読者の反応)。
 import { supabaseBrowser } from '../lib/supabase-browser';
@@ -43,11 +43,7 @@ async function render(): Promise<void> {
     title.className = 'bookmark-title';
     title.textContent = a.title;
 
-    const count = document.createElement('span');
-    count.className = 'bookmark-count';
-    count.textContent = `♡ ${a.bookmarkCount}`;
-
-    link.append(rank, thumb(a), title, count);
+    link.append(rank, thumb(a), title);
     li.appendChild(link);
     list.appendChild(li);
   });
