@@ -1,0 +1,35 @@
+---
+/*
+  記事編集画面の上部に置くチュートリアル動画。既定は折りたたみにして、
+  使い慣れたライターの邪魔をしない。動画は public/tutorial/ の静的配信
+  (約2MB・74秒。R2ではなくCMSと一緒にデプロイされる)。
+*/
+---
+<details class="rounded-xl border bg-card text-card-foreground shadow-sm">
+  <summary
+    class="flex cursor-pointer select-none items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium hover:bg-muted [&::-webkit-details-marker]:hidden"
+  >
+    <svg
+      class="size-3.5 shrink-0 text-muted-foreground transition-transform [[open]>summary>&]:rotate-90"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M6 4l4 4-4 4"></path>
+    </svg>
+    エディタの使い方を動画で見る
+    <span class="font-normal text-muted-foreground">(1分14秒・音声あり)</span>
+  </summary>
+  <div class="border-t p-4">
+    <video
+      controls
+      preload="metadata"
+      class="w-full max-w-3xl rounded-md bg-black"
+      src="/tutorial/editor-tutorial.mp4"
+    ></video>
+  </div>
+</details>
