@@ -53,6 +53,41 @@ export async function fetchAllProfiles(supabase: SupabaseClient): Promise<AdminP
   }));
 }
 
+// メンバー一覧(admin専用の読み取り専用ビュー)用。カード表示に必要な列まで含める。
+// fetchAllProfiles より重いので、操作系の一覧(users.astro)とは分けている。
+export interface MemberProfile {
+  id: string;
+  role: Role;
+  slug: string;
+  name: string;
+  title: string | null;
+  bio: string;
+  avatarUrl: string | null;
+  coverImageUrl: string | null;
+  region: string | null;
+  certified: boolean;
+}
+
+export async function fetchMemberProfiles(supabase: SupabaseClient): Promise<MemberProfile[]> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, role, slug, name, title, bio, avatar_url, cover_image_url, region, certified')
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    role: r.role as Role,
+    slug: r.slug,
+    name: r.name,
+    title: r.title ?? null,
+    bio: r.bio ?? '',
+    avatarUrl: r.avatar_url ?? null,
+    coverImageUrl: r.cover_image_url ?? null,
+    region: r.region ?? null,
+    certified: r.certified,
+  }));
+}
+
 export async function updateUserRole(
   supabase: SupabaseClient, id: string, role: 'writer' | 'provider',
 ): Promise<void> {
@@ -185,6 +220,7 @@ export function translateResendInviteError(err: unknown): string {
 export interface AuditArticle {
   id: string;
   title: string;
+  authorId: string;
   authorName: string;
   status: 'draft' | 'published';
   publishedAt: string | null;
@@ -198,7 +234,7 @@ export async function fetchAllArticlesForAudit(supabase: SupabaseClient): Promis
   const { data, error } = await supabase
     .from('articles')
     .select(
-      'id, title, status, published_at, moderation_hold, moderation_hold_reason, ' +
+      'id, title, author_id, status, published_at, moderation_hold, moderation_hold_reason, ' +
       'author:profiles!articles_author_id_fkey(name)',
     )
     .order('published_at', { ascending: false, nullsFirst: false })
@@ -207,12 +243,42 @@ export async function fetchAllArticlesForAudit(supabase: SupabaseClient): Promis
   return (data ?? []).map((row) => ({
     id: row.id,
     title: row.title,
+    authorId: row.author_id,
     authorName: (row.author as unknown as { name: string } | null)?.name ?? '(不明)',
     status: row.status,
     publishedAt: row.published_at,
     moderationHold: row.moderation_hold,
     moderationHoldReason: row.moderation_hold_reason,
   }));
+}
+
+// メンバー一覧で「誰が何を書いているか」を出すための著者ごとの集計。
+// 純粋関数(DB非依存)。記事は入力順(公開日降順)のまま保持する。
+export interface AuthorArticleSummary {
+  total: number;
+  published: number;
+  draft: number;
+  held: number;
+  articles: AuditArticle[];
+}
+
+export function summarizeArticlesByAuthor(
+  articles: AuditArticle[],
+): Map<string, AuthorArticleSummary> {
+  const byAuthor = new Map<string, AuthorArticleSummary>();
+  for (const a of articles) {
+    let s = byAuthor.get(a.authorId);
+    if (!s) {
+      s = { total: 0, published: 0, draft: 0, held: 0, articles: [] };
+      byAuthor.set(a.authorId, s);
+    }
+    s.total += 1;
+    if (a.status === 'published') s.published += 1;
+    else s.draft += 1;
+    if (a.moderationHold) s.held += 1;
+    s.articles.push(a);
+  }
+  return byAuthor;
 }
 
 // 審査によるホールドの設置/解除。moderation_hold 系の列以外には触れない

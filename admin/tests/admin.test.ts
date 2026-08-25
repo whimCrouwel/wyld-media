@@ -8,6 +8,7 @@ import {
   fetchUserAuthStatus, resendInvite, translateResendInviteError,
   fetchSettings, updateSettings,
   fetchAllArticlesForAudit, setModerationHold, updatePublishedAt,
+  fetchMemberProfiles, summarizeArticlesByAuthor, type AuditArticle,
 } from '../src/lib/admin';
 import { createDraft, deleteArticle } from '../src/lib/articles';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -538,5 +539,76 @@ describe('published_at update (admin)', () => {
       .rejects.toThrow('INVALID_PUBLISHED_AT');
     await expect(updatePublishedAt(adminClient, publishedId, ''))
       .rejects.toThrow('INVALID_PUBLISHED_AT');
+  });
+});
+
+// --- 純粋関数(DB非依存) ---
+
+function auditArticle(over: Partial<AuditArticle> & { authorId: string }): AuditArticle {
+  return {
+    id: Math.random().toString(36).slice(2),
+    title: 'タイトル',
+    authorName: '著者',
+    status: 'draft',
+    publishedAt: null,
+    moderationHold: false,
+    moderationHoldReason: null,
+    ...over,
+  };
+}
+
+describe('summarizeArticlesByAuthor', () => {
+  it('著者ごとに件数(合計・公開・下書き・保留)と記事を集計する', () => {
+    const articles: AuditArticle[] = [
+      auditArticle({ authorId: 'A', status: 'published' }),
+      auditArticle({ authorId: 'A', status: 'draft' }),
+      auditArticle({ authorId: 'A', status: 'draft', moderationHold: true }),
+      auditArticle({ authorId: 'B', status: 'published' }),
+    ];
+    const byAuthor = summarizeArticlesByAuthor(articles);
+
+    const a = byAuthor.get('A')!;
+    expect(a.total).toBe(3);
+    expect(a.published).toBe(1);
+    expect(a.draft).toBe(2);
+    expect(a.held).toBe(1);
+    expect(a.articles).toHaveLength(3);
+
+    const b = byAuthor.get('B')!;
+    expect(b.total).toBe(1);
+    expect(b.published).toBe(1);
+    expect(b.draft).toBe(0);
+    expect(b.held).toBe(0);
+  });
+
+  it('記事が無い著者はマップに現れない', () => {
+    const byAuthor = summarizeArticlesByAuthor([]);
+    expect(byAuthor.size).toBe(0);
+  });
+
+  it('入力順(公開日降順など呼び出し側の並び)を保持する', () => {
+    const articles: AuditArticle[] = [
+      auditArticle({ id: 'first', authorId: 'A' }),
+      auditArticle({ id: 'second', authorId: 'A' }),
+    ];
+    expect(summarizeArticlesByAuthor(articles).get('A')!.articles.map((x) => x.id))
+      .toEqual(['first', 'second']);
+  });
+});
+
+describe('fetchMemberProfiles', () => {
+  it('admin はカード表示に必要な列(肩書き・自己紹介・画像・エリア)まで全メンバー分取得できる', async () => {
+    const members = await fetchMemberProfiles(adminClient);
+    const hana = members.find((m) => m.slug === 'tanaka-hana')!;
+    expect(hana).toBeDefined();
+    expect(hana.role).toBe('writer');
+    expect(typeof hana.bio).toBe('string');
+    // title/avatar/cover/region は未設定なら null(存在すること自体を確認)
+    expect('title' in hana).toBe(true);
+    expect('avatarUrl' in hana).toBe(true);
+    expect('coverImageUrl' in hana).toBe(true);
+    expect('region' in hana).toBe(true);
+    // admin は provider 行も見える
+    expect(members.some((m) => m.slug === 'forest-org')).toBe(true);
   });
 });

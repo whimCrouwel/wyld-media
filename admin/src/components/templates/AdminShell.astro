@@ -86,6 +86,12 @@ const navLinkActive = 'bg-sidebar-accent text-sidebar-accent-foreground';
             </svg>
             ユーザー管理
           </a>
+          <a href="/members" class={`${navLink} ${isActive('/members') ? navLinkActive : ''}`}>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="9" cy="10" r="2" /><path d="M15 8h3" /><path d="M15 12h3" /><path d="M7 16h10" />
+            </svg>
+            メンバー一覧
+          </a>
           <a href="/commissions" class={`${navLink} ${isActive('/commissions') ? navLinkActive : ''}`}>
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0" aria-hidden="true">
               <path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h9" /><circle cx="17" cy="17" r="3" /><path d="M17 15v2l1.5 1" />

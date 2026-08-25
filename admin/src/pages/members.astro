@@ -1,0 +1,188 @@
+---
+import AdminShell from '../components/templates/AdminShell.astro';
+import Card from '../components/atoms/Card.astro';
+
+const title = 'メンバー一覧 | Wild Media CMS';
+---
+<AdminShell title={title} heading="メンバー一覧" wide>
+  <div class="space-y-6">
+    <p class="text-sm text-muted-foreground">
+      各メンバーのプロフィールと執筆状況を閲覧できます(読み取り専用)。編集は「ユーザー管理」から。
+    </p>
+    <Card class="p-6">
+      <div id="members" class="space-y-8">
+        <p class="text-sm text-muted-foreground">読み込み中…</p>
+      </div>
+    </Card>
+    <p id="message" role="alert" class="text-sm text-muted-foreground"></p>
+  </div>
+
+  <script>
+    import { supabaseBrowser } from '../lib/supabase-browser';
+    import { redirectTo } from '../lib/auth';
+    import {
+      fetchMemberProfiles, fetchAllArticlesForAudit, summarizeArticlesByAuthor,
+      type MemberProfile, type AuthorArticleSummary,
+    } from '../lib/admin';
+    import { initShellChrome } from '../lib/shell';
+
+    const { data: { session } } = await supabaseBrowser.auth.getSession();
+    if (!session) {
+      redirectTo('/login');
+    } else {
+      const { role, roleLookupFailed } = await initShellChrome(supabaseBrowser);
+      if (roleLookupFailed) {
+        document.getElementById('message')!.textContent =
+          '権限の確認に失敗しました。ページを再読み込みしてください。';
+      } else if (role !== 'admin') {
+        // UX のためのリダイレクト。実際の防壁は RLS(admin 以外は他人のデータを読めない)。
+        redirectTo('/dashboard');
+      } else {
+        const container = document.getElementById('members')!;
+        const messageEl = document.getElementById('message')!;
+
+        const ROLE_LABEL: Record<MemberProfile['role'], string> = {
+          writer: 'ライター',
+          provider: 'サービスプロバイダー',
+          admin: '管理者',
+        };
+        const STATUS_LABEL = { draft: '下書き', published: '公開中' } as const;
+
+        const el = <K extends keyof HTMLElementTagNameMap>(
+          tag: K, className?: string, text?: string,
+        ): HTMLElementTagNameMap[K] => {
+          const node = document.createElement(tag);
+          if (className) node.className = className;
+          if (text !== undefined) node.textContent = text;
+          return node;
+        };
+
+        const buildCard = (m: MemberProfile, summary: AuthorArticleSummary | undefined) => {
+          // ユーザー管理から /members#m-<id> でこのカードへ飛べる。target 時に枠を強調。
+          const card = el('div',
+            'overflow-hidden rounded-lg border bg-card scroll-mt-6 target:ring-2 target:ring-primary target:ring-offset-2');
+          card.id = `m-${m.id}`;
+
+          // カバー画像(あれば)
+          if (m.coverImageUrl) {
+            const cover = el('div', 'h-24 w-full bg-muted');
+            const img = el('img', 'h-full w-full object-cover');
+            img.src = m.coverImageUrl;
+            img.alt = '';
+            img.loading = 'lazy';
+            cover.appendChild(img);
+            card.appendChild(cover);
+          }
+
+          const bodyPad = el('div', m.coverImageUrl ? 'p-4' : 'p-4');
+
+          // 上段: アバター + 名前 + 肩書き
+          const head = el('div', 'flex items-start gap-3');
+          const avatar = el('span',
+            'flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border bg-muted text-muted-foreground');
+          if (m.avatarUrl) {
+            const aimg = el('img', 'h-full w-full object-cover');
+            aimg.src = m.avatarUrl;
+            aimg.alt = m.name;
+            aimg.loading = 'lazy';
+            avatar.appendChild(aimg);
+          } else {
+            avatar.textContent = m.name.trim().charAt(0);
+          }
+          head.appendChild(avatar);
+
+          const headText = el('div', 'min-w-0 flex-1');
+          const nameRow = el('div', 'flex flex-wrap items-center gap-2');
+          nameRow.appendChild(el('span', 'font-semibold tracking-tight', m.name));
+          if (m.role === 'provider' && m.certified) {
+            nameRow.appendChild(el('span',
+              'inline-flex shrink-0 items-center rounded-full bg-success/15 px-2 py-0.5 text-xs font-medium text-success',
+              '認定'));
+          }
+          headText.appendChild(nameRow);
+          if (m.title) headText.appendChild(el('p', 'text-sm text-muted-foreground', m.title));
+          const meta = [ROLE_LABEL[m.role], m.region ?? undefined].filter(Boolean).join(' ・ ');
+          headText.appendChild(el('p', 'mt-0.5 text-xs text-muted-foreground', meta));
+          head.appendChild(headText);
+          bodyPad.appendChild(head);
+
+          // 自己紹介
+          if (m.bio.trim()) {
+            bodyPad.appendChild(el('p', 'mt-3 whitespace-pre-wrap text-sm text-foreground', m.bio));
+          }
+
+          // 執筆状況(記事のある人のみ)
+          if (summary && summary.total > 0) {
+            const artWrap = el('div', 'mt-4 border-t pt-3');
+            const counts = `記事 ${summary.total} 件(公開 ${summary.published} ・ 下書き ${summary.draft}` +
+              (summary.held > 0 ? ` ・ 保留 ${summary.held}` : '') + ')';
+            artWrap.appendChild(el('p', 'mb-2 text-xs font-medium text-muted-foreground', counts));
+
+            const list = el('ul', 'space-y-1');
+            for (const a of summary.articles) {
+              const li = el('li', 'flex items-center gap-2 text-sm');
+              const link = el('a',
+                'truncate text-primary underline-offset-4 hover:underline') as HTMLAnchorElement;
+              link.href = `/articles/edit?id=${a.id}`;
+              link.textContent = a.title || '(無題)';
+              li.appendChild(link);
+              li.appendChild(el('span',
+                'shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground',
+                STATUS_LABEL[a.status]));
+              if (a.moderationHold) {
+                const held = el('span',
+                  'shrink-0 rounded-full bg-destructive/15 px-2 py-0.5 text-xs font-medium text-destructive',
+                  '保留中');
+                if (a.moderationHoldReason) held.title = a.moderationHoldReason;
+                li.appendChild(held);
+              }
+              list.appendChild(li);
+            }
+            artWrap.appendChild(list);
+            bodyPad.appendChild(artWrap);
+          } else if (m.role === 'writer') {
+            bodyPad.appendChild(el('p', 'mt-4 border-t pt-3 text-sm text-muted-foreground', 'まだ記事がありません。'));
+          }
+
+          card.appendChild(bodyPad);
+          return card;
+        };
+
+        const render = async () => {
+          const [members, articles] = await Promise.all([
+            fetchMemberProfiles(supabaseBrowser),
+            fetchAllArticlesForAudit(supabaseBrowser),
+          ]);
+          const byAuthor = summarizeArticlesByAuthor(articles);
+
+          container.innerHTML = '';
+          const groups: Array<[MemberProfile['role'], string]> = [
+            ['writer', 'ライター'],
+            ['provider', 'サービスプロバイダー'],
+            ['admin', '管理者'],
+          ];
+          for (const [role, label] of groups) {
+            const inGroup = members.filter((m) => m.role === role);
+            if (inGroup.length === 0) continue;
+            const section = el('section');
+            section.appendChild(el('h2',
+              'mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground',
+              `${label}(${inGroup.length})`));
+            const grid = el('div', 'grid gap-4 sm:grid-cols-2 xl:grid-cols-3');
+            for (const m of inGroup) grid.appendChild(buildCard(m, byAuthor.get(m.id)));
+            section.appendChild(grid);
+            container.appendChild(section);
+          }
+        };
+
+        try {
+          await render();
+        } catch (err) {
+          container.innerHTML = '';
+          messageEl.textContent = 'メンバー一覧の読み込みに失敗しました。ページを再読み込みしてください。';
+          console.error(err);
+        }
+      }
+    }
+  </script>
+</AdminShell>

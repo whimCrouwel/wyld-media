@@ -38,12 +38,15 @@ const title = 'ユーザー管理 | Wild Media CMS';
 
     <Card class="p-6">
       <h2 class="mb-4 text-lg font-semibold tracking-tight">ユーザー一覧</h2>
-      <table class="admin-table">
-        <thead>
-          <tr><th>名前</th><th>スラッグ</th><th class="w-72">種別</th><th class="w-40">招待状況</th><th class="w-56">認定</th><th class="w-32">プロフィール</th><th class="w-24">操作</th></tr>
-        </thead>
-        <tbody id="user-rows"><tr><td colspan="7">読み込み中…</td></tr></tbody>
-      </table>
+      <!-- 横に長いテーブルは小画面で潰れるので、横スクロールできるようラップする。 -->
+      <div class="-mx-6 overflow-x-auto px-6">
+        <table class="admin-table admin-table--nowrap">
+          <thead>
+            <tr><th>名前</th><th>スラッグ</th><th class="w-72">種別</th><th class="w-40">招待状況</th><th class="w-56">認定</th><th class="w-32">プロフィール</th><th class="w-24">操作</th></tr>
+          </thead>
+          <tbody id="user-rows"><tr><td colspan="7">読み込み中…</td></tr></tbody>
+        </table>
+      </div>
     </Card>
 
     <p id="message" role="alert" class="text-sm text-muted-foreground"></p>
@@ -94,9 +97,10 @@ const title = 'ユーザー管理 | Wild Media CMS';
             console.error(err);
           }
           tbody.innerHTML = '';
-          for (const p of profiles) {
+          const buildRow = (p: (typeof profiles)[number]) => {
             const tr = document.createElement('tr');
             const nameTd = document.createElement('td');
+            nameTd.className = 'whitespace-nowrap font-medium';
             nameTd.textContent = p.name;
             const slugTd = document.createElement('td');
             slugTd.className = 'whitespace-nowrap';
@@ -227,9 +231,15 @@ const title = 'ユーザー管理 | Wild Media CMS';
 
             const profileTd = document.createElement('td');
             const profileLink = document.createElement('a');
-            profileLink.href = `/profile?id=${p.id}`;
-            profileLink.textContent = p.id === myId ? '自分の編集画面へ' : 'プロフィールを編集';
-            profileLink.className = 'text-sm font-medium text-primary underline-offset-4 hover:underline';
+            // 自分は編集画面へ。他人は書き込みをさせず、読み取り専用のメンバー一覧へ。
+            if (p.id === myId) {
+              profileLink.href = '/profile';
+              profileLink.textContent = '自分の編集画面へ';
+            } else {
+              profileLink.href = `/members#m-${p.id}`;
+              profileLink.textContent = 'プロフィールを見る';
+            }
+            profileLink.className = 'whitespace-nowrap text-sm font-medium text-primary underline-offset-4 hover:underline';
             profileTd.appendChild(profileLink);
 
             const actionsTd = document.createElement('td');
@@ -275,7 +285,27 @@ const title = 'ユーザー管理 | Wild Media CMS';
             tr.appendChild(certifiedTd);
             tr.appendChild(profileTd);
             tr.appendChild(actionsTd);
-            tbody.appendChild(tr);
+            return tr;
+          };
+
+          // 種別ごとに見出しを挟んで表示する(ライター → サービスプロバイダー → 管理者)。
+          const groups: Array<['writer' | 'provider' | 'admin', string]> = [
+            ['writer', 'ライター'],
+            ['provider', 'サービスプロバイダー'],
+            ['admin', '管理者'],
+          ];
+          for (const [role, label] of groups) {
+            const inGroup = profiles.filter((p) => p.role === role);
+            if (inGroup.length === 0) continue;
+            const headerTr = document.createElement('tr');
+            const headerTd = document.createElement('td');
+            headerTd.colSpan = 7;
+            headerTd.className =
+              'bg-muted/40 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground';
+            headerTd.textContent = `${label}(${inGroup.length})`;
+            headerTr.appendChild(headerTd);
+            tbody.appendChild(headerTr);
+            for (const p of inGroup) tbody.appendChild(buildRow(p));
           }
         };
 

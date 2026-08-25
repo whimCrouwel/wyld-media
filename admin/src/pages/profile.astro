@@ -30,7 +30,7 @@ const title = 'プロフィール編集 | Wild Media CMS';
           <option value="">未設定</option>
           {REGIONS.map((r) => <option value={r}>{r}</option>)}
         </Field>
-        <Field id="location" label="活動拠点(詳細)" type="text" />
+        <Field id="location" label="活動拠点(詳細)" type="text" placeholder="市町村名や山域など(例: 金沢市)" />
         <Field id="homepage" label="ホームページURL" type="url" />
         <Field id="sns" label="SNSリンク(1行に1つ)" as="textarea" rows={3} />
         <Field id="contact" label="相談窓口URL" type="url" />
