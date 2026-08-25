@@ -20,6 +20,9 @@ backups/
 dist/
 .astro/
 .env
+# ローカル画像ストレージ切替(2026-08-21)時の .env バックアップ(R2秘密情報を含む)
+.env.bak-r2
+supabase/functions/.env.bak-r2
 
 # Admin (CMS) app
 admin/dist/
