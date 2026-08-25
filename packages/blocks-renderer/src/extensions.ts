@@ -49,7 +49,9 @@ const Embed = Node.create({
     return ['div', { 'data-block': 'embed', 'data-provider': HTMLAttributes.provider },
       ['iframe', {
         src: HTMLAttributes.url, sandbox: 'allow-scripts allow-same-origin allow-presentation',
-        referrerpolicy: 'no-referrer', loading: 'lazy',
+        // YouTube は 2025 年以降 referrer 必須(no-referrer だと Error 153 で
+        // 再生拒否)。strict-origin-when-cross-origin なら origin だけが送られる。
+        referrerpolicy: 'strict-origin-when-cross-origin', loading: 'lazy',
       }]];
   },
 });
