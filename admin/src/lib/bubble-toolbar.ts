@@ -18,6 +18,8 @@ export interface ToolbarButtonState {
   link: boolean;
   headingH2: boolean;
   headingH3: boolean;
+  headingH4: boolean;
+  headingH5: boolean;
   alignLeft: boolean;
   alignCenter: boolean;
   alignRight: boolean;
@@ -38,6 +40,8 @@ export function deriveActiveButtons(editor: ActiveEditor): ToolbarButtonState {
     link: editor.isActive('link'),
     headingH2: editor.isActive('heading', { level: 2 }),
     headingH3: editor.isActive('heading', { level: 3 }),
+    headingH4: editor.isActive('heading', { level: 4 }),
+    headingH5: editor.isActive('heading', { level: 5 }),
     alignLeft: editor.isActive({ textAlign: 'left' } as unknown as string),
     alignCenter: editor.isActive({ textAlign: 'center' } as unknown as string),
     alignRight: editor.isActive({ textAlign: 'right' } as unknown as string),
@@ -49,7 +53,8 @@ export function initBubbleToolbar(editor: Editor, toolbarEl: HTMLElement): void 
   const buttons = {
     bold: q('bold'), strike: q('strike'), bulletList: q('bulletList'), orderedList: q('orderedList'),
     blockquote: q('blockquote'), codeBlock: q('codeBlock'), link: q('link'), unlink: q('unlink'),
-    headingH2: q('headingH2'), headingH3: q('headingH3'), paragraph: q('paragraph'),
+    headingH2: q('headingH2'), headingH3: q('headingH3'),
+    headingH4: q('headingH4'), headingH5: q('headingH5'), paragraph: q('paragraph'),
     alignLeft: q('alignLeft'), alignCenter: q('alignCenter'), alignRight: q('alignRight'),
     delete: q('delete'),
   };
@@ -62,6 +67,8 @@ export function initBubbleToolbar(editor: Editor, toolbarEl: HTMLElement): void 
   buttons.codeBlock?.addEventListener('click', () => editor.chain().focus().toggleCodeBlock().run());
   buttons.headingH2?.addEventListener('click', () => editor.chain().focus().toggleHeading({ level: 2 }).run());
   buttons.headingH3?.addEventListener('click', () => editor.chain().focus().toggleHeading({ level: 3 }).run());
+  buttons.headingH4?.addEventListener('click', () => editor.chain().focus().toggleHeading({ level: 4 }).run());
+  buttons.headingH5?.addEventListener('click', () => editor.chain().focus().toggleHeading({ level: 5 }).run());
   buttons.paragraph?.addEventListener('click', () => editor.chain().focus().setParagraph().run());
   buttons.alignLeft?.addEventListener('click', () => editor.chain().focus().setTextAlign('left').run());
   buttons.alignCenter?.addEventListener('click', () => editor.chain().focus().setTextAlign('center').run());
@@ -84,6 +91,8 @@ export function initBubbleToolbar(editor: Editor, toolbarEl: HTMLElement): void 
     buttons.link?.setAttribute('aria-pressed', String(state.link));
     buttons.headingH2?.setAttribute('aria-pressed', String(state.headingH2));
     buttons.headingH3?.setAttribute('aria-pressed', String(state.headingH3));
+    buttons.headingH4?.setAttribute('aria-pressed', String(state.headingH4));
+    buttons.headingH5?.setAttribute('aria-pressed', String(state.headingH5));
     buttons.alignLeft?.setAttribute('aria-pressed', String(state.alignLeft));
     buttons.alignCenter?.setAttribute('aria-pressed', String(state.alignCenter));
     buttons.alignRight?.setAttribute('aria-pressed', String(state.alignRight));

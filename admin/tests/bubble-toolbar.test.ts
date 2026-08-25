@@ -35,6 +35,15 @@ describe('deriveActiveButtons', () => {
     const state = deriveActiveButtons(fakeEditor(new Set(['heading:{"level":2}'])));
     expect(state.headingH2).toBe(true);
     expect(state.headingH3).toBe(false);
+    expect(state.headingH4).toBe(false);
+    expect(state.headingH5).toBe(false);
+  });
+
+  it('reports h4/h5 (見出し3・4) via attrs-keyed isActive calls', () => {
+    const state = deriveActiveButtons(fakeEditor(new Set(['heading:{"level":4}'])));
+    expect(state.headingH4).toBe(true);
+    const state5 = deriveActiveButtons(fakeEditor(new Set(['heading:{"level":5}'])));
+    expect(state5.headingH5).toBe(true);
   });
 
   it('reports text align via object-form isActive calls', () => {

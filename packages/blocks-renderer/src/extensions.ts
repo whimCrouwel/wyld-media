@@ -1,7 +1,8 @@
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import TextAlign from '@tiptap/extension-text-align';
-import { Node, Extension } from '@tiptap/core';
+import Heading from '@tiptap/extension-heading';
+import { Node, Extension, textblockTypeInputRule } from '@tiptap/core';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 
 const Image = Node.create({
@@ -193,13 +194,28 @@ const TrailingNode = Extension.create({
   },
 });
 
-// 要件通りH1は無効化(見出しはH2/H3のみ、記事タイトルがH1を兼ねる)。
-// コードフェンスの自動変換とH1変換は StarterKit の既定を上書きしない
-// (StarterKit標準のCodeBlockはそのまま使う。H1のみ levels で除外)。
+// 見出しは「表示上の見出し1〜4」= h2〜h5。記事タイトルがh1を兼ねるため
+// 本文にh1は置かない(levels から除外。level:1 のJSONが来ても h2 に落ちる)。
+// markdown入力は tiptap 既定の「#の数 = hレベル」ではなく「#の数+1」に
+// 割り当てる(`#` = 見出し1 = h2)。エディタ上の呼称(見出しn)と#の数を
+// 一致させるための上書きで、既定ルールのままだと `#` が何も起こさない。
+const BodyHeading = Heading.extend({
+  addInputRules() {
+    return this.options.levels.map((level) =>
+      textblockTypeInputRule({
+        find: new RegExp(`^(#{${level - 1}})\\s$`),
+        type: this.type,
+        getAttributes: { level },
+      }),
+    );
+  },
+}).configure({ levels: [2, 3, 4, 5] });
+
 export const blockExtensions = [
   StarterKit.configure({
-    heading: { levels: [2, 3] },
+    heading: false,
   }),
+  BodyHeading,
   Link.configure({ openOnClick: false }),
   TextAlign.configure({ types: ['heading', 'paragraph'] }),
   Image,

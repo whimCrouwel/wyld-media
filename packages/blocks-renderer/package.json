@@ -16,7 +16,8 @@
     "@tiptap/extension-text-align": "2.27.2",
     "@tiptap/starter-kit": "2.27.2",
     "jsdom": "^27.0.1",
-    "sanitize-html": "^2.13.0"
+    "sanitize-html": "^2.13.0",
+    "@tiptap/extension-heading": "2.27.2"
   },
   "devDependencies": {
     "@tiptap/html": "^2.27.2",

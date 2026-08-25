@@ -63,7 +63,7 @@ function dropDisallowedAssets(node: JSONContent, imageBaseUrl: string): JSONCont
 // マッチせずidが付かないため、内側は非貪欲に[\s\S]*?で丸ごと拾い、
 // id用のテキストだけタグを取り除いて計算する。
 function addHeadingIds(html: string): string {
-  return html.replace(/<h([23])>([\s\S]*?)<\/h\1>/g, (match, level, inner) => {
+  return html.replace(/<h([2-5])>([\s\S]*?)<\/h\1>/g, (match, level, inner) => {
     const text = inner.replace(/<[^>]+>/g, '');
     const id = text.replace(/"/g, '&quot;');
     return `<h${level} id="${id}">${inner}</h${level}>`;
@@ -163,10 +163,10 @@ export async function renderBlocksToHtml(doc: JSONContent, imageBaseUrl: string)
   // ないと、注入した img/span/div が allowlist を通らず消えてしまう)。
   const withInterview = injectInterviewSpeakers(withIds);
   return sanitizeHtml(withInterview, {
-    allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'h3', 'iframe', 'section']),
+    allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'h1', 'h2', 'h3', 'h4', 'h5', 'iframe', 'section']),
     allowedAttributes: {
       ...sanitizeHtml.defaults.allowedAttributes,
-      h2: ['id'], h3: ['id'],
+      h2: ['id'], h3: ['id'], h4: ['id'], h5: ['id'],
       img: ['src', 'alt', 'class'],
       a: ['href', 'download', 'target', 'rel'],
       iframe: ['src', 'sandbox', 'referrerpolicy', 'loading'],

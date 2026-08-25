@@ -59,7 +59,7 @@ html {
    幅の根拠は地図5列が44pxタイルを割らない下限(17rem時点で約46px)。
    rail 幅は閉時に残るトグルボタン(2.25rem)+左右パディング(1rem×2)の実寸。 */
 :root {
-  --nav-drawer-width: min(15rem, 86vw);
+  --nav-drawer-width: min(16.5rem, 88vw);
   --nav-drawer-rail-width: 4.25rem;
 }
 
@@ -287,15 +287,33 @@ a {
   margin: 1.5em 0;
 }
 
+/* 見出し1〜4 = h2〜h5(h1は記事タイトル専用)。レベルが深いほど少しずつ小さく */
 .article-body h2,
-.article-body h3 {
+.article-body h3,
+.article-body h4,
+.article-body h5 {
   margin: 2.5em 0 1em;
   font-family: var(--font-heading);
-  font-size: 1.2em;
   font-weight: 400;
   /* 固定ヘッダー(pt-32 = 128px)の下に見出しが隠れないよう、目次からの
      アンカージャンプ時の着地位置をヘッダー分+余白ぶんずらす */
   scroll-margin-top: 148px;
+}
+
+.article-body h2 {
+  font-size: 1.25em;
+}
+
+.article-body h3 {
+  font-size: 1.15em;
+}
+
+.article-body h4 {
+  font-size: 1.05em;
+}
+
+.article-body h5 {
+  font-size: 1em;
 }
 
 .article-body a {
