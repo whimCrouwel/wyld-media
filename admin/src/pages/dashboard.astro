@@ -391,7 +391,21 @@ const title = 'ダッシュボード | Wild Media CMS';
             console.error(err);
           }
           if (articles.length === 0) {
-            listEl.innerHTML = '<li>まだ記事がありません。</li>';
+            // 空状態は「行き止まり」にせず、手引きと大きな作成ボタンで最初の1本へ背中を押す。
+            // 静的テキストのみ(ユーザーデータなし)なので innerHTML で安全。
+            listEl.innerHTML = `
+              <li>
+                <div class="rounded-lg border border-dashed border-input px-6 py-10 text-center">
+                  <p class="text-base font-medium">さっそく最初の記事を書いてみましょう</p>
+                  <p class="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+                    プロフィールが未完成でも記事は書けます。書きかけでも「下書き保存」で残せるので、まずは気軽に1本はじめてみてください。
+                  </p>
+                  <a
+                    href="/articles/new"
+                    class="mt-5 inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+                  >＋ 最初の記事を書く</a>
+                </div>
+              </li>`;
           } else {
             listEl.innerHTML = '';
             for (const a of articles) {

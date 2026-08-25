@@ -24,6 +24,28 @@ export function isValidArticleSlug(slug: string): boolean {
   return SLUG_RE.test(slug);
 }
 
+// タイトルから URL 用スラッグを作る。英数字を含むタイトルはそこから、
+// 日本語だけのタイトルは英数字が残らないので空文字を返す(呼び出し側で
+// フォールバックする)。返り値は空文字か、必ず isValidArticleSlug を満たす形。
+export function slugifyTitle(title: string): string {
+  return title
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '') // ラテン文字のアクセントを除去
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-') // 英数字以外(日本語・記号・空白)はハイフンに
+    .replace(/-{2,}/g, '-') // 連続ハイフンを1つに
+    .replace(/^-+|-+$/g, ''); // 先頭・末尾のハイフンを除去
+}
+
+// タイトルから公開可能なスラッグを必ず1つ返す。英数字が拾えない
+// (日本語のみ等)ときは、公開が詰まらないよう読めるフォールバックIDを返す。
+// これで「スラッグが必要です」でライターが止まることをなくす。
+export function generateArticleSlug(title: string): string {
+  const base = slugifyTitle(title);
+  if (base) return base;
+  return `kiji-${Date.now().toString(36)}`;
+}
+
 export function translateSaveError(err: unknown): string {
   const e = err as { message?: string; code?: string } | null;
   const msg = e?.message ?? '';

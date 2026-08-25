@@ -41,9 +41,16 @@ const title = 'プロフィール編集 | Wild Media CMS';
         <Field id="service-url" label="URL" type="url" />
         <ImageUploadField id="service-image" label="サービス画像" hint="正方形にトリミングされます。" />
       </div>
-      <div id="panel-basic-actions" class="flex items-center gap-4 pt-2">
+      <div id="panel-basic-actions" class="flex flex-wrap items-center gap-4 pt-2">
         <Button type="submit">保存</Button>
         <p id="message" role="alert" class="text-sm text-muted-foreground"></p>
+        <a
+          id="post-save-cta"
+          href="/articles/new"
+          hidden
+          class="inline-flex h-9 items-center justify-center gap-1 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+          >この調子で記事を書く →</a
+        >
       </div>
     </form>
 
@@ -249,6 +256,10 @@ const title = 'プロフィール編集 | Wild Media CMS';
             return;
           }
           messageEl.textContent = '保存しました。';
+          // ライター本人が保存できたら「次は記事を書く」導線を出す(行き止まり防止)。
+          if (myRole === 'writer' && !isAdminEditingOther) {
+            (document.getElementById('post-save-cta') as HTMLElement).hidden = false;
+          }
         });
 
         // ================= 料金プランタブ =================

@@ -35,7 +35,10 @@ const title = '記事の編集 | Wild Media CMS';
         <Field id="title" label="タイトル" type="text" required />
       </div>
       <div class="space-y-2">
-        <Field id="slug" label="スラッグ(公開時は必須)" type="text" />
+        <Field id="slug" label="スラッグ(記事URLの末尾)" type="text" />
+        <p class="text-xs text-muted-foreground">
+          英数字とハイフンで入力します。空欄で公開すると、タイトルから自動で入ります。
+        </p>
         <span id="slug-status" class="text-sm text-muted-foreground"></span>
       </div>
       <div class="space-y-2">
@@ -63,10 +66,13 @@ const title = '記事の編集 | Wild Media CMS';
         <div id="toc-panel"></div>
       </aside>
       <div class="min-w-0 flex-1">
-        <div class="mb-2 flex items-center gap-2">
+        <div class="mb-1 flex items-center gap-2">
           <p class="text-sm font-medium text-muted-foreground">本文</p>
           <InfoButton id="editor-help-info" label="編集画面の使い方" />
         </div>
+        <p class="mb-2 text-xs text-muted-foreground">
+          空の行で「/」を入力すると、見出し・箇条書き・画像・引用などを挿入できます。文字を選択すると書式ツールバーが出ます。
+        </p>
         <div id="bubble-toolbar" hidden>
           <button type="button" data-action="headingH2" aria-pressed="false">見出し1</button>
           <button type="button" data-action="headingH3" aria-pressed="false">見出し2</button>
@@ -154,6 +160,7 @@ const title = '記事の編集 | Wild Media CMS';
       import {
         translateSaveError,
         isValidArticleSlug,
+        generateArticleSlug,
         COMMISSION_TOKEN_INFO_TITLE,
         COMMISSION_TOKEN_INFO_BODY,
         COMMISSION_TOKEN_INFO_LINK,
@@ -474,11 +481,25 @@ const title = '記事の編集 | Wild Media CMS';
             messageEl.textContent = '';
             const input = collect();
             if (!input.title.trim()) { messageEl.textContent = 'タイトルを入力してください'; return; }
-            if (publish && !isValidArticleSlug(input.slug.trim())) {
-              messageEl.textContent = '公開にはスラッグが必要です(小文字英数字とハイフン)'; return;
-            }
-            if (publish && !input.region) {
-              messageEl.textContent = '公開には取材地が必要です'; return;
+            if (publish) {
+              // 空欄はタイトルから自動補完して公開を止めない。手入力が不正な
+              // ときだけ、直せるよう欄にフォーカスして知らせる。
+              let slug = input.slug.trim();
+              if (!slug) {
+                slug = generateArticleSlug(input.title);
+                $('slug').value = slug;
+                input.slug = slug;
+              }
+              if (!isValidArticleSlug(slug)) {
+                messageEl.textContent = 'スラッグは英数字とハイフンで入力してください(例: forest-diary)';
+                $('slug').focus();
+                return;
+              }
+              if (!input.region) {
+                messageEl.textContent = '公開には取材地を選んでください';
+                $('region').focus();
+                return;
+              }
             }
             try {
               const result = await saveArticle(supabaseBrowser, id, input, publish, currentUpdatedAt);

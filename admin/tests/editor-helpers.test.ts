@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { translateSaveError, isValidArticleSlug } from '../src/lib/editor-helpers';
+import {
+  translateSaveError,
+  isValidArticleSlug,
+  slugifyTitle,
+  generateArticleSlug,
+} from '../src/lib/editor-helpers';
 
 describe('isValidArticleSlug', () => {
   it('accepts lowercase-hyphen slugs', () => {
@@ -13,6 +18,32 @@ describe('isValidArticleSlug', () => {
     expect(isValidArticleSlug('x-')).toBe(false);
     expect(isValidArticleSlug('a--b')).toBe(false);
     expect(isValidArticleSlug('')).toBe(false);
+  });
+});
+
+describe('slugifyTitle', () => {
+  it('英数字タイトルを有効なスラッグにする', () => {
+    expect(slugifyTitle('Forest Diary 2026')).toBe('forest-diary-2026');
+    expect(isValidArticleSlug(slugifyTitle('Forest Diary 2026'))).toBe(true);
+  });
+  it('アクセント・記号・連続空白・前後ハイフンを正規化する', () => {
+    expect(slugifyTitle('Café au Lait!!')).toBe('cafe-au-lait');
+    expect(slugifyTitle('  Hello   World  ')).toBe('hello-world');
+    expect(slugifyTitle('---weird---')).toBe('weird');
+  });
+  it('日本語だけのタイトルは空文字を返す(フォールバックは呼び出し側)', () => {
+    expect(slugifyTitle('渓流のほとりで')).toBe('');
+  });
+});
+
+describe('generateArticleSlug', () => {
+  it('英数字タイトルはそのままスラッグ化する', () => {
+    expect(generateArticleSlug('Forest Diary 2026')).toBe('forest-diary-2026');
+  });
+  it('日本語タイトルでも必ず有効なスラッグを返す(公開が詰まらない)', () => {
+    const slug = generateArticleSlug('渓流のほとりで見つけた小さな生き物たち');
+    expect(slug).not.toBe('');
+    expect(isValidArticleSlug(slug)).toBe(true);
   });
 });
 
