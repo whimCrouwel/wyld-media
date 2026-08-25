@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { MAX_EDGE, encodeUnderLimit, scaledSize, uploadImage } from './images';
+import { encodeCanvas } from './canvas-encode';
 import { recordMedia } from './media';
 
 // 長辺を maxEdge 以内に収める。元が小さければ拡大しない。
@@ -20,6 +21,16 @@ export function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
+// 既に 512KB 以内へエンコード済みの Blob をアップロードして media に記録する。
+// トリミングダイアログ(crop-dialog)経由の本文画像挿入で使う。
+export async function uploadEncodedAndRecord(
+  supabase: SupabaseClient, blob: Blob,
+): Promise<string> {
+  const url = await uploadImage(supabase, blob);
+  await recordMedia(supabase, url, blob.size);
+  return url;
+}
+
 // 縮小 → WebP → 署名付き PUT → media に記録。公開 URL を返す。
 // カバー画像ウィジェットからも使う(記録しないとライブラリに出ず、孤児になる)。
 export async function uploadAndRecord(
@@ -37,14 +48,11 @@ export async function uploadAndRecord(
       canvas.width = width;
       canvas.height = height;
       canvas.getContext('2d')!.drawImage(img, 0, 0, width, height);
-      return new Promise<Blob | null>((resolve) =>
-        canvas.toBlob(resolve, 'image/webp', quality),
-      );
+      // 縮小はここで済んでいるので scale=1 で渡す(WebP→JPEG フォールバック込み)
+      return encodeCanvas(canvas, quality, 1);
     });
 
-    const url = await uploadImage(supabase, blob);
-    await recordMedia(supabase, url, blob.size);
-    return url;
+    return await uploadEncodedAndRecord(supabase, blob);
   } finally {
     URL.revokeObjectURL(objectUrl);
   }

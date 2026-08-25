@@ -5,11 +5,14 @@ import Button from '../../components/atoms/Button.astro';
 import Field from '../../components/molecules/Field.astro';
 import ImageUploadField from '../../components/molecules/ImageUploadField.astro';
 import InfoButton from '../../components/atoms/InfoButton.astro';
+import CropDialog from '../../components/atoms/CropDialog.astro';
+import EditorTutorialVideo from '../../components/molecules/EditorTutorialVideo.astro';
 
 const title = '新しい記事 | Wild Media CMS';
 ---
 <AdminShell title={title} heading="新しい記事" wide>
-  <form id="article-form" class="space-y-6">
+  <EditorTutorialVideo />
+  <form id="article-form" class="mt-6 space-y-6">
     <Card class="space-y-4 p-6">
       <div class="space-y-2">
         <Field id="title" label="タイトル" type="text" required />
@@ -42,8 +45,10 @@ const title = '新しい記事 | Wild Media CMS';
           <InfoButton id="editor-help-info" label="編集画面の使い方" />
         </div>
         <div id="bubble-toolbar" hidden>
-          <button type="button" data-action="headingH2" aria-pressed="false">見出し2</button>
-          <button type="button" data-action="headingH3" aria-pressed="false">見出し3</button>
+          <button type="button" data-action="headingH2" aria-pressed="false">見出し1</button>
+          <button type="button" data-action="headingH3" aria-pressed="false">見出し2</button>
+          <button type="button" data-action="headingH4" aria-pressed="false">見出し3</button>
+          <button type="button" data-action="headingH5" aria-pressed="false">見出し4</button>
           <button type="button" data-action="paragraph" aria-pressed="false">本文</button>
           <button type="button" data-action="bold" aria-pressed="false">太字</button>
           <button type="button" data-action="strike" aria-pressed="false">取り消し線</button>
@@ -106,6 +111,7 @@ const title = '新しい記事 | Wild Media CMS';
     </p>
   </form>
   <p id="message" role="alert" class="mt-4 text-sm text-destructive"></p>
+  <CropDialog id="body-crop-dialog" />
 
   <script>
       import { supabaseBrowser } from '../../lib/supabase-browser';
@@ -128,7 +134,8 @@ const title = '新しい記事 | Wild Media CMS';
       import { createBlockEditor, getBodyBlocks } from '../../lib/block-editor';
       import { createSlashCommandsExtension, initInsertButton, type BlockCommand } from '../../lib/insert-menu';
       import { createBubbleMenuExtension, initBubbleToolbar } from '../../lib/bubble-toolbar';
-      import { insertImageBlock, insertFileBlock, insertImageUrlBlock } from '../../lib/block-uploads';
+      import { insertImageBlobBlock, insertFileBlock, insertImageUrlBlock } from '../../lib/block-uploads';
+      import { initCropDialog } from '../../lib/crop-dialog';
       import { insertEmbedBlock } from '../../lib/embed-dialog';
       import { initInterviewDialog } from '../../lib/interview-dialog';
       import { createInterviewPlugin, insertInterviewBlock } from '../../lib/interview-nodeview';
@@ -189,8 +196,10 @@ const title = '新しい記事 | Wild Media CMS';
         const interviewPlugin = createInterviewPlugin(interviewDialog);
 
         const commands: BlockCommand[] = [
-          { id: 'heading2', label: '見出し(H2)', run: (ed) => ed.chain().focus().toggleHeading({ level: 2 }).run() },
-          { id: 'heading3', label: '見出し(H3)', run: (ed) => ed.chain().focus().toggleHeading({ level: 3 }).run() },
+          { id: 'heading1', label: '見出し1(大)', run: (ed) => ed.chain().focus().toggleHeading({ level: 2 }).run() },
+          { id: 'heading2', label: '見出し2', run: (ed) => ed.chain().focus().toggleHeading({ level: 3 }).run() },
+          { id: 'heading3', label: '見出し3', run: (ed) => ed.chain().focus().toggleHeading({ level: 4 }).run() },
+          { id: 'heading4', label: '見出し4(小)', run: (ed) => ed.chain().focus().toggleHeading({ level: 5 }).run() },
           { id: 'bulletList', label: '箇条書き', run: (ed) => ed.chain().focus().toggleBulletList().run() },
           { id: 'orderedList', label: '番号付きリスト', run: (ed) => ed.chain().focus().toggleOrderedList().run() },
           { id: 'quote', label: '引用', run: (ed) => ed.chain().focus().toggleBlockquote().run() },
@@ -256,13 +265,24 @@ const title = '新しい記事 | Wild Media CMS';
           });
         });
 
+        const cropDialog = initCropDialog(
+          document.getElementById('body-crop-dialog') as HTMLDialogElement,
+        );
+
         fileInput.addEventListener('change', async () => {
           const file = fileInput.files?.[0];
           fileInput.value = '';
           if (!file) return;
+          // 先にトリミングダイアログで切り抜き、その結果だけをアップロードする
+          // (キャンセル時は何もアップロードしない)
+          const blob = await cropDialog.open(file);
+          if (!blob) {
+            uploadStatus.textContent = '';
+            return;
+          }
           uploadStatus.textContent = 'アップロード中…';
           try {
-            await insertImageBlock(supabaseBrowser, editor, file);
+            await insertImageBlobBlock(supabaseBrowser, editor, blob);
             uploadStatus.textContent = '画像を挿入しました。';
           } catch (err) {
             uploadStatus.textContent = translateUploadError(err);

@@ -1,15 +1,17 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Editor } from '@tiptap/core';
 import { uploadToR2 } from './r2-upload';
-import { uploadAndRecord } from './body-image';
+import { uploadEncodedAndRecord } from './body-image';
 
 // アップロードに失敗した場合の例外は握りつぶさずそのまま伝播させる。
 // 呼び出し元(edit.astro/new.astro)が images.ts の translateUploadError で
 // 日本語に翻訳する。
-export async function insertImageBlock(
-  supabase: SupabaseClient, editor: Editor, file: File,
+// blob はトリミングダイアログ(crop-dialog)で切り抜き・512KB以内に
+// エンコード済みのもの。ここでは再圧縮せずそのままアップロードする。
+export async function insertImageBlobBlock(
+  supabase: SupabaseClient, editor: Editor, blob: Blob,
 ): Promise<void> {
-  const url = await uploadAndRecord(supabase, file);
+  const url = await uploadEncodedAndRecord(supabase, blob);
   editor.chain().focus().insertContent({
     type: 'image',
     attrs: { url, caption: null, alt: '' },

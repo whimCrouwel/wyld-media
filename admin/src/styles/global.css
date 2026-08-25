@@ -182,6 +182,11 @@
       text-sm font-medium hover:bg-accent hover:text-accent-foreground
       disabled:pointer-events-none disabled:opacity-50 disabled:hover:bg-background;
   }
+  /* 横に長い一覧向け: セルを折り返さず、テーブルを自然幅にして親側で横スクロールさせる。
+     小画面で名前やボタン文字が1文字ずつ縦積みになる崩れを防ぐ。 */
+  .admin-table--nowrap :is(th, td) {
+    @apply whitespace-nowrap;
+  }
 
   /* Editor: bubble toolbar (tiptap positions it; we only style appearance) */
   #bubble-toolbar {
@@ -192,6 +197,11 @@
       transition-colors hover:bg-accent hover:text-accent-foreground;
   }
   #bubble-toolbar button[aria-pressed='true'] {
+    @apply bg-accent text-accent-foreground;
+  }
+
+  /* トリミングダイアログの縦横比プリセット: 選択中を反転表示 */
+  [data-role='ratios'] button[aria-pressed='true'] {
     @apply bg-accent text-accent-foreground;
   }
 
@@ -211,6 +221,12 @@
   }
   .ProseMirror h3 {
     @apply mb-2 mt-4 text-lg font-semibold tracking-tight;
+  }
+  .ProseMirror h4 {
+    @apply mb-2 mt-4 text-base font-semibold tracking-tight;
+  }
+  .ProseMirror h5 {
+    @apply mb-2 mt-3 text-sm font-semibold tracking-tight;
   }
   .ProseMirror ul {
     @apply my-2 list-disc pl-6;

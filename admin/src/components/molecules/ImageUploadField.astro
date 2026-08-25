@@ -43,6 +43,15 @@ const { id, label, hint, accept = 'image/jpeg,image/png,image/webp' } = Astro.pr
   {/* 上限 768px = 公開サイトの記事ページでカバー画像が実際に表示される幅
     (max-w-4xl コンテナからパディングを引いた値)に合わせる。 */}
   <div id={`${id}-crop`} class="mt-3 max-w-3xl"></div>
+  {/* 縦横比プリセット。自由トリミングの欄でクロップ中のみ widget 側が表示する
+    (固定アスペクト比の欄では出ない)。 */}
+  <div id={`${id}-ratios`} data-role="ratios" class="mt-2 flex flex-wrap items-center gap-2" hidden>
+    <span class="text-sm text-muted-foreground">縦横比:</span>
+    <Button type="button" variant="outline" size="sm" data-ratio="free" aria-pressed="true">自由</Button>
+    <Button type="button" variant="outline" size="sm" data-ratio="16:9" aria-pressed="false">16:9</Button>
+    <Button type="button" variant="outline" size="sm" data-ratio="4:3" aria-pressed="false">4:3</Button>
+    <Button type="button" variant="outline" size="sm" data-ratio="1:1" aria-pressed="false">1:1</Button>
+  </div>
   <div class="mt-2 flex items-center gap-3">
     <Button type="button" id={`${id}-apply`} variant="secondary" size="sm" hidden>
       切り抜いてアップロード

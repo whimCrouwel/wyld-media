@@ -2,8 +2,10 @@ import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
-  MAX_EDGE, encodeUnderLimit, scaledSize, uploadImage, translateUploadError,
+  MAX_EDGE, encodeUnderLimit, uploadImage, translateUploadError,
 } from './images';
+import { encodeCanvas } from './canvas-encode';
+import { initRatioButtons } from './crop-dialog';
 import { recordMedia } from './media';
 
 export interface ImageUploadWidget {
@@ -40,6 +42,9 @@ export function initImageUploadWidget(
   const clearBtn = document.getElementById(`${idPrefix}-clear`) as HTMLButtonElement;
   const statusEl = document.getElementById(`${idPrefix}-status`)!;
   const currentEl = document.getElementById(`${idPrefix}-current`)!;
+  // 縦横比プリセット(任意)。固定アスペクト比の欄(プロフィール画像等)では
+  // 意味がないので、自由トリミングの欄(カバー画像)でのみ表示する。
+  const ratioBox = document.getElementById(`${idPrefix}-ratios`);
 
   let cropper: Cropper | null = null;
   // 選択(またはクリア)のたびに増分するトークン。非同期処理の完了時にこれと
@@ -49,6 +54,14 @@ export function initImageUploadWidget(
   // 現在表示中の画像の Blob URL。新しい画像選択・クリア・resetCropper() の
   // タイミングで確実に revoke し、メモリリークを防ぐ。
   let currentObjectUrl: string | null = null;
+
+  const ratios = ratioBox ? initRatioButtons(ratioBox, () => cropper) : null;
+  const hideRatios = () => {
+    if (ratioBox) {
+      ratioBox.hidden = true;
+      ratios!.reset();
+    }
+  };
 
   const revokeCurrentObjectUrl = () => {
     if (currentObjectUrl) {
@@ -78,6 +91,7 @@ export function initImageUploadWidget(
     cropBox.innerHTML = '';
     applyBtn.hidden = true;
     fileInput.value = '';
+    hideRatios();
     revokeCurrentObjectUrl();
   };
 
@@ -92,6 +106,7 @@ export function initImageUploadWidget(
     cropBox.innerHTML = '';
     applyBtn.hidden = true;
     applyBtn.disabled = false;
+    hideRatios();
     revokeCurrentObjectUrl();
     if (!file) return;
     const img = document.createElement('img');
@@ -106,6 +121,7 @@ export function initImageUploadWidget(
       if (mySelection !== selectionId) return;
       cropper = new Cropper(img, { viewMode: 1, autoCropArea: 1, aspectRatio });
       applyBtn.hidden = false;
+      if (ratioBox && aspectRatio === undefined) ratioBox.hidden = false;
     });
   });
 
@@ -170,19 +186,4 @@ export function initImageUploadWidget(
       renderCurrent();
     },
   };
-}
-
-function encodeCanvas(
-  source: HTMLCanvasElement, quality: number, scale: number,
-): Promise<Blob | null> {
-  let canvas = source;
-  if (scale < 1) {
-    const { width, height } = scaledSize(source.width, source.height, scale);
-    const scaled = document.createElement('canvas');
-    scaled.width = width;
-    scaled.height = height;
-    scaled.getContext('2d')!.drawImage(source, 0, 0, width, height);
-    canvas = scaled;
-  }
-  return new Promise((resolve) => canvas.toBlob(resolve, 'image/webp', quality));
 }
