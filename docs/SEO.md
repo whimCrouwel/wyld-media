@@ -116,6 +116,7 @@ Search Console の以下を見る:
 
 | 症状 | 見るところ |
 |---|---|
+| GSC のインデックスが増えない・「URL is unknown to Google」 | GSC の「サイトマップ」に **現ドメインの** `sitemap-index.xml` が Success で載っているか。ドメイン移行時に再提出を忘れると起きる(2026-08 に発生 → [DOMAIN-CHANGE.md](DOMAIN-CHANGE.md) の⑤)。旧 WP パス `/sitemap.xml` は `vercel.json` で `/sitemap-index.xml` に 301 |
 | サイトマップに下書きが含まれる | `src/lib/content.ts` の `fetchPublishedArticles` に `.eq('status','published').eq('moderation_hold', false)` があるか |
 | JSON-LD が Rich Results Test で無効 | 該当ページで view-source → `application/ld+json` の中身を https://validator.schema.org で検証 |
 | Organization/WebSite の URL が localhost や wildmedia.vercel.app のまま | `astro.config.mjs` の `site` を本番ドメインに更新して再デプロイ |
