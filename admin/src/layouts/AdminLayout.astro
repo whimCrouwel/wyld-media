@@ -14,8 +14,30 @@ const { title } = Astro.props;
 <html lang="ja">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>{title}</title>
+
+    <!-- PWA(オフラインなし): ホーム画面追加でスタンドアロン起動できるようにする -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#231f20" />
+    <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <!-- iOS Safari 用: manifest を読まない環境でも standalone 起動させる -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="WM CMS" />
+    <script>
+      // Service Worker はキャッシュしない素通し実装(public/sw.js)。
+      // インストール可能性の要件を満たすためだけに登録する。
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch((err) => {
+            console.warn('[pwa] SW 登録に失敗', err);
+          });
+        });
+      }
+    </script>
   </head>
   <body class="min-h-screen bg-background text-foreground antialiased">
     <slot />

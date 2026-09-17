@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- full-bleed background so maskable crop always shows the brand ink -->
+  <rect width="512" height="512" fill="#231f20"/>
+  <!-- key content kept within the central safe zone (~80%) for maskable icons -->
+  <!-- sun/moon -->
+  <circle cx="316" cy="196" r="46" fill="#e8b04b"/>
+  <!-- back ridge -->
+  <path d="M96 372 L206 250 L286 330 L360 262 L416 372 Z" fill="#4a6b52"/>
+  <!-- front ridge -->
+  <path d="M96 400 L176 300 L256 372 L332 288 L416 400 Z" fill="#8fb08a"/>
+  <!-- ground line -->
+  <rect x="96" y="398" width="320" height="10" rx="5" fill="#f5f1e8"/>
+</svg>
