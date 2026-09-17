@@ -44,6 +44,15 @@ export function getRecoveryTokenHash(search: string): string | null {
   return params.get('token_hash') || null;
 }
 
+// マジックリンクメールの token_hash リンク(?token_hash=...&type=magiclink)から
+// token_hash を取り出す。再設定リンクと同じくメールスキャナ対策で、リンクを開いた
+// だけでは消費せず、ボタン押下時に verifyOtp で消費する(magic-login.astro 参照)。
+export function getMagicLinkTokenHash(search: string): string | null {
+  const params = new URLSearchParams(search);
+  if (params.get('type') !== 'magiclink') return null;
+  return params.get('token_hash') || null;
+}
+
 // GoTrue がリダイレクト時に付ける #error_code=... を日本語メッセージへ。
 // エラーが無ければ null。
 export function getAuthErrorMessageFromHash(hash: string): string | null {

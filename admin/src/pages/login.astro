@@ -15,6 +15,14 @@ const title = 'ログイン | Wild Media CMS';
         <Field id="password" label="パスワード" type="password" required />
         <Button type="submit" class="w-full">ログイン</Button>
       </form>
+      <div class="my-4 flex items-center gap-3 text-xs text-muted-foreground">
+        <span class="h-px flex-1 bg-border"></span>
+        <span>または</span>
+        <span class="h-px flex-1 bg-border"></span>
+      </div>
+      <Button type="button" id="magic-link" variant="outline" class="w-full"
+        >メールでログインリンクを送る</Button
+      >
       <button
         type="button"
         id="forgot-password"
@@ -55,6 +63,34 @@ const title = 'ログイン | Wild Media CMS';
           const { error } = await supabaseBrowser.auth.signInWithPassword({ email, password });
           if (error) { setMessage(translateAuthError(error), 'error'); console.error(error); return; }
           redirectTo('/dashboard');
+        });
+
+        document.getElementById('magic-link')!.addEventListener('click', async () => {
+          setMessage('', 'error');
+          const email = (document.getElementById('email') as HTMLInputElement).value.trim();
+          const validationError = validateResetEmail(email);
+          if (validationError) { setMessage(validationError, 'error'); return; }
+
+          // shouldCreateUser: false — 招待制なので未登録メールで新規作成させない。
+          const { error } = await supabaseBrowser.auth.signInWithOtp({
+            email,
+            options: {
+              shouldCreateUser: false,
+              emailRedirectTo: `${window.location.origin}/magic-login`,
+            },
+          });
+          const isRateLimit = error && (
+            error.message.toLowerCase().includes('rate limit')
+            || error.message.includes('you can only request this after')
+          );
+          if (isRateLimit) {
+            setMessage(translateAuthError(error), 'error');
+            return;
+          }
+          if (error) console.error(error);
+          // 列挙攻撃対策: 未登録(signup 無効)エラーもここに落ちるので、
+          // メールの実在有無に関わらず同じ文言を出す。
+          setMessage('このメールアドレス宛てにログイン用リンクを送信しました(登録がある場合)。', 'info');
         });
 
         document.getElementById('forgot-password')!.addEventListener('click', async () => {

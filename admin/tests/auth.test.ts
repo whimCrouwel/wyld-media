@@ -5,6 +5,7 @@ import {
   translateAuthError,
   resolveRootRedirect,
   getRecoveryTokenHash,
+  getMagicLinkTokenHash,
   getAuthErrorMessageFromHash,
 } from '../src/lib/auth';
 
@@ -99,6 +100,19 @@ describe('getRecoveryTokenHash', () => {
   it('token_hash が無ければ null', () => {
     expect(getRecoveryTokenHash('?type=recovery')).toBeNull();
     expect(getRecoveryTokenHash('')).toBeNull();
+  });
+});
+
+describe('getMagicLinkTokenHash', () => {
+  it('type=magiclink の token_hash を取り出す', () => {
+    expect(getMagicLinkTokenHash('?token_hash=pkce_abc123&type=magiclink')).toBe('pkce_abc123');
+  });
+  it('type が magiclink 以外なら null', () => {
+    expect(getMagicLinkTokenHash('?token_hash=abc&type=recovery')).toBeNull();
+  });
+  it('token_hash が無ければ null', () => {
+    expect(getMagicLinkTokenHash('?type=magiclink')).toBeNull();
+    expect(getMagicLinkTokenHash('')).toBeNull();
   });
 });
 

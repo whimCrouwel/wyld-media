@@ -165,7 +165,7 @@ site_url = "http://localhost:4322"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["http://localhost:4322", "http://localhost:4322/set-password"]
+additional_redirect_urls = ["http://localhost:4322", "http://localhost:4322/set-password", "http://localhost:4322/magic-login"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
@@ -263,6 +263,13 @@ otp_expiry = 3600
 [auth.email.template.recovery]
 subject = "Wild Mediaのパスワードを再設定"
 content_path = "./supabase/templates/recovery.html"
+
+# マジックリンク(パスワードなしログイン)メール。recovery と同じく ConfirmationURL では
+# なく token_hash リンクを使う(プリフェッチ対策)。本番は Dashboard 側の Magic Link
+# テンプレートも同じ内容にすること。
+[auth.email.template.magic_link]
+subject = "Wild Mediaにログイン"
+content_path = "./supabase/templates/magic_link.html"
 
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]

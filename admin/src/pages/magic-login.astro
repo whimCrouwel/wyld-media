@@ -1,0 +1,60 @@
+---
+import AdminLayout from '../layouts/AdminLayout.astro';
+import Card from '../components/atoms/Card.astro';
+import Button from '../components/atoms/Button.astro';
+
+const title = 'ログイン | Wild Media CMS';
+---
+<AdminLayout title={title}>
+  <main class="flex min-h-screen items-center justify-center px-4">
+    <Card class="w-full max-w-sm p-6 text-center">
+      <h1 class="mb-2 text-2xl font-semibold tracking-tight">ログイン</h1>
+      <p class="mb-6 text-sm text-muted-foreground">下のボタンを押すとログインが完了します。</p>
+      <Button id="submit-btn" class="w-full">ログインを完了する</Button>
+      <p id="message" role="alert" class="mt-4 text-sm text-destructive"></p>
+    </Card>
+  </main>
+
+  <script>
+      import { supabaseBrowser } from '../lib/supabase-browser';
+      import { redirectTo, getMagicLinkTokenHash, getAuthErrorMessageFromHash } from '../lib/auth';
+
+      const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+      const messageEl = document.getElementById('message')!;
+
+      // マジックリンクは ?token_hash=...&type=magiclink でこのページに届く。
+      // メールスキャナがリンクを開いてもトークンは消費されず、ボタン押下時に
+      // verifyOtp で初めて消費する(Gmail のプリフェッチでリンクが死ぬ問題の対策)。
+      const tokenHash = getMagicLinkTokenHash(window.location.search);
+
+      // 既にセッションがあれば(=ログイン済み)そのままダッシュボードへ。
+      const { data: { session } } = await supabaseBrowser.auth.getSession();
+      const hashError = getAuthErrorMessageFromHash(window.location.hash);
+      if (session) {
+        redirectTo('/dashboard');
+      } else if (hashError) {
+        messageEl.textContent = hashError;
+        submitBtn.disabled = true;
+      } else if (!tokenHash) {
+        messageEl.textContent = '有効なリンクが必要です。ログイン画面からログイン用リンクをもう一度請求してください。';
+        submitBtn.disabled = true;
+      }
+
+      submitBtn.addEventListener('click', async () => {
+        if (!tokenHash) return;
+        messageEl.textContent = '';
+        submitBtn.disabled = true;
+        const { error } = await supabaseBrowser.auth.verifyOtp({
+          type: 'magiclink',
+          token_hash: tokenHash,
+        });
+        if (error) {
+          messageEl.textContent = 'リンクの有効期限が切れているか、既に使用されています。ログイン画面からログイン用リンクをもう一度請求してください。';
+          submitBtn.disabled = false;
+          console.error(error);
+          return;
+        }
+        redirectTo('/dashboard');
+      });
+    </script>
+</AdminLayout>

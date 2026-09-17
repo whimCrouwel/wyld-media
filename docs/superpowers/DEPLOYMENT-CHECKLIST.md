@@ -24,7 +24,8 @@ supabase functions deploy invite-user r2-upload-url
 
 ## Supabase(ホストプロジェクト)
 - [ ] `enable_signup = false` をダッシュボード/config push で適用(`db push` では反映されない。セルフサインアップ無効化の要)
-- [ ] `site_url` と `additional_redirect_urls` を本番の admin サブドメイン(例 `https://admin.example.com` と `.../set-password`)に設定
+- [ ] `site_url` と `additional_redirect_urls` を本番の admin サブドメイン(例 `https://admin.example.com` と `.../set-password`・`.../magic-login`)に設定
+- [ ] Magic Link(パスワードなしログイン)メールテンプレートを `supabase/templates/magic_link.html` と同内容に差し替え(ダッシュボード → Authentication → Emails → Magic Link。`{{ .SiteURL }}/magic-login?token_hash=...&type=magiclink` の token_hash リンク版。招待・再設定テンプレと同じ運用)
 - [ ] サーバー側のパスワード最小長を設定(現状クライアント側 8 文字のみ)
 - [ ] マイグレーション適用順の確認(harden migration のタイムスタンプ 043424 が 1228xx より前 — 新規 push は問題なし。部分適用済み環境のみ注意)
 - [ ] `20260720160000_article_region_and_page_size.sql` は既存の公開記事を全て取材地「関東」で埋めてから制約を追加する。`db push` 後、CMS で公開済み記事の取材地を実際の取材地に直すこと
