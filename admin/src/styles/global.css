@@ -199,6 +199,18 @@
   #bubble-toolbar button[aria-pressed='true'] {
     @apply bg-accent text-accent-foreground;
   }
+  /* モバイル: 選択追従の浮動メニューをやめ、画面下部に固定した横スクロール
+     1行バーにする(mobile-toolbar.ts が body 直下へ移動して bottom を制御)。
+     id + class で #bubble-toolbar の折り返し/角丸指定に競り勝つ。 */
+  #bubble-toolbar.bubble-toolbar--docked {
+    @apply fixed inset-x-0 bottom-0 z-50 flex-nowrap justify-start overflow-x-auto
+      rounded-none border-x-0 border-b-0 p-2 shadow-[0_-2px_8px_rgba(0,0,0,0.08)];
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+    -webkit-overflow-scrolling: touch;
+  }
+  #bubble-toolbar.bubble-toolbar--docked button {
+    @apply h-9 shrink-0 px-3 text-sm;
+  }
 
   /* トリミングダイアログの縦横比プリセット: 選択中を反転表示 */
   [data-role='ratios'] button[aria-pressed='true'] {
@@ -268,11 +280,18 @@
     @apply bg-accent text-accent-foreground;
   }
 
-  /* Editor: "+" insert-block affordance shown on empty lines */
+  /* Editor: "+" insert-block affordance shown on empty lines.
+     デスクトップは本文左の余白(-left-9)に置く。モバイルはその余白が画面外に
+     出て押せないため、#editor-body-wrap に左ガター(max-sm:pl-9)を作り、その中に
+     収める(max-sm:left-1)。 */
+  #editor-body-wrap {
+    @apply max-sm:pl-9;
+  }
   .insert-block-button {
     @apply absolute -left-9 top-0 flex h-7 w-7 items-center justify-center rounded-md border
       bg-background text-lg leading-none text-muted-foreground transition-colors
-      hover:bg-accent hover:text-foreground;
+      hover:bg-accent hover:text-foreground
+      max-sm:left-1;
   }
 
   /* Editor: table of contents panel */
