@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>Wild Media CMS をホーム画面に追加する方法</title>
+<style>
+  :root{
+    --ink:#231f20; --sun:#e8b04b; --ridge1:#4a6b52; --ridge2:#8fb08a; --paper:#f5f1e8;
+    --line:#d9d5cc; --muted:#6b6b6b; --accent:#3b5bdb; --hl:#e8b04b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  @page{ size:A4 portrait; margin:14mm 14mm 12mm; }
+  html{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  body{ font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",sans-serif; color:var(--ink); line-height:1.55; }
+  .page{ page-break-after:always; }
+  .page:last-child{ page-break-after:auto; }
+
+  /* ---- cover ---- */
+  .cover{ display:flex; flex-direction:column; min-height:255mm; }
+  .cover-badge{ display:inline-flex; align-items:center; gap:10px; }
+  .cover-badge .ico{ width:44px; height:44px; border-radius:10px; overflow:hidden; }
+  .cover-badge .name{ font-size:15px; font-weight:700; letter-spacing:.02em; }
+  .cover-hero{ margin-top:64px; }
+  .cover-kicker{ color:var(--accent); font-weight:700; font-size:13px; letter-spacing:.08em; }
+  .cover h1{ font-size:34px; line-height:1.3; margin-top:10px; font-weight:800; }
+  .cover .lead{ margin-top:18px; font-size:14px; color:#333; max-width:150mm; }
+  .why{ margin-top:34px; display:flex; gap:14px; }
+  .why .card{ flex:1; border:1px solid var(--line); border-radius:14px; padding:16px 16px 18px; background:#fff; }
+  .why .card .big{ font-size:22px; }
+  .why .card h3{ font-size:14px; margin-top:8px; }
+  .why .card p{ font-size:12px; color:var(--muted); margin-top:5px; }
+  .cover-foot{ margin-top:auto; padding-top:24px; border-top:1px solid var(--line); display:flex; justify-content:space-between; font-size:12px; color:var(--muted); }
+  .os-tags{ margin-top:26px; display:flex; gap:10px; align-items:center; font-size:13px; }
+  .os-tags .tag{ border:1px solid var(--ink); border-radius:999px; padding:5px 14px; font-weight:700; }
+
+  /* ---- section head ---- */
+  .sec-head{ display:flex; align-items:center; gap:12px; padding-bottom:12px; border-bottom:2px solid var(--ink); }
+  .sec-head .os{ width:34px; height:34px; display:flex; align-items:center; justify-content:center; border-radius:9px; background:var(--ink); color:#fff; }
+  .sec-head h2{ font-size:20px; font-weight:800; }
+  .sec-head .sub{ font-size:12px; color:var(--muted); margin-left:auto; }
+
+  /* ---- steps grid ---- */
+  .steps{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px 16px; margin-top:20px; }
+  .step{ }
+  .step .cap{ display:flex; gap:8px; align-items:flex-start; margin-bottom:9px; min-height:46px; }
+  .step .num{ flex:none; width:24px; height:24px; border-radius:50%; background:var(--ink); color:#fff; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+  .step .cap p{ font-size:12.5px; }
+  .step .cap b{ color:var(--accent); }
+
+  /* ---- phone mock ---- */
+  .phone{ width:100%; max-width:165px; margin:0 auto; aspect-ratio:9/17; border:2px solid #c9c9c9; border-radius:20px; background:#fff; position:relative; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.06); }
+  .phone .notch{ position:absolute; top:0; left:50%; transform:translateX(-50%); width:38%; height:16px; background:#111; border-radius:0 0 10px 10px; z-index:5; }
+  .status{ height:20px; display:flex; align-items:center; justify-content:space-between; padding:2px 12px 0; font-size:8px; color:#111; }
+  .status .r{ display:flex; gap:3px; align-items:center;}
+  .screen{ position:absolute; inset:20px 0 0; display:flex; flex-direction:column; }
+
+  /* app content (login card reproduction) */
+  .app{ flex:1; background:#f6f7f9; display:flex; align-items:center; justify-content:center; padding:10px; }
+  .card{ width:100%; background:#fff; border:1px solid #eceef1; border-radius:10px; padding:12px; }
+  .card h4{ font-size:11px; margin-bottom:8px; }
+  .lbl{ font-size:7px; color:#555; margin-bottom:3px; }
+  .inp{ height:12px; border:1px solid #e3e3e3; border-radius:5px; margin-bottom:7px; }
+  .btn{ height:15px; background:var(--accent); border-radius:6px; }
+  .btn.ghost{ background:#fff; border:1px solid #e3e3e3; margin-top:6px; }
+
+  /* app running (standalone dashboard) */
+  .appbar{ height:26px; background:#fff; border-bottom:1px solid #eee; display:flex; align-items:center; gap:6px; padding:0 8px; }
+  .appbar .burger{ width:12px; height:9px; display:flex; flex-direction:column; justify-content:space-between;}
+  .appbar .burger i{ height:1.5px; background:#333; border-radius:2px;}
+  .appbar .t{ font-size:8px; font-weight:700;}
+  .dash{ flex:1; background:#f6f7f9; padding:8px;}
+  .dash .row{ background:#fff; border:1px solid #eee; border-radius:6px; height:20px; margin-bottom:6px;}
+
+  /* safari bottom bar */
+  .safari{ height:34px; background:#f3f3f4; border-top:1px solid #e0e0e0; display:flex; align-items:center; justify-content:space-around; }
+  .safari svg{ width:15px; height:15px; }
+  .safari .share{ position:relative; }
+
+  /* address bar top (android/safari url) */
+  .urlbar{ height:22px; background:#f1f1f2; display:flex; align-items:center; gap:6px; padding:0 8px; border-bottom:1px solid #e3e3e3;}
+  .urlbar .pill{ flex:1; background:#fff; border:1px solid #e3e3e3; border-radius:999px; height:13px; display:flex; align-items:center; padding:0 7px; font-size:7px; color:#444; overflow:hidden; white-space:nowrap;}
+  .urlbar .dots{ display:flex; flex-direction:column; gap:2px; }
+  .urlbar .dots i{ width:2.5px; height:2.5px; border-radius:50%; background:#444;}
+
+  /* share sheet */
+  .sheet{ position:absolute; left:0; right:0; bottom:0; background:#efeff2; border-radius:14px 14px 0 0; padding:8px; box-shadow:0 -4px 12px rgba(0,0,0,.12); }
+  .sheet .grab{ width:34px; height:4px; background:#ccc; border-radius:2px; margin:0 auto 8px;}
+  .sheet .apps{ display:flex; gap:8px; margin-bottom:8px;}
+  .sheet .apps .a{ width:26px; height:26px; border-radius:7px; background:#dfe0e5;}
+  .sheet .list .li{ background:#fff; border-radius:8px; height:22px; display:flex; align-items:center; justify-content:space-between; padding:0 9px; font-size:8.5px; margin-bottom:5px;}
+  .sheet .list .li .ic{ width:14px; height:14px; border:1.4px solid #333; border-radius:3px; position:relative;}
+  .sheet .list .li .ic:before{ content:"+"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:11px; line-height:1; color:#333;}
+
+  /* android menu */
+  .amenu{ position:absolute; top:24px; right:6px; width:76%; background:#fff; border-radius:8px; box-shadow:0 4px 14px rgba(0,0,0,.18); padding:5px 0; }
+  .amenu .mi{ height:19px; display:flex; align-items:center; padding:0 9px; font-size:7.5px; color:#222; white-space:nowrap;}
+
+  /* add dialog (name confirm) */
+  .adddlg{ position:absolute; left:8px; right:8px; top:34px; background:#fff; border-radius:10px; box-shadow:0 6px 18px rgba(0,0,0,.2); padding:10px;}
+  .adddlg .hd{ display:flex; align-items:center; gap:8px;}
+  .adddlg .hd .ic{ width:26px; height:26px; border-radius:6px; overflow:hidden;}
+  .adddlg .hd .nm{ font-size:9px; font-weight:700;}
+  .adddlg .hd .u{ font-size:6.5px; color:#888;}
+  .adddlg .actions{ display:flex; justify-content:flex-end; gap:12px; margin-top:10px; font-size:9px;}
+  .adddlg .actions .add{ color:var(--accent); font-weight:700;}
+
+  /* home screen */
+  .home{ position:absolute; inset:20px 0 0; background:linear-gradient(160deg,#2b3a4a,#4a6b52); padding-top:14px; }
+  .home .grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px 6px; padding:10px;}
+  .home .app-ic{ display:flex; flex-direction:column; align-items:center; gap:3px;}
+  .home .app-ic .ic{ width:30px; height:30px; border-radius:8px; overflow:hidden; box-shadow:0 1px 3px rgba(0,0,0,.3);}
+  .home .app-ic .ic.blank{ background:rgba(255,255,255,.18);}
+  .home .app-ic .lb{ font-size:6px; color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.4);}
+  .home .dock{ position:absolute; left:8px; right:8px; bottom:8px; height:34px; background:rgba(255,255,255,.22); border-radius:14px;}
+
+  /* highlight ring + arrow */
+  .ring{ position:absolute; border:2.5px solid var(--hl); border-radius:50%; box-shadow:0 0 0 3px rgba(232,176,75,.35); z-index:6;}
+  .tapnote{ position:absolute; z-index:7; font-size:8px; font-weight:700; color:var(--ink); background:var(--hl); border-radius:4px; padding:1px 5px; white-space:nowrap;}
+
+  .icon-svg{ width:100%; height:100%; display:block; }
+
+  /* faq */
+  .faq{ margin-top:22px; display:flex; flex-direction:column; gap:14px;}
+  .faq .q{ border:1px solid var(--line); border-radius:12px; padding:14px 16px; background:#fff;}
+  .faq .q h4{ font-size:13.5px; display:flex; gap:8px; align-items:flex-start;}
+  .faq .q h4 .tag{ flex:none; font-size:10px; background:var(--ink); color:#fff; border-radius:5px; padding:2px 7px; margin-top:1px;}
+  .faq .q p{ font-size:12px; color:#333; margin-top:7px; padding-left:2px;}
+  .note{ margin-top:20px; font-size:11px; color:var(--muted); background:#faf8f3; border:1px solid var(--line); border-radius:10px; padding:12px 14px;}
+</style>
+</head>
+<body>
+
+<!-- ============ COVER ============ -->
+<section class="page cover">
+  <div class="cover-badge">
+    <span class="ico"><svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<rect width="512" height="512" fill="#231f20"/>
+<circle cx="316" cy="196" r="46" fill="#e8b04b"/>
+<path d="M96 372 L206 250 L286 330 L360 262 L416 372 Z" fill="#4a6b52"/>
+<path d="M96 400 L176 300 L256 372 L332 288 L416 400 Z" fill="#8fb08a"/>
+<rect x="96" y="398" width="320" height="10" rx="5" fill="#f5f1e8"/>
+</svg></span>
+    <span class="name">Wild Media CMS</span>
+  </div>
+
+  <div class="cover-hero">
+    <div class="cover-kicker">スマホ活用ガイド</div>
+    <h1>スマホのホーム画面に<br>「アプリ」として追加する</h1>
+    <p class="lead">ホーム画面に追加すると、毎回ブラウザでURLを開かなくても、アイコンをタップするだけで
+    CMSが<strong>全画面のアプリのように</strong>起動します。記事の下書き・確認がぐっと速くなります。所要2分。</p>
+
+    <div class="os-tags">
+      <span>対応:</span>
+      <span class="tag"> iPhone（Safari）</span>
+      <span class="tag">Android（Chrome）</span>
+    </div>
+
+    <div class="why">
+      <div class="card"><div class="big">①</div><h3>1タップで起動</h3><p>URL入力もログイン画面探しも不要。ホームのアイコンから直行。</p></div>
+      <div class="card"><div class="big">②</div><h3>全画面で広い</h3><p>ブラウザのバーが消え、編集画面を広く使えます（standalone表示）。</p></div>
+      <div class="card"><div class="big">③</div><h3>ふつうのアプリ感覚</h3><p>アプリ一覧・検索からも呼び出せて、切り替えがスムーズ。</p></div>
+    </div>
+  </div>
+
+  <div class="cover-foot">
+    <span>Wild Media 編集部向け 操作マニュアル</span>
+    <span>URL: wyld-media-admin.vercel.app</span>
+  </div>
+</section>
+
+<!-- ============ iOS ============ -->
+<section class="page">
+  <div class="sec-head">
+    <span class="os"><svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg></span>
+    <h2>iPhone / iPad（Safari）の場合</h2>
+    <span class="sub">必ず <b>Safari</b> で開いてください</span>
+  </div>
+
+  <div class="steps">
+    <!-- 1 -->
+    <div class="step">
+      <div class="cap"><span class="num">1</span><p><b>Safari</b>でCMSのURLを開く<br><span style="font-size:10px;color:#888">wyld-media-admin.vercel.app</span></p></div>
+      <div class="phone"><span class="notch"></span>
+        <div class="status"><span>9:41</span><span class="r">▪▪▪ ▮</span></div>
+        <div class="screen">
+          <div class="urlbar"><span class="pill">🔒 wyld-media-admin.vercel.app</span></div>
+          <div class="app">
+            <div class="card">
+              <h4>ログイン</h4>
+              <div class="lbl">メールアドレス</div><div class="inp"></div>
+              <div class="lbl">パスワード</div><div class="inp"></div>
+              <div class="btn"></div><div class="btn ghost"></div>
+            </div>
+          </div>
+          <div class="safari">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#8a8a90" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg> <svg viewBox="0 0 24 24" fill="none" stroke="#8a8a90" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg> <svg class="share" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg> <svg viewBox="0 0 24 24" fill="none" stroke="#8a8a90" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12a1 1 0 0 1 1 1v15l-7-4-7 4V5a1 1 0 0 1 1-1z"/></svg> <svg viewBox="0 0 24 24" fill="none" stroke="#8a8a90" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2 -->
+    <div class="step">
+      <div class="cap"><span class="num">2</span><p>画面下の<b>共有ボタン</b>（□に↑）をタップ</p></div>
+      <div class="phone"><span class="notch"></span>
+        <div class="status"><span>9:41</span><span class="r">▪▪▪ ▮</span></div>
+        <div class="screen">
+          <div class="urlbar"><span class="pill">🔒 wyld-media-admin.vercel.app</span></div>
+          <div class="app"><div class="card"><h4>ログイン</h4><div class="lbl">メールアドレス</div><div class="inp"></div><div class="btn"></div></div></div>
+          <div class="safari">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#8a8a90" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg> <svg viewBox="0 0 24 24" fill="none" stroke="#8a8a90" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg> <svg class="share" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg> <svg viewBox="0 0 24 24" fill="none" stroke="#8a8a90" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12a1 1 0 0 1 1 1v15l-7-4-7 4V5a1 1 0 0 1 1-1z"/></svg> <svg viewBox="0 0 24 24" fill="none" stroke="#8a8a90" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+          </div>
+        </div>
+        <span class="ring" style="width:26px;height:26px;left:calc(50% - 13px);bottom:6px;"></span>
+        <span class="tapnote" style="left:50%;transform:translateX(-50%);bottom:38px;">ここ</span>
+      </div>
+    </div>
+
+    <!-- 3 -->
+    <div class="step">
+      <div class="cap"><span class="num">3</span><p>メニューを下にスクロールし<b>「ホーム画面に追加」</b>をタップ</p></div>
+      <div class="phone"><span class="notch"></span>
+        <div class="status"><span>9:41</span><span class="r">▪▪▪ ▮</span></div>
+        <div class="screen"><div class="app" style="background:#cdd0d6"></div></div>
+        <div class="sheet">
+          <div class="grab"></div>
+          <div class="apps"><span class="a"></span><span class="a"></span><span class="a"></span><span class="a"></span></div>
+          <div class="list">
+            <div class="li"><span>コピー</span><span style="color:#888">⧉</span></div>
+            <div class="li" style="outline:2.5px solid var(--hl);outline-offset:1px;"><span><b>ホーム画面に追加</b></span><span class="ic"></span></div>
+            <div class="li"><span>ブックマークを追加</span><span style="color:#888">📖</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 -->
+    <div class="step">
+      <div class="cap"><span class="num">4</span><p>名前を確認して右上の<b>「追加」</b>をタップ</p></div>
+      <div class="phone"><span class="notch"></span>
+        <div class="status"><span>9:41</span><span class="r">▪▪▪ ▮</span></div>
+        <div class="screen"><div class="app" style="background:#cdd0d6"></div></div>
+        <div class="adddlg">
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:7.5px;margin-bottom:8px;white-space:nowrap;"><span style="color:#888">キャンセル</span><span style="font-weight:700;font-size:8.5px">ホーム画面に追加</span><span style="color:var(--accent);font-weight:700">追加</span></div>
+          <div class="hd"><span class="ic"><svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<rect width="512" height="512" fill="#231f20"/>
+<circle cx="316" cy="196" r="46" fill="#e8b04b"/>
+<path d="M96 372 L206 250 L286 330 L360 262 L416 372 Z" fill="#4a6b52"/>
+<path d="M96 400 L176 300 L256 372 L332 288 L416 400 Z" fill="#8fb08a"/>
+<rect x="96" y="398" width="320" height="10" rx="5" fill="#f5f1e8"/>
+</svg></span><div><div class="nm">WM CMS</div><div class="u">wyld-media-admin.vercel.app</div></div></div>
+        </div>
+        <span class="ring" style="width:30px;height:16px;border-radius:6px;right:8px;top:30px;"></span>
+      </div>
+    </div>
+
+    <!-- 5 -->
+    <div class="step">
+      <div class="cap"><span class="num">5</span><p>ホーム画面の<b>アイコン</b>をタップ→全画面で起動！</p></div>
+      <div class="phone"><span class="notch"></span>
+        <div class="status"><span>9:41</span><span class="r">▪▪▪ ▮</span></div>
+        <div class="home">
+          <div class="grid">
+            <div class="app-ic"><span class="ic blank"></span><span class="lb"> </span></div>
+            <div class="app-ic"><span class="ic blank"></span><span class="lb"> </span></div>
+            <div class="app-ic"><span class="ic"><svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<rect width="512" height="512" fill="#231f20"/>
+<circle cx="316" cy="196" r="46" fill="#e8b04b"/>
+<path d="M96 372 L206 250 L286 330 L360 262 L416 372 Z" fill="#4a6b52"/>
+<path d="M96 400 L176 300 L256 372 L332 288 L416 400 Z" fill="#8fb08a"/>
+<rect x="96" y="398" width="320" height="10" rx="5" fill="#f5f1e8"/>
+</svg></span><span class="lb">WM CMS</span></div>
+            <div class="app-ic"><span class="ic blank"></span><span class="lb"> </span></div>
+          </div>
+          <div class="dock"></div>
+        </div>
+        <span class="ring" style="width:34px;height:34px;left:calc(50% + 6px);top:36px;"></span>
+      </div>
+    </div>
+
+    <!-- done -->
+    <div class="step">
+      <div class="cap"><span class="num" style="background:var(--ridge1)">✓</span><p><b style="color:var(--ridge1)">完了</b>。次からはこのアイコンから全画面で開けます</p></div>
+      <div class="phone"><span class="notch"></span>
+        <div class="status" style="color:#fff"><span>9:41</span><span class="r">▪▪▪ ▮</span></div>
+        <div class="screen" style="inset:20px 0 0;">
+          <div class="appbar"><span class="burger"><i></i><i></i><i></i></span><span class="t">Wild Media CMS</span></div>
+          <div class="dash"><div class="row"></div><div class="row"></div><div class="row"></div><div class="row"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Android ============ -->
+<section class="page">
+  <div class="sec-head">
+    <span class="os"><svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M6 18c0 .55.45 1 1 1h1v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h2v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h1c.55 0 1-.45 1-1V8H6v10zM3.5 8C2.67 8 2 8.67 2 9.5v7c0 .83.67 1.5 1.5 1.5S5 17.33 5 16.5v-7C5 8.67 4.33 8 3.5 8zm17 0c-.83 0-1.5.67-1.5 1.5v7c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-7c0-.83-.67-1.5-1.5-1.5zm-4.97-5.84l1.3-1.3c.2-.2.2-.51 0-.71-.2-.2-.51-.2-.71 0l-1.48 1.48C13.85 1.23 12.95 1 12 1s-1.85.23-2.66.63L7.85.15c-.2-.2-.51-.2-.71 0-.2.2-.2.51 0 .71l1.31 1.31C6.97 3.26 6 5.01 6 7h12c0-1.99-.97-3.74-2.47-4.84z"/></svg></span>
+    <h2>Android（Chrome）の場合</h2>
+    <span class="sub">必ず <b>Chrome</b> で開いてください</span>
+  </div>
+
+  <div class="steps">
+    <!-- 1 -->
+    <div class="step">
+      <div class="cap"><span class="num">1</span><p><b>Chrome</b>でCMSのURLを開く</p></div>
+      <div class="phone"><span class="notch"></span>
+        <div class="status"><span>9:41</span><span class="r">▪▪▪ ▮</span></div>
+        <div class="screen">
+          <div class="urlbar"><span class="pill">🔒 wyld-media-admin.vercel.app</span><span class="dots"><i></i><i></i><i></i></span></div>
+          <div class="app"><div class="card"><h4>ログイン</h4><div class="lbl">メールアドレス</div><div class="inp"></div><div class="lbl">パスワード</div><div class="inp"></div><div class="btn"></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2 -->
+    <div class="step">
+      <div class="cap"><span class="num">2</span><p>右上の<b>「⋮」メニュー</b>をタップ</p></div>
+      <div class="phone"><span class="notch"></span>
+        <div class="status"><span>9:41</span><span class="r">▪▪▪ ▮</span></div>
+        <div class="screen">
+          <div class="urlbar"><span class="pill">🔒 wyld-media-admin.vercel.app</span><span class="dots"><i></i><i></i><i></i></span></div>
+          <div class="app"><div class="card"><h4>ログイン</h4><div class="lbl">メールアドレス</div><div class="inp"></div><div class="btn"></div></div></div>
+        </div>
+        <span class="ring" style="width:16px;height:16px;right:5px;top:22px;"></span>
+        <span class="tapnote" style="right:4px;top:44px;">ここ</span>
+      </div>
+    </div>
+
+    <!-- 3 -->
+    <div class="step">
+      <div class="cap"><span class="num">3</span><p>メニューの<b>「アプリをインストール」</b>（または「ホーム画面に追加」）をタップ</p></div>
+      <div class="phone"><span class="notch"></span>
+        <div class="status"><span>9:41</span><span class="r">▪▪▪ ▮</span></div>
+        <div class="screen">
+          <div class="urlbar"><span class="pill">🔒 wyld-media-admin.vercel.app</span><span class="dots"><i></i><i></i><i></i></span></div>
+          <div class="app" style="background:#cdd0d6"></div>
+        </div>
+        <div class="amenu">
+          <div class="mi">新しいタブ</div>
+          <div class="mi">履歴</div>
+          <div class="mi" style="outline:2.5px solid var(--hl);outline-offset:-2px;font-weight:700;">⊕ アプリをインストール</div>
+          <div class="mi">共有</div>
+          <div class="mi">設定</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 -->
+    <div class="step">
+      <div class="cap"><span class="num">4</span><p><b>「インストール」/「追加」</b>をタップ→ホーム画面にアイコンが追加</p></div>
+      <div class="phone"><span class="notch"></span>
+        <div class="status"><span>9:41</span><span class="r">▪▪▪ ▮</span></div>
+        <div class="screen"><div class="app" style="background:#cdd0d6"></div></div>
+        <div class="adddlg">
+          <div class="hd"><span class="ic"><svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<rect width="512" height="512" fill="#231f20"/>
+<circle cx="316" cy="196" r="46" fill="#e8b04b"/>
+<path d="M96 372 L206 250 L286 330 L360 262 L416 372 Z" fill="#4a6b52"/>
+<path d="M96 400 L176 300 L256 372 L332 288 L416 400 Z" fill="#8fb08a"/>
+<rect x="96" y="398" width="320" height="10" rx="5" fill="#f5f1e8"/>
+</svg></span><div><div class="nm">WM CMS</div><div class="u">wyld-media-admin.vercel.app</div></div></div>
+          <div class="actions"><span style="color:#888">キャンセル</span><span class="add">インストール</span></div>
+        </div>
+        <span class="ring" style="width:48px;height:15px;border-radius:7px;right:10px;top:84px;"></span>
+      </div>
+    </div>
+
+    <!-- 5 -->
+    <div class="step">
+      <div class="cap"><span class="num">5</span><p>ホーム画面／アプリ一覧の<b>アイコン</b>から起動！</p></div>
+      <div class="phone"><span class="notch"></span>
+        <div class="status"><span>9:41</span><span class="r">▪▪▪ ▮</span></div>
+        <div class="home">
+          <div class="grid">
+            <div class="app-ic"><span class="ic blank"></span><span class="lb"> </span></div>
+            <div class="app-ic"><span class="ic"><svg class="icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<rect width="512" height="512" fill="#231f20"/>
+<circle cx="316" cy="196" r="46" fill="#e8b04b"/>
+<path d="M96 372 L206 250 L286 330 L360 262 L416 372 Z" fill="#4a6b52"/>
+<path d="M96 400 L176 300 L256 372 L332 288 L416 400 Z" fill="#8fb08a"/>
+<rect x="96" y="398" width="320" height="10" rx="5" fill="#f5f1e8"/>
+</svg></span><span class="lb">WM CMS</span></div>
+            <div class="app-ic"><span class="ic blank"></span><span class="lb"> </span></div>
+            <div class="app-ic"><span class="ic blank"></span><span class="lb"> </span></div>
+          </div>
+          <div class="dock"></div>
+        </div>
+        <span class="ring" style="width:34px;height:34px;left:calc(25% + 2px);top:36px;"></span>
+      </div>
+    </div>
+
+    <!-- done -->
+    <div class="step">
+      <div class="cap"><span class="num" style="background:var(--ridge1)">✓</span><p><b style="color:var(--ridge1)">完了</b>。全画面のアプリとして使えます</p></div>
+      <div class="phone"><span class="notch"></span>
+        <div class="status" style="color:#fff"><span>9:41</span><span class="r">▪▪▪ ▮</span></div>
+        <div class="screen" style="inset:20px 0 0;">
+          <div class="appbar"><span class="burger"><i></i><i></i><i></i></span><span class="t">Wild Media CMS</span></div>
+          <div class="dash"><div class="row"></div><div class="row"></div><div class="row"></div><div class="row"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section class="page">
+  <div class="sec-head">
+    <span class="os" style="background:var(--ridge1)">?</span>
+    <h2>うまくいかないとき</h2>
+  </div>
+
+  <div class="faq">
+    <div class="q">
+      <h4><span class="tag">iPhone</span>「共有」メニューに「ホーム画面に追加」が出てこない</h4>
+      <p>ほぼ確実に <b>Safari 以外のブラウザ</b>（Chrome・アプリ内ブラウザ・LINEのリンク等）で開いています。いったんURLをコピーして <b>Safari</b> に貼り付けて開き直してください。iPhoneでこの機能が使えるのは Safari だけです。</p>
+    </div>
+    <div class="q">
+      <h4><span class="tag">Android</span>メニューに「アプリをインストール」が見当たらない</h4>
+      <p>端末やバージョンにより名称が <b>「ホーム画面に追加」</b> になっています。どちらも同じ機能です。それも無い場合は <b>Chrome</b> で開いているか確認してください（他ブラウザでは出ないことがあります）。</p>
+    </div>
+    <div class="q">
+      <h4><span class="tag">共通</span>アイコンをタップしてもブラウザのバーが表示される</h4>
+      <p>ホーム画面の<b>アイコンから</b>起動していない可能性があります。ブックマークではなく、追加された<b>アプリアイコン</b>をタップしてください。正しく起動すると上下のブラウザバーが消え、全画面になります。</p>
+    </div>
+    <div class="q">
+      <h4><span class="tag">共通</span>ログインが毎回切れる？</h4>
+      <p>通常はログイン状態が保持されます。もし切れた場合は、ログイン画面の<b>「メールでログインリンクを送る」</b>からパスワード無しでも入れます。</p>
+    </div>
+  </div>
+
+  <div class="note">
+    このマニュアルは編集部向けの操作ガイドです。画面の文言やメニュー名は端末・OSバージョンにより多少異なることがあります。
+    不明点は編集部（vim@wyld-crd.org）までお問い合わせください。
+  </div>
+</section>
+
+</body>
+</html>
